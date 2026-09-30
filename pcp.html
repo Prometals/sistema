@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PCP · Monitor · Prometals</title>
+<link rel="stylesheet" href="css/tema.css">
+<link rel="stylesheet" href="css/sistema.css">
+<style>
+/* ---------- específico desta página ---------- */
+.kc { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; }
+.kc button { display: flex; align-items: center; gap: 12px; background: var(--painel); border: 1px solid var(--linha); border-left: 4px solid var(--c); border-radius: 12px; padding: 12px 16px; cursor: pointer; text-align: left; }
+.kc button b { font-size: 24px; font-variant-numeric: tabular-nums; }
+.kc button span { font-size: 11px; font-weight: 800; letter-spacing: .6px; color: var(--texto-suave); text-transform: uppercase; flex: 1; }
+.kc button svg { color: var(--c); }
+.kc button.sel { outline: 2px solid var(--c); outline-offset: -1px; }
+
+.barra { display: flex; gap: 8px; align-items: center; background: var(--painel); border: 1px solid var(--linha); border-radius: 12px; padding: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+.barra .f { flex: 1; min-width: 240px; position: relative; }
+.barra .f input { height: 38px; padding-left: 36px; }
+.barra .f svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--texto-suave); }
+.barra .modo { font-size: 12.5px; font-weight: 700; color: var(--destaque); display: flex; align-items: center; gap: 6px; }
+.btn2.travar { background: #9a3412; border-color: #9a3412; color: #fff; }
+.btn2.salvar { background: #16a34a; border-color: #16a34a; color: #fff; }
+.btn2 .n { background: rgba(255,255,255,.25); border-radius: 999px; padding: 0 7px; font-size: 11px; }
+
+.tb { background: var(--painel); border: 1px solid var(--linha); border-radius: 12px; overflow: auto; max-height: calc(100vh - 330px); }
+table.op { width: 100%; border-collapse: collapse; font-size: 13px; }
+table.op th { position: sticky; top: 0; z-index: 2; background: var(--bg); text-align: left; font-size: 11px; font-weight: 800; letter-spacing: .5px; color: var(--texto-suave); padding: 10px 6px; white-space: nowrap; border-bottom: 1px solid var(--linha); }
+html.tema-claro table.op th { background: #f1f5f9; }
+table.op td { padding: 9px 6px; border-bottom: 1px solid var(--linha); white-space: nowrap; }
+table.op tr td:first-child { border-left: 3px solid transparent; }
+table.op tr.atr td:first-child { border-left-color: #ef4444; }
+table.op tr.par td:first-child { border-left-color: #eab308; }
+table.op tr.eng td:first-child { border-left-color: #a855f7; }
+table.op tr.nova td:first-child { border-left-color: #22c55e; }
+table.op tr.nova { background: rgba(34,197,94,.06); }
+table.op tr.alt td:first-child { border-left-color: var(--destaque); }
+table.op tr:hover td { background: var(--hover); }
+table.op td.num, table.op th.num { text-align: right; }
+.desc { max-width: 210px; overflow: hidden; text-overflow: ellipsis; }
+.cod { color: var(--texto-suave); }
+.selo { font-size: 9.5px; font-weight: 800; border-radius: 4px; padding: 1px 5px; margin-left: 6px; }
+.selo.ok { background: rgba(34,197,94,.18); color: #34d399; }
+.selo.sem { background: rgba(234,179,8,.2); color: #fbbf24; }
+html.tema-claro .selo.ok { color: #166534; }
+html.tema-claro .selo.sem { color: #92400e; }
+.prz.atr { color: #f87171; font-weight: 800; }
+html.tema-claro .prz.atr { color: #b91c1c; }
+.mold small { color: var(--texto-suave); font-size: 11px; }
+.proc { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 800; border-radius: 999px; padding: 3px 10px; background: var(--painel-2); }
+.proc::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--c, #64748b); }
+.acs { display: flex; gap: 6px; justify-content: flex-end; }
+.ib { width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--borda); background: transparent; display: grid; place-items: center; cursor: pointer; color: var(--texto-suave); }
+.ib:hover { color: var(--texto); background: var(--hover); }
+.ib.et { border-color: #c2410c; color: var(--destaque); }
+.ib svg { width: 16px; height: 16px; }
+
+/* modo edição */
+table.op input, table.op select { height: 32px; padding: 0 8px; font-size: 12.5px; border-radius: 7px; }
+table.op .w-op { width: 64px; } table.op .w-ped { width: 64px; } table.op .w-cli { width: 96px; } table.op .w-cod { width: 96px; }
+table.op .w-desc { width: 150px; } table.op .w-q { width: 48px; text-align: right; } table.op .w-liga { width: 50px; }
+table.op .w-prz { width: 124px; } table.op .w-m { width: 50px; text-align: right; } table.op .w-p { width: 62px; text-align: right; } table.op .w-proc { width: 140px; }
+table.op .auto { border-color: #22c55e; background: rgba(34,197,94,.08); }
+table.op .mud { border-color: var(--destaque); }
+table.op .errc { border-color: #ef4444; }
+.dica-auto { display: block; font-size: 10px; font-weight: 700; color: #22c55e; margin-top: 3px; }
+.leg { display: flex; gap: 16px; flex-wrap: wrap; padding: 10px 14px; font-size: 11.5px; color: var(--texto-suave); border-top: 1px solid var(--linha); }
+.leg i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+
+/* menu ⋯ */
+.menu-op { position: fixed; z-index: 60; background: var(--painel); border: 1px solid var(--linha); border-radius: 10px; box-shadow: var(--sombra); padding: 6px; min-width: 180px; }
+.menu-op button { width: 100%; display: flex; align-items: center; gap: 10px; padding: 9px 10px; border: 0; background: transparent; border-radius: 8px; cursor: pointer; font-size: 13px; text-align: left; }
+.menu-op button:hover { background: var(--hover); }
+.menu-op button.perigo { color: var(--erro); }
+.menu-op button svg { width: 16px; height: 16px; }
+
+/* janelas */
+.fg { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; }
+.fg .full { grid-column: 1 / -1; }
+.fg label { display: grid; gap: 5px; font-size: 11px; font-weight: 800; letter-spacing: .4px; color: var(--texto-suave); text-transform: uppercase; }
+.fg input, .fg select { height: 38px; padding: 0 10px; font-size: 13.5px; }
+.fg input[readonly] { opacity: .8; }
+.et-grade { display: grid; grid-template-columns: 1fr 200px; gap: 16px; }
+.info-mold { background: var(--painel-2); border-radius: 8px; padding: 9px 12px; font-size: 12.5px; }
+.previa { border: 1px solid var(--linha); border-radius: 10px; padding: 10px; font-size: 11px; color: var(--texto-suave); }
+.previa .cx { width: 170px; height: 85px; overflow: hidden; background: #fff; margin: 6px 0 8px; }
+.previa .cx > div { transform: scale(.4480); transform-origin: 0 0; }
+.efeito { background: var(--painel-2); border-radius: 8px; padding: 10px 12px; font-size: 12.5px; line-height: 1.5; margin: 10px 0; }
+
+/* celular */
+.cm .acs { margin-left: auto; }
+.cm-rod { display: flex; align-items: center; gap: 8px; }
+.km { cursor: pointer; border: 0; font: inherit; }
+@media (max-width: 1100px) { .kc { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 760px) {
+  .conteudo { padding-bottom: 90px; }
+  .fg, .et-grade { grid-template-columns: 1fr; }
+  .previa { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- PCP · Monitor — a carteira de OPs.
+     Lógica igual ao painel antigo (Editar/Travar, Nova OP, Cancelar,
+     Salvar, etiqueta 100×50 idêntica, filtros do cabeçalho).
+     Novo: código preenche o cadastro, selo BOM, moldes "saldo de
+     planejado", Cancelar OP no menu ⋯, versão de celular. -->
+<main class="conteudo">
+  <div class="tit-pagina">
+    <div><h1>PCP · Monitor</h1><p>Carteira de OPs: cadastro, prazo, moldes, processo e etiquetas</p></div>
+  </div>
+
+  <div class="kc so-desk" id="cards"></div>
+  <div class="kpi-mini so-mob" id="cards-mob"></div>
+
+  <div class="barra so-desk">
+    <div class="f"><svg class="i"><use href="#i-busca"/></svg><input id="busca" placeholder="Buscar por OP, cliente, código, pedido ou descrição…" autocomplete="off"></div>
+    <span class="modo" id="modo" hidden><svg class="i" style="width:15px;height:15px"><use href="#i-lapis"/></svg><span></span></span>
+    <button class="btn2" id="bt-editar" data-editar><svg class="i"><use href="#i-lapis"/></svg><span>Editar</span></button>
+    <button class="btn2" id="bt-nova" data-editar><svg class="i"><use href="#i-mais"/></svg>Nova OP</button>
+    <button class="btn2" id="bt-cancelar" hidden>Cancelar</button>
+    <button class="btn2 salvar" id="bt-salvar" hidden><svg class="i"><use href="#i-check"/></svg><span class="rot">Salvar</span> <span class="n">0</span></button>
+  </div>
+  <div class="busca-mob so-mob"><div class="f"><svg class="i"><use href="#i-busca"/></svg><input id="busca-mob" placeholder="OP, cliente, código…" autocomplete="off"></div></div>
+
+  <div class="tb so-desk">
+    <table class="op">
+      <thead><tr>
+        <th>OP</th><th>PEDIDO</th><th>CLIENTE</th><th>CÓDIGO</th><th>DESCRIÇÃO</th><th class="num">QTD</th><th>LIGA</th>
+        <th>PRAZO</th><th class="num">MOLDES</th><th class="num">PESO (KG)</th><th>PROCESSO</th><th></th>
+      </tr></thead>
+      <tbody id="linhas"><tr><td colspan="12"><div class="carregando">Carregando a carteira…</div></td></tr></tbody>
+    </table>
+    <div class="leg" id="legenda"></div>
+  </div>
+  <div class="lista-mob so-mob" id="cartoes"></div>
+
+  <div class="barra-mob so-mob" id="barra-mob" hidden>
+    <button class="pri" data-acao="nova-mob" style="background:var(--destaque);border-color:var(--destaque)"><svg class="i"><use href="#i-mais"/></svg>Nova OP</button>
+  </div>
+</main>
+
+<script src="js/config.js"></script>
+<script src="js/icones.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/api.js"></script>
+<script src="js/sessao.js"></script>
+<script src="js/shell.js"></script>
+<script src="js/cronograma.js"></script>
+<script>
+Sessao.iniciarPagina('pcp').then(function (ctx) {
+  const $ = function (s) { return document.querySelector(s); };
+
+  // Lista mestre de processos — a mesma do painel antigo e da aba CAD_PROCESSO
+  const PROCESSOS = ['VALIDAÇÃO TÉCNICA', 'ENGENHARIA', 'PLANEJAMENTO', 'FILA DE PRODUÇÃO', 'MODELAÇÃO',
+    'MOLDAGEM', 'PINTURA', 'FUSÃO', 'REBARBAÇÃO', 'TRATAMENTO TÉRMICO', 'JATEAMENTO',
+    'USINAGEM', 'BALANCEAMENTO EXTERNO', 'INSPEÇÃO FINAL', 'EXPEDIÇÃO'];
+  const CAMPOS = ['op', 'pedido', 'cliente', 'codigo', 'descricao', 'qtdordem', 'liga', 'prazo', 'qtdmoldes', 'pesomoldes', 'processo'];
+
+  let dados = [];            // carteira (formato do painel antigo)
+  let produtos = {};         // código sem zeros → produto do cadastro (com QTD_INSUMOS)
+  let filtro = 'TODAS';
+  let editando = false;      // modo edição da tabela (computador)
+  let edicoes = {};          // id_item → { campo: valor } só do que mudou
+  let novas = [];            // linhas novas ainda não salvas
+  let contNova = 0;
+  let salvando = false;
+
+  if (!ctx.podeEditar) document.querySelectorAll('[data-editar]').forEach(function (b) { b.hidden = true; });
+  $('#barra-mob').hidden = !ctx.podeEditar;
+  $('#legenda').innerHTML =
+    '<span><i style="background:#ef4444"></i>Atrasada (cronograma)</span><span><i style="background:#eab308"></i>Parada (4+ dias sem movimentar)</span>' +
+    '<span><i style="background:#a855f7"></i>Engenharia (sem OP)</span><span><i style="background:#22c55e"></i>Nova linha · campos verdes vieram do cadastro</span>' +
+    '<span><i style="background:var(--destaque)"></i>Alterada, ainda não salva</span><span>Moldes = saldo que falta fundir · "de N" = planejado</span>';
+
+  carregar();
+  carregarProdutos();
+  setInterval(function () { if (!document.hidden && !ocupado()) carregar(true); }, 60000);
+
+  // ---------- Dados ----------
+  function ocupado() {
+    return editando || novas.length > 0 || salvando || !!document.querySelector('.modal-fundo');
+  }
+
+  async function carregar(silencioso) {
+    try {
+      const r = await Api.chamar('listarCarteira', { visao: 'PRODUCAO' }, { rapido: function () { if (!ocupado()) carregar(true); } });
+      dados = r.itens.map(function (x) {
+        x.ehEng = !x.op;
+        x.cat = Cronograma.categoria(x);
+        x.parada = Cronograma.parada(x);
+        return x;
+      });
+      desenhar();
+    } catch (e) {
+      if (!silencioso) Ui.erro(e);
+    }
+  }
+
+  async function carregarProdutos() {
+    try {
+      const lista = await Api.chamar('listarProdutos', {}, { rapido: function () { carregarProdutos(); } });
+      produtos = {};
+      lista.forEach(function (p) { produtos[normCod(p.COD_ITEM)] = p; });
+      desenhar();
+    } catch (e) { /* sem o cadastro, só não mostra o selo BOM */ }
+  }
+
+  // ---------- Filtro ----------
+  function visiveis() {
+    const busca = (window.innerWidth <= 760 ? $('#busca-mob') : $('#busca')).value.toLowerCase().trim();
+    return dados.filter(function (x) {
+      let ok = true;
+      if (filtro === 'EM PRODUÇÃO') ok = x.situacao === 'EM PRODUÇÃO';
+      if (filtro === 'ATRASADAS') ok = x.cat === 'ATRASADO';
+      if (filtro === 'PARADAS') ok = x.parada;
+      const txt = (x.op + ' ' + x.pedido + ' ' + x.cliente + ' ' + x.codigo + ' ' + x.descricao).toLowerCase();
+      return ok && (!busca || txt.indexOf(busca) !== -1);
+    });
+  }
+  $('#busca').addEventListener('input', desenharLinhas);
+  $('#busca-mob').addEventListener('input', desenharCartoes);
+
+  // ---------- Desenho ----------
+  function desenhar() {
+    desenharCards();
+    desenharLinhas();
+    desenharCartoes();
+  }
+
+  // Mesma lógica do cabeçalho antigo: EM PRODUÇÃO = tem nº de OP;
+  // ATRASADAS = pelo cronograma; PARADAS = 4+ dias sem movimentar.
+  function desenharCards() {
+    const k = [
+      { f: 'TODAS', c: '#3b82f6', ic: 'i-tabela', n: dados.length, t: 'Carteira total', m: 'Carteira' },
+      { f: 'EM PRODUÇÃO', c: '#22c55e', ic: 'i-fogo', n: dados.filter(function (x) { return !!x.op; }).length, t: 'Em produção', m: 'Produção' },
+      { f: 'ATRASADAS', c: '#ef4444', ic: 'i-alerta', n: dados.filter(function (x) { return x.cat === 'ATRASADO'; }).length, t: 'Atrasadas', m: 'Atrasadas' },
+      { f: 'PARADAS', c: '#eab308', ic: 'i-relogio', n: dados.filter(function (x) { return x.parada; }).length, t: 'Paradas', m: 'Paradas' }
+    ];
+    $('#cards').innerHTML = k.map(function (x) {
+      return '<button data-filtro="' + x.f + '" class="' + (filtro === x.f ? 'sel' : '') + '" style="--c:' + x.c + '"><b>' + x.n + '</b><span>' + x.t + '</span>' + Ui.ic(x.ic) + '</button>';
+    }).join('');
+    $('#cards-mob').innerHTML = k.map(function (x) {
+      return '<button class="km' + (filtro === x.f ? ' sel' : '') + (x.f === 'ATRASADAS' && x.n ? ' piscando' : '') + '" data-filtro="' + x.f + '" style="--c:' + x.c + '"><b>' + x.n + '</b> ' + x.m + '</button>';
+    }).join('');
+  }
+
+  function classeLinha(x) {
+    if (x.ehEng) return 'eng';
+    if (x.cat === 'ATRASADO') return 'atr';
+    if (x.parada) return 'par';
+    return '';
+  }
+  function corProcesso(x) {
+    if (x.ehEng) return '#a855f7';
+    if (x.cat === 'ATRASADO') return '#ef4444';
+    if (x.parada) return '#eab308';
+    if (x.situacao === 'EM PRODUÇÃO') return '#f97316';
+    return '#64748b';
+  }
+  function selo(codigo) {
+    if (!Object.keys(produtos).length) return '';
+    const p = produtos[normCod(codigo)];
+    return p && p.QTD_INSUMOS ? '<span class="selo ok">BOM</span>' : '<span class="selo sem">sem BOM</span>';
+  }
+
+  function desenharLinhas() {
+    const lista = visiveis();
+    let html = novas.map(htmlNova).join('');
+    html += lista.map(function (x) { return editando ? htmlEdicao(x) : htmlLeitura(x); }).join('');
+    $('#linhas').innerHTML = html || '<tr><td colspan="12"><div class="vazio">Nenhuma OP ' + (filtro !== 'TODAS' ? 'neste filtro' : 'encontrada') + '.</div></td></tr>';
+    atualizarBarra();
+  }
+
+  function htmlLeitura(x) {
+    const acoes = (x.op ? '<button class="ib et" title="Gerar etiquetas" data-etiqueta="' + x.id_item + '">' + Ui.ic('i-tag') + '</button>' : '') +
+      (ctx.podeEditar ? '<button class="ib" title="Mais ações" data-menu="' + x.id_item + '">' + Ui.ic('i-pontos') + '</button>' : '');
+    return '<tr class="' + classeLinha(x) + '">' +
+      '<td><b>' + Ui.esc(x.op ? semZeros(x.op) : '—') + '</b></td><td>' + Ui.esc(semZeros(x.pedido)) + '</td><td>' + Ui.esc(x.cliente) + '</td>' +
+      '<td class="cod">' + Ui.esc(x.codigo) + selo(x.codigo) + '</td><td class="desc" title="' + Ui.esc(x.descricao) + '">' + Ui.esc(x.descricao) + '</td>' +
+      '<td class="num">' + Ui.esc(x.qtdordem) + '</td><td>' + Ui.esc(x.liga) + '</td>' +
+      '<td class="prz' + (x.cat === 'ATRASADO' ? ' atr' : '') + '">' + Ui.esc(prazoCurto(x.prazo)) + '</td>' +
+      '<td class="num mold"><b>' + fmtN(x.qtdmoldes) + '</b> <small>de ' + fmtN(x.qtdmoldesPlanejados) + '</small></td>' +
+      '<td class="num">' + fmtPeso(x.pesomoldes) + '</td>' +
+      '<td><span class="proc" style="--c:' + corProcesso(x) + '">' + Ui.esc(x.processo) + '</span></td>' +
+      '<td><div class="acs">' + acoes + '</div></td></tr>';
+  }
+
+  // Valor atual de um campo na edição (o que foi digitado, senão o original)
+  function valor(x, campo) {
+    const e = edicoes[x.id_item];
+    if (e && campo in e) return e[campo];
+    return original(x, campo);
+  }
+  function original(x, campo) {
+    if (campo === 'prazo') return brParaIso(x.prazo);
+    if (campo === 'qtdmoldes') return x.qtdmoldesPlanejados === '' ? '' : String(x.qtdmoldesPlanejados);
+    if (campo === 'pesomoldes') return x.pesomoldesPlanejado === '' ? '' : String(x.pesomoldesPlanejado).replace('.', ',');
+    if (campo === 'op' || campo === 'pedido') return semZeros(x[campo]);
+    return x[campo] === undefined || x[campo] === null ? '' : String(x[campo]);
+  }
+
+  function htmlEdicao(x) {
+    const mud = function (c) { return edicoes[x.id_item] && c in edicoes[x.id_item] ? ' mud' : ''; };
+    const inp = function (c, cls, tipo, extra) {
+      return '<td><input class="' + cls + mud(c) + '" data-id="' + x.id_item + '" data-c="' + c + '"' +
+        (tipo ? ' type="' + tipo + '"' : '') + (extra || '') + ' value="' + Ui.esc(valor(x, c)) + '"></td>';
+    };
+    const proc = valor(x, 'processo');
+    const opcoes = PROCESSOS.map(function (p) { return '<option' + (p === proc ? ' selected' : '') + '>' + p + '</option>'; }).join('') +
+      (PROCESSOS.indexOf(proc) === -1 ? '<option selected value="' + Ui.esc(proc) + '">' + Ui.esc(proc) + '</option>' : '');
+    return '<tr class="' + (edicoes[x.id_item] ? 'alt' : classeLinha(x)) + '" data-linha="' + x.id_item + '">' +
+      inp('op', 'w-op', '', ' placeholder="nº OP" inputmode="numeric"') + inp('pedido', 'w-ped') + inp('cliente', 'w-cli') + inp('codigo', 'w-cod') +
+      inp('descricao', 'w-desc') + inp('qtdordem', 'w-q', 'number', ' min="0"') + inp('liga', 'w-liga') + inp('prazo', 'w-prz', 'date') +
+      inp('qtdmoldes', 'w-m', 'number', ' min="0" title="Moldes PLANEJADOS"') + inp('pesomoldes', 'w-p', '', ' inputmode="decimal" title="Peso PLANEJADO (kg)"') +
+      '<td><select class="w-proc' + mud('processo') + '" data-id="' + x.id_item + '" data-c="processo">' + opcoes + '</select></td><td></td></tr>';
+  }
+
+  function htmlNova(n) {
+    const inp = function (c, cls, tipo, extra) {
+      const auto = n._auto[c] !== undefined && String(n._auto[c]) === String(n[c]) && n[c] !== '';
+      return '<input class="' + cls + (auto ? ' auto' : '') + (n._erro === c ? ' errc' : '') + '" data-nova="' + n.uid + '" data-c="' + c + '"' +
+        (tipo ? ' type="' + tipo + '"' : '') + (extra || '') + ' value="' + Ui.esc(n[c]) + '">';
+    };
+    const autoDesc = n._auto.descricao && n._auto.descricao === n.descricao;
+    return '<tr class="nova" data-nova-linha="' + n.uid + '">' +
+      '<td>' + inp('op', 'w-op', '', ' placeholder="nº OP" inputmode="numeric"') + '</td><td>' + inp('pedido', 'w-ped') + '</td><td>' + inp('cliente', 'w-cli') + '</td>' +
+      '<td>' + inp('codigo', 'w-cod', '', ' placeholder="código"') + '</td>' +
+      '<td>' + inp('descricao', 'w-desc') + (autoDesc ? '<span class="dica-auto">✓ preenchido pelo cadastro</span>' : '') + '</td>' +
+      '<td>' + inp('qtdordem', 'w-q', 'number', ' min="0"') + '</td><td>' + inp('liga', 'w-liga') + '</td><td>' + inp('prazo', 'w-prz', 'date') + '</td>' +
+      '<td>' + inp('qtdmoldes', 'w-m', 'number', ' min="0"') + (n._mpp && n.qtdordem ? '<span class="dica-auto">' + n.qtdordem + ' pç × ' + n._mpp + '</span>' : '') + '</td>' +
+      '<td>' + inp('pesomoldes', 'w-p', '', ' inputmode="decimal"') + '</td>' +
+      '<td class="mut" style="font-size:11.5px">definido depois de salvar</td>' +
+      '<td><button class="ib" title="Descartar esta linha" data-descartar="' + n.uid + '">' + Ui.ic('i-x') + '</button></td></tr>';
+  }
+
+  function desenharCartoes() {
+    const lista = visiveis();
+    $('#cartoes').innerHTML = lista.map(function (x) {
+      const acoes = (x.op ? '<button class="ib et" data-etiqueta="' + x.id_item + '" title="Etiquetas">' + Ui.ic('i-tag') + '</button>' : '') +
+        (ctx.podeEditar ? '<button class="ib" data-editar-mob="' + x.id_item + '" title="Editar">' + Ui.ic('i-lapis') + '</button>' : '');
+      const cls = classeLinha(x);
+      return '<div class="cm"' + (cls ? ' style="border-left:3px solid ' + corProcesso(x) + '"' : '') + '>' +
+        '<div class="cm-top"><span class="op">' + Ui.esc(x.op ? semZeros(x.op) : '—') + '</span><span class="cli">' + Ui.esc(x.cliente) + ' · ped. ' + Ui.esc(semZeros(x.pedido)) + '</span>' +
+        '<span class="prazo' + (x.cat === 'ATRASADO' ? ' atraso' : '') + '">' + Ui.esc(prazoCurto(x.prazo)) + '</span></div>' +
+        '<div class="cm-desc">' + Ui.esc(x.descricao) + '<small>' + Ui.esc(x.codigo) + ' · ' + Ui.esc(x.liga) + ' · ' + Ui.esc(x.qtdordem) + ' pç · moldes ' + fmtN(x.qtdmoldes) + ' de ' + fmtN(x.qtdmoldesPlanejados) + '</small></div>' +
+        '<div class="cm-rod"><span class="proc" style="--c:' + corProcesso(x) + '">' + Ui.esc(x.processo) + '</span><div class="acs">' + acoes + '</div></div></div>';
+    }).join('') || '<div class="vazio">Nenhuma OP encontrada.</div>';
+  }
+
+  function atualizarBarra() {
+    const n = contarAlteracoes();
+    $('#bt-editar').classList.toggle('travar', editando);
+    $('#bt-editar span').textContent = editando ? 'Travar' : 'Editar';
+    $('#bt-editar').querySelector('use').setAttribute('href', editando ? '#i-cadeado' : '#i-lapis');
+    $('#bt-cancelar').hidden = !(editando || novas.length);
+    $('#bt-salvar').hidden = !(editando || novas.length);
+    $('#bt-salvar').disabled = !n || salvando;
+    $('#bt-salvar .n').textContent = n;
+    $('#modo').hidden = !(editando || novas.length);
+    $('#modo span').textContent = 'Modo edição · ' + n + ' alteraç' + (n === 1 ? 'ão' : 'ões');
+  }
+  function contarAlteracoes() { return novas.length + Object.keys(edicoes).length; }
+
+  // ---------- Digitação (escreve direto no estado; a tabela pode redesenhar sem perder nada) ----------
+  $('#linhas').addEventListener('input', function (ev) {
+    const el = ev.target;
+    if (!el.dataset.c) return;
+    let v = el.value;
+    if (el.dataset.c === 'op' || el.dataset.c === 'pedido') { v = v.replace(/^0+(?=\d)/, ''); if (v !== el.value) el.value = v; }
+    if (el.dataset.c === 'pesomoldes') { v = v.replace(/[^0-9,.]/g, ''); if (v !== el.value) el.value = v; }
+    if (el.dataset.c === 'qtdmoldes' && Number(v) < 0) { v = '0'; el.value = v; }
+    if (el.dataset.nova) {
+      const n = novas.find(function (x) { return x.uid === el.dataset.nova; });
+      n[el.dataset.c] = v;
+      if (n._erro === el.dataset.c) { n._erro = ''; el.classList.remove('errc'); }
+      if (el.dataset.c === 'qtdordem' && n._mpp && (n.qtdmoldes === '' || String(n.qtdmoldes) === String(n._auto.qtdmoldes))) {
+        n.qtdmoldes = n._auto.qtdmoldes = v ? String(Number(v) * n._mpp) : '';
+        redesenharNova(n, el);
+      }
+    } else {
+      const x = dados.find(function (d) { return d.id_item === el.dataset.id; });
+      const e = edicoes[x.id_item] || (edicoes[x.id_item] = {});
+      if (v === original(x, el.dataset.c)) delete e[el.dataset.c]; else e[el.dataset.c] = v;
+      if (!Object.keys(e).length) delete edicoes[x.id_item];
+      el.classList.toggle('mud', el.dataset.c in (edicoes[x.id_item] || {}));
+      const tr = el.closest('tr'); tr.className = edicoes[x.id_item] ? 'alt' : classeLinha(x);
+    }
+    atualizarBarra();
+  });
+  $('#linhas').addEventListener('change', function (ev) {
+    const el = ev.target;
+    if (el.tagName === 'SELECT') { el.dispatchEvent(new Event('input', { bubbles: true })); return; }
+    if (el.dataset.nova && el.dataset.c === 'codigo') preencherDoCadastro(novas.find(function (x) { return x.uid === el.dataset.nova; }), el);
+  });
+
+  // Código digitado na linha nova → descrição, liga e moldes do cadastro (verde)
+  function preencherDoCadastro(n, el) {
+    const p = produtos[normCod(n.codigo)];
+    n._auto = {}; n._mpp = 0;
+    if (p) {
+      n.codigo = p.COD_ITEM;
+      n.descricao = n._auto.descricao = p.DESCRICAO || n.descricao;
+      if (p.LIGA_PADRAO) n.liga = n._auto.liga = p.LIGA_PADRAO;
+      n._mpp = Number(p.MOLDES_POR_PECA) || 0;
+      if (n._mpp && n.qtdordem) n.qtdmoldes = n._auto.qtdmoldes = String(Number(n.qtdordem) * n._mpp);
+      else if (n._mpp) n._auto.qtdmoldes = '';
+    } else if (n.codigo) {
+      Ui.toast('Código ' + n.codigo + ' não está no cadastro. Preencha a descrição: o produto será criado ao salvar.', 'aviso');
+    }
+    redesenharNova(n, el);
+  }
+  function redesenharNova(n, el) {
+    const campo = el && el.dataset.c;
+    const tr = document.querySelector('[data-nova-linha="' + n.uid + '"]');
+    tr.outerHTML = htmlNova(n);
+    if (campo) {
+      const novo = document.querySelector('[data-nova="' + n.uid + '"][data-c="' + campo + '"]');
+      if (novo && campo !== 'codigo') { novo.focus(); const t = novo.value.length; try { novo.setSelectionRange(t, t); } catch (e) { /* type number */ } }
+    }
+  }
+
+  // ---------- Botões ----------
+  document.addEventListener('click', function (ev) {
+    const f = ev.target.closest('[data-filtro]');
+    if (f) { filtro = f.dataset.filtro === filtro && filtro !== 'TODAS' ? 'TODAS' : f.dataset.filtro; desenhar(); return; }
+    const et = ev.target.closest('[data-etiqueta]');
+    if (et) { abrirEtiqueta(dados.find(function (d) { return d.id_item === et.dataset.etiqueta; })); return; }
+    const mn = ev.target.closest('[data-menu]');
+    if (mn) { abrirMenu(mn, dados.find(function (d) { return d.id_item === mn.dataset.menu; })); return; }
+    const ds = ev.target.closest('[data-descartar]');
+    if (ds) { novas = novas.filter(function (n) { return n.uid !== ds.dataset.descartar; }); desenharLinhas(); return; }
+    const em = ev.target.closest('[data-editar-mob]');
+    if (em) { editarMob(dados.find(function (d) { return d.id_item === em.dataset.editarMob; })); return; }
+    if (ev.target.closest('[data-acao="nova-mob"]')) { editarMob(null); return; }
+    if (!ev.target.closest('.menu-op')) fecharMenu();
+  });
+
+  $('#bt-editar').addEventListener('click', function () {
+    if (editando && Object.keys(edicoes).length) {
+      Ui.toast('Há alterações não salvas. Salve ou cancele antes de travar.', 'aviso');
+      return;
+    }
+    editando = !editando;
+    desenharLinhas();
+  });
+  $('#bt-nova').addEventListener('click', function () {
+    contNova++;
+    novas.unshift({ uid: 'n' + contNova, op: '', pedido: '', cliente: '', codigo: '', descricao: '', qtdordem: '', liga: '', prazo: '', qtdmoldes: '', pesomoldes: '', _auto: {}, _mpp: 0 });
+    desenharLinhas();
+    const c = document.querySelector('[data-nova="n' + contNova + '"][data-c="pedido"]');
+    if (c) c.focus();
+  });
+  $('#bt-cancelar').addEventListener('click', async function () {
+    if (contarAlteracoes() && !(await Ui.confirmar({ titulo: 'Descartar alterações', texto: 'As ' + contarAlteracoes() + ' alteração(ões) não salvas serão perdidas.', ok: 'Descartar', perigo: true }))) return;
+    edicoes = {}; novas = []; editando = false;
+    desenharLinhas();
+    carregar();
+  });
+  $('#bt-salvar').addEventListener('click', salvar);
+  window.addEventListener('beforeunload', function (ev) { if (contarAlteracoes()) { ev.preventDefault(); ev.returnValue = ''; } });
+
+  // ---------- Salvar (linhas novas + editadas numa chamada só) ----------
+  function montarEnvio() {
+    const linhas = [];
+    const mapa = [];   // posição no envio → { nova | id_item }
+    for (let i = 0; i < novas.length; i++) {
+      const n = novas[i];
+      const falta = ['pedido', 'cliente', 'codigo', 'qtdordem', 'prazo'].find(function (c) { return !String(n[c]).trim(); }) ||
+        (!produtos[normCod(n.codigo)] && !String(n.descricao).trim() ? 'descricao' : '');
+      if (falta) { n._erro = falta; desenharLinhas(); throw new Api.Erro('DADOS_INCOMPLETOS', 'Linha nova: preencha ' + NOMES[falta] + '.'); }
+      linhas.push({ op: n.op, pedido: n.pedido, cliente: n.cliente, codigo: n.codigo, descricao: n.descricao, qtdordem: n.qtdordem,
+        prazo: n.prazo, liga: n.liga, qtdmoldes: n.qtdmoldes, pesomoldes: String(n.pesomoldes).replace(',', '.') });
+      mapa.push({ nova: n.uid });
+    }
+    Object.keys(edicoes).forEach(function (id) {
+      const e = edicoes[id];
+      const l = { id_item: id };
+      Object.keys(e).forEach(function (c) { l[c] = c === 'pesomoldes' ? String(e[c]).replace(',', '.') : e[c]; });
+      linhas.push(l);
+      mapa.push({ id_item: id });
+    });
+    return linhas;
+  }
+  const NOMES = { pedido: 'o pedido', cliente: 'o cliente', codigo: 'o código', qtdordem: 'a quantidade', prazo: 'o prazo', descricao: 'a descrição (produto novo)' };
+
+  async function salvar() {
+    if (salvando || !contarAlteracoes()) return;
+    let linhas;
+    try { linhas = montarEnvio(); } catch (e) { Ui.erro(e); return; }
+    salvando = true;
+    atualizarBarra();
+    $('#bt-salvar .rot').textContent = 'Salvando…';
+    try {
+      const r = await Api.chamar('salvarLinhasPCP', { idReq: Api.idReq(), linhas: linhas });
+      const partes = [];
+      if (r.criados && r.criados.length) partes.push(r.criados.length + ' nova(s)');
+      if (r.editados) partes.push(r.editados + ' editada(s)');
+      if (r.opsGeradas) partes.push(r.opsGeradas + ' OP(s) aberta(s)');
+      if (r.apontamentos) partes.push(r.apontamentos + ' processo(s) apontado(s)');
+      Ui.toast(partes.join(' · ') || 'Nada mudou.', 'ok', 'Salvo');
+      (r.avisos || []).forEach(function (a) { Ui.toast(a, 'aviso', 'Atenção'); });
+      edicoes = {}; novas = []; editando = false;
+      await carregar();
+      carregarProdutos();
+    } catch (e) {
+      Ui.erro(e);
+    } finally {
+      salvando = false;
+      $('#bt-salvar .rot').textContent = 'Salvar';
+      atualizarBarra();
+    }
+  }
+
+  // ---------- Menu ⋯ (Cancelar OP) ----------
+  function abrirMenu(bt, x) {
+    fecharMenu();
+    const m = document.createElement('div');
+    m.className = 'menu-op';
+    m.innerHTML = '<button class="perigo" data-cancelar-op>' + Ui.ic('i-x') + 'Cancelar OP</button>';
+    document.body.appendChild(m);
+    const r = bt.getBoundingClientRect();
+    m.style.top = Math.min(r.bottom + 4, window.innerHeight - m.offsetHeight - 8) + 'px';
+    m.style.left = Math.max(8, r.right - m.offsetWidth) + 'px';
+    m.querySelector('[data-cancelar-op]').addEventListener('click', function () { fecharMenu(); cancelarOP(x); });
+  }
+  function fecharMenu() { document.querySelectorAll('.menu-op').forEach(function (m) { m.remove(); }); }
+
+  function cancelarOP(x) {
+    const nome = x.op ? 'OP ' + semZeros(x.op) : 'item do pedido ' + semZeros(x.pedido);
+    const idReq = Api.idReq();
+    Ui.janela({
+      titulo: 'Cancelar ' + nome,
+      subtitulo: 'Só o PCP cancela. A OP sai de todos os painéis e vai para o histórico; nada é apagado.',
+      largura: 480,
+      corpo: '<div class="msg-erro"></div>' +
+        '<div class="fg"><label>Cliente<input readonly value="' + Ui.esc(x.cliente + ' · ped. ' + semZeros(x.pedido)) + '"></label>' +
+        '<label>Item<input readonly value="' + Ui.esc(x.codigo) + '"></label></div>' +
+        '<div class="efeito"><b>Efeito:</b> a solicitação de embalagem enviada a Compras também é cancelada (se já foi comprada, Compras é avisado).</div>' +
+        '<div class="fg"><label class="full">Motivo do cancelamento<select name="motivo"><option value="">Escolha…</option>' +
+        '<option>Pedido cancelado pelo cliente</option><option>OP aberta em duplicidade</option><option>Troca de produto / revisão do pedido</option>' +
+        '<option>Outro</option></select></label><label class="full" data-outro hidden>Descreva<input name="outro"></label></div>',
+      botoes: [{ texto: 'Voltar', valor: null }, { texto: 'Cancelar OP', classe: 'perigo', valor: 'ok' }],
+      antesDeFechar: async function (v, caixa) {
+        let motivo = caixa.querySelector('[name="motivo"]').value;
+        if (motivo === 'Outro') motivo = caixa.querySelector('[name="outro"]').value.trim();
+        if (!motivo) { Ui.msgErro(caixa.querySelector('.msg-erro'), 'Informe o motivo.'); return false; }
+        try {
+          const r = await Api.chamar('cancelarOP', { idReq: idReq, id_item: x.id_item, motivo: motivo });
+          Ui.toast(nome + ' cancelada.' + (r.solicitacoesCanceladas ? ' ' + r.solicitacoesCanceladas + ' solicitação(ões) de Compras cancelada(s).' : ''));
+          (r.avisos || []).forEach(function (a) { Ui.toast(a, 'aviso', 'Compras'); });
+          carregar();
+          return true;
+        } catch (e) { Ui.msgErro(caixa.querySelector('.msg-erro'), e.message); return false; }
+      }
+    });
+    const caixa = document.querySelector('.modal-caixa');
+    caixa.querySelector('[name="motivo"]').addEventListener('change', function (ev) { caixa.querySelector('[data-outro]').hidden = ev.target.value !== 'Outro'; });
+  }
+
+  // ---------- Editar / Nova OP no celular (uma por vez) ----------
+  function editarMob(x) {
+    const novo = !x;
+    const v = function (c) { return novo ? '' : original(x, c); };
+    const campo = function (c, rot, tipo, extra, full) {
+      return '<label' + (full ? ' class="full"' : '') + '>' + rot + '<input name="' + c + '"' + (tipo ? ' type="' + tipo + '"' : '') + (extra || '') + ' value="' + Ui.esc(v(c)) + '"></label>';
+    };
+    const proc = novo ? '' : x.processo;
+    const corpo = '<div class="msg-erro"></div><div class="fg">' +
+      campo('op', 'OP', '', ' inputmode="numeric" placeholder="vazio = engenharia"') + campo('pedido', 'Pedido') +
+      campo('cliente', 'Cliente', '', '', true) + campo('codigo', 'Código', '', ' autocapitalize="characters"') + campo('liga', 'Liga') +
+      campo('descricao', 'Descrição', '', '', true) + campo('qtdordem', 'Qtd (peças)', 'number', ' min="0"') + campo('prazo', 'Prazo', 'date') +
+      campo('qtdmoldes', 'Moldes planejados', 'number', ' min="0"') + campo('pesomoldes', 'Peso planejado (kg)', '', ' inputmode="decimal"') +
+      (novo ? '' : '<label class="full">Processo<select name="processo">' + PROCESSOS.map(function (p) { return '<option' + (p === proc ? ' selected' : '') + '>' + p + '</option>'; }).join('') +
+        (PROCESSOS.indexOf(proc) === -1 ? '<option selected value="' + Ui.esc(proc) + '">' + Ui.esc(proc) + '</option>' : '') + '</select></label>') +
+      '</div>';
+    const botoes = [];
+    if (!novo) botoes.push({ texto: 'Cancelar OP', classe: 'esq', valor: 'cancelar' });
+    botoes.push({ texto: 'Voltar', valor: null }, { texto: novo ? 'Criar' : 'Salvar', classe: 'pri', valor: 'ok' });
+    const idReq = Api.idReq();
+    Ui.janela({
+      titulo: novo ? 'Nova OP' : 'Editar ' + (x.op ? 'OP ' + semZeros(x.op) : 'item do pedido ' + semZeros(x.pedido)),
+      subtitulo: novo ? 'o código preenche descrição, liga e moldes pelo cadastro' : x.cliente,
+      largura: 520, corpo: corpo, botoes: botoes, enterConfirma: false,
+      antesDeFechar: async function (valorBt, caixa) {
+        if (valorBt === 'cancelar') { setTimeout(function () { cancelarOP(x); }, 0); return true; }
+        const g = function (c) { const el = caixa.querySelector('[name="' + c + '"]'); return el ? el.value.trim() : ''; };
+        const erro = caixa.querySelector('.msg-erro');
+        let linha;
+        if (novo) {
+          const falta = ['pedido', 'cliente', 'codigo', 'qtdordem', 'prazo'].find(function (c) { return !g(c); });
+          if (falta) { Ui.msgErro(erro, 'Preencha ' + NOMES[falta] + '.'); return false; }
+          linha = {};
+          CAMPOS.forEach(function (c) { if (c !== 'processo') linha[c] = c === 'pesomoldes' ? g(c).replace(',', '.') : g(c); });
+          linha.op = linha.op.replace(/^0+(?=\d)/, '');
+        } else {
+          linha = { id_item: x.id_item };
+          CAMPOS.forEach(function (c) {
+            const val = c === 'op' || c === 'pedido' ? g(c).replace(/^0+(?=\d)/, '') : g(c);
+            if (val !== original(x, c)) linha[c] = c === 'pesomoldes' ? val.replace(',', '.') : val;
+          });
+          if (Object.keys(linha).length === 1) return true;
+        }
+        try {
+          const r = await Api.chamar('salvarLinhasPCP', { idReq: idReq, linhas: [linha] });
+          Ui.toast(novo ? 'OP criada.' : 'Alterações salvas.');
+          (r.avisos || []).forEach(function (a) { Ui.toast(a, 'aviso', 'Atenção'); });
+          carregar();
+          return true;
+        } catch (e) { Ui.msgErro(erro, e.message); return false; }
+      }
+    });
+    if (novo) {
+      const caixa = document.querySelector('.modal-caixa');
+      const q = function (n) { return caixa.querySelector('[name="' + n + '"]'); };
+      let mpp = 0;
+      q('codigo').addEventListener('change', function () {
+        const p = produtos[normCod(q('codigo').value)];
+        if (!p) return;
+        q('codigo').value = p.COD_ITEM;
+        q('descricao').value = p.DESCRICAO || '';
+        if (p.LIGA_PADRAO) q('liga').value = p.LIGA_PADRAO;
+        mpp = Number(p.MOLDES_POR_PECA) || 0;
+        ['codigo', 'descricao', 'liga'].forEach(function (n) { q(n).style.borderColor = '#22c55e'; });
+        if (mpp && q('qtdordem').value) { q('qtdmoldes').value = Number(q('qtdordem').value) * mpp; q('qtdmoldes').style.borderColor = '#22c55e'; }
+      });
+      q('qtdordem').addEventListener('input', function () {
+        if (mpp) { q('qtdmoldes').value = q('qtdordem').value ? Number(q('qtdordem').value) * mpp : ''; q('qtdmoldes').style.borderColor = '#22c55e'; }
+      });
+    }
+  }
+
+  // ---------- Etiquetas 100 × 50 mm (layout IDÊNTICO ao painel antigo) ----------
+  function abrirEtiqueta(x) {
+    const moldes = Number(x.qtdmoldes) || 0;
+    const dadosEt = { op: semZeros(x.op), pedido: semZeros(x.pedido), codigo: x.codigo, lote: semZeros(x.op), liga: x.liga, prazo: x.prazo };
+    const corpo =
+      '<div class="et-grade"><div class="fg">' +
+      '<label>Ordem de produção<input readonly value="' + Ui.esc(dadosEt.op) + '"></label><label>Pedido<input readonly value="' + Ui.esc(dadosEt.pedido) + '"></label>' +
+      '<label class="full">Item (código)<input readonly value="' + Ui.esc(dadosEt.codigo) + '"></label>' +
+      '<label>Lote<input readonly value="' + Ui.esc(dadosEt.lote) + '"></label><label>Liga<input readonly value="' + Ui.esc(dadosEt.liga) + '"></label>' +
+      '<label class="full">Entrega (prazo)<input readonly value="' + Ui.esc(dadosEt.prazo) + '"></label>' +
+      '<div class="info-mold full">Moldes disponíveis: <b>' + (moldes > 0 ? moldes + ' moldes' : 'não informado') + '</b>' +
+        (x.qtdmoldesPlanejados !== '' ? ' (de ' + x.qtdmoldesPlanejados + ' planejados)' : '') + '</div>' +
+      '<label>Quantidade de etiquetas<input name="qtd" type="number" min="1" value="' + (moldes > 0 ? moldes : 1) + '"></label>' +
+      '<label>Lado<select name="lado"><option value="N/A">N/A</option><option value="LD">LD</option><option value="LE">LE</option></select></label>' +
+      '</div><div class="previa">PRÉVIA<div class="cx"><div data-previa></div></div>1 etiqueta por página · impressora térmica</div></div>';
+    Ui.janela({
+      titulo: 'Gerar etiquetas', subtitulo: 'Etiqueta 100 × 50 mm · mesmo layout de hoje', largura: 700,
+      corpo: corpo,
+      botoes: [{ texto: 'Cancelar', valor: null }, { texto: 'Imprimir', classe: 'pri', valor: 'ok' }],
+      antesDeFechar: function (v, caixa) {
+        const qtd = parseInt(caixa.querySelector('[name="qtd"]').value, 10) || 1;
+        imprimirEtiquetas(dadosEt, qtd, caixa.querySelector('[name="lado"]').value);
+        return true;
+      }
+    });
+    const caixa = document.querySelector('.modal-caixa');
+    const btImp = caixa.querySelector('.rodape .pri');
+    const previa = function () {
+      const qtd = parseInt(caixa.querySelector('[name="qtd"]').value, 10) || 1;
+      // na prévia, o código usa o tamanho que sai na impressão (30px): o
+      // clamp(…5vw…) do layout original é calculado na janela de 100 mm
+      caixa.querySelector('[data-previa]').innerHTML = htmlEtiqueta(dadosEt, 1, qtd, caixa.querySelector('[name="lado"]').value)
+        .replace('clamp(30px,5vw,40px)', '30px');
+      btImp.textContent = 'Imprimir ' + qtd + ' etiqueta' + (qtd === 1 ? '' : 's');
+    };
+    caixa.addEventListener('input', previa);
+    caixa.addEventListener('change', previa);
+    previa();
+  }
+
+  function emissaoAgora() {
+    return new Date().toLocaleDateString('pt-BR') + ' ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  // Uma etiqueta — HTML copiado do painel antigo, sem mudanças de layout.
+  function htmlEtiqueta(d, i, qtd, lado, emissao) {
+    emissao = emissao || emissaoAgora();
+    const e = Ui.esc;
+    return `
+    <div style="
+      width:100mm;height:50mm;
+      border:1.5px solid #000;
+      box-sizing:border-box;
+      font-family:Calibri,sans-serif;
+      color:#000;background:#fff;
+      display:grid;
+      grid-template-rows:9mm 26mm 17mm;
+      page-break-after:${i < qtd ? 'always' : 'avoid'};
+      overflow:hidden;
+    ">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1.2fr;border-bottom:1.5px solid #000">
+        <div style="padding:4px 4px;border-right:1px solid #000;display:flex;flex-direction:column;justify-content:center;gap:4.5px">
+          <div style="font-size:8.5px;color:#000;text-align:center">PEDIDO:</div>
+          <div style="font-size:8.3px;font-weight:700;text-align:center">${e(String(d.pedido).padStart(10, '0'))}</div>
+        </div>
+        <div style="padding:4px 4px;border-right:1px solid #000;display:flex;flex-direction:column;justify-content:center;gap:4.5px">
+          <div style="font-size:8.5px;color:#000;text-align:center">EMISSÃO:</div>
+          <div style="font-size:8.3px;font-weight:700;text-align:center">${e(emissao)}</div>
+        </div>
+        <div style="padding:4px 4px;border-right:1px solid #000;display:flex;flex-direction:column;justify-content:center;gap:4.5px">
+          <div style="font-size:8.5px;color:#000;text-align:center">ENTREGA:</div>
+          <div style="font-size:8.3px;font-weight:700;text-align:center">${e(d.prazo)}</div>
+        </div>
+        <div style="padding:1px 3px;display:flex;flex-direction:column;justify-content:center;align-items:center">
+          <div style="font-size:8.5px;color:#000">QUANTIDADE</div>
+          <div style="font-size:20px;font-weight:900;line-height:1.1">${i}/${qtd}</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:3fr 1.2fr;border-bottom:1.5px solid #000">
+        <div style="padding:1px 4px;border-right:1.5px solid #000;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:0px">
+          <div style="font-size:10.5px;color:#000;font-weight:700;text-transform:uppercase;letter-spacing:.5px">ORDEM PRODUÇÃO:</div>
+          <div style="font-size:40px;font-weight:900;line-height:0.85;letter-spacing:-1px">${e(d.op)}</div>
+          <div style="font-size:10.5px;color:#000;font-weight:700;text-transform:uppercase;margin-top:0px">ITEM:</div>
+          <div style="font-size: clamp(30px,5vw,40px);font-weight:900;line-height:0.85">${e(d.codigo)}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;justify-content:flex-start;align-items:center;padding:2px">
+          <div style="font-size:10.5px;color:#000;font-weight:700;">LADO:</div>
+          <div style="font-size:60px;line-height:1;margin-top:8px">${e(lado)}</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1.2fr 1.2fr">
+        <div style="padding:0px 0px;border-right:1.5px solid #000;display:flex;flex-direction:column;justify-content:flex-start">
+          <div style="font-size:10.5px;color:#000;font-weight:700;text-transform:uppercase;text-align:center;margin-bottom:6px">LOTE:</div>
+          <div style="font-size:32px;line-height:0.85;text-align:center">${e(d.lote)}</div>
+        </div>
+        <div style="-webkit-print-color-adjust:exact;print-color-adjust:exact;background:#000 !important;color:#fff !important;display:flex;flex-direction:column;justify-content:flex-start;padding:2px 0px">
+          <div style="font-size:10.5px;color:#ffff !important;font-weight:700;text-transform:uppercase;text-align:center;margin-bottom:1px">LIGA:</div>
+          <div style="font-size:42px;font-weight:900;line-height:0.85;letter-spacing:2px;color:#fff !important;text-align:center">${e(d.liga)}</div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  function imprimirEtiquetas(d, qtd, lado) {
+    const emissao = emissaoAgora();
+    let etiquetas = '';
+    for (let i = 1; i <= qtd; i++) etiquetas += htmlEtiqueta(d, i, qtd, lado, emissao);
+    const w = window.open('', '_blank');
+    if (!w) { Ui.toast('O navegador bloqueou a janela de impressão. Libere pop-ups para este site.', 'erro'); return; }
+    w.document.write(`<!DOCTYPE html><html><head><title>Etiquetas OP ${Ui.esc(d.op)}</title>
+  <style>
+    @page{size:100mm 50mm;margin:0}
+    html,body{margin:0;padding:0;width:100mm}
+    *{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important}
+  </style>
+  </head><body>${etiquetas}
+  <script>window.onload=function(){window.print();};<\/script>
+  </body></html>`);
+    w.document.close();
+  }
+
+  // ---------- Apoio ----------
+  function semZeros(v) { return String(v === null || v === undefined ? '' : v).replace(/^0+(?=\d)/, ''); }
+  function normCod(c) { return String(c || '').trim().toUpperCase().replace(/^0+(?=.)/, ''); }
+  function brParaIso(v) { const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(v || ''); return m ? m[3] + '-' + m[2] + '-' + m[1] : ''; }
+  function prazoCurto(v) { return v ? String(v).slice(0, 5) : '—'; }
+  function fmtN(v) { return v === '' || v === null || v === undefined ? '—' : Fmt.num(v, 0); }
+  function fmtPeso(v) { return v === '' || v === null || v === undefined ? '—' : Fmt.num(v, 1); }
+});
+</script>
+</body>
+</html>

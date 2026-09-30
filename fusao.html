@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Planejamento de Fusão · Prometals</title>
+<link rel="stylesheet" href="css/tema.css">
+<link rel="stylesheet" href="css/sistema.css">
+<style>
+/* ---------- específico desta página ---------- */
+.fusao { display: grid; grid-template-columns: 1fr 340px; gap: 14px; align-items: start; }
+.fusao > * { min-width: 0; }
+.fusao table.tab th, .fusao table.tab td { padding-left: 10px; padding-right: 10px; }
+.fusao table.tab td:first-child, .fusao table.tab th:first-child { padding-left: 16px; }
+.filtros { display: flex; gap: 10px; align-items: center; padding: 10px 12px; border-bottom: 1px solid var(--linha); flex-wrap: wrap; }
+.filtros select, .filtros input { height: 36px; font-size: 13px; padding: 0 10px; width: auto; }
+.filtros select { min-width: 170px; font-weight: 700; }
+.filtros .f-busca { flex: 1; min-width: 200px; position: relative; }
+.filtros .f-busca input { width: 100%; padding-left: 34px; }
+.filtros .f-busca svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--texto-suave); }
+.filtros .info { font-size: 12px; color: var(--texto-suave); margin-left: auto; }
+table.tab td.desc { max-width: 210px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.25; }
+td.desc .cod { display: block; color: var(--texto-suave); font-size: 11.5px; }
+.tab-wrap { overflow: auto; max-height: calc(100vh - 250px); min-height: 220px; }
+.liga { display: inline-block; font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 6px; background: color-mix(in srgb, var(--destaque) 18%, transparent); color: var(--destaque); }
+.n-mol { color: #60a5fa; font-weight: 700; }
+.n-kg { color: #34d399; font-weight: 700; }
+html.tema-claro .n-mol { color: #1d4ed8; } html.tema-claro .n-kg { color: #166534; }
+.atraso { color: #f87171; font-weight: 700; }
+html.tema-claro .atraso { color: #b91c1c; }
+.passo { display: inline-flex; align-items: center; border: 1px solid var(--borda); border-radius: 8px; overflow: hidden; height: 32px; background: var(--painel-2); vertical-align: middle; }
+.passo button { width: 30px; height: 100%; border: 0; background: transparent; font-size: 16px; font-weight: 700; cursor: pointer; color: var(--texto-suave); }
+.passo button:disabled { opacity: .35; cursor: default; }
+.passo input { width: 44px; height: 100%; border: 0; border-radius: 0; text-align: center; padding: 0; font-weight: 800; background: transparent; }
+.passo.on { border-color: var(--destaque); }
+.passo.on input { color: var(--destaque); }
+.ordem { display: inline-grid; place-items: center; min-width: 26px; height: 22px; padding: 0 6px; border-radius: 6px; background: var(--destaque); color: #fff; font-size: 11px; font-weight: 800; margin-left: 8px; vertical-align: middle; }
+.ordem:empty { display: none; }
+tr.na-corrida td { background: color-mix(in srgb, var(--destaque) 8%, transparent); }
+tr.na-corrida td:first-child { box-shadow: inset 3px 0 0 var(--destaque); }
+.resta { display: block; font-size: 11px; color: var(--texto-suave); margin-top: 3px; }
+.resta:empty { display: none; }
+
+/* painel da corrida */
+.corrida { position: sticky; top: 0; background: var(--painel); border: 1px solid var(--linha); border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; max-height: calc(100vh - 150px); }
+.cor-cab { padding: 14px 16px 12px; border-bottom: 1px solid var(--linha); display: flex; align-items: center; gap: 10px; }
+.cor-cab h3 { margin: 0; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+.cor-cab h3 svg { width: 18px; height: 18px; color: var(--destaque); }
+.cor-cab .id { margin-left: auto; font-family: ui-monospace, Consolas, monospace; font-weight: 800; color: var(--destaque); background: var(--painel-2); padding: 4px 10px; border-radius: 7px; font-size: 13px; }
+.cor-peso { padding: 16px; display: grid; gap: 8px; }
+.cor-peso .linha1 { display: flex; align-items: baseline; gap: 8px; }
+.cor-peso .kg { font-size: 38px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1; }
+.cor-peso .un { color: var(--texto-suave); font-size: 13px; }
+.cor-peso .lig { margin-left: auto; }
+.barra { height: 10px; border-radius: 999px; background: var(--painel-2); overflow: hidden; position: relative; }
+.barra i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 999px; background: linear-gradient(90deg, #16a34a, #eab308 80%, #f97316); }
+.escala { display: flex; justify-content: space-between; font-size: 11px; color: var(--texto-suave); }
+.aviso { display: none; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 10px; background: rgba(220,38,38,.14); color: #f87171; font-weight: 800; font-size: 12.5px; border: 1px solid rgba(220,38,38,.4); }
+.aviso svg { width: 18px; height: 18px; flex: none; }
+html.tema-claro .aviso { color: #b91c1c; }
+body.acima .aviso { display: flex; animation: pisca 1.6s infinite; --c: #dc2626; }
+body.acima .cor-peso .kg { color: #ef4444; }
+body.acima .barra i { background: #dc2626; }
+.cor-resumo { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--linha); border-bottom: 1px solid var(--linha); }
+.cor-resumo div { padding: 10px 12px; text-align: center; font-size: 11px; color: var(--texto-suave); }
+.cor-resumo div + div { border-left: 1px solid var(--linha); }
+.cor-resumo b { display: block; font-size: 17px; color: var(--texto); }
+.cor-itens { overflow: auto; padding: 10px 12px; display: grid; gap: 8px; }
+.cor-itens .tit { font-size: 11px; font-weight: 700; color: var(--texto-suave); text-transform: uppercase; letter-spacing: .4px; display: flex; justify-content: space-between; }
+.cor-itens .nada { font-size: 12.5px; color: var(--texto-suave); text-align: center; padding: 14px 0; }
+.ci { display: grid; grid-template-columns: 28px 1fr auto 24px; gap: 10px; align-items: center; background: var(--painel-2); border-radius: 10px; padding: 9px 10px; cursor: grab; }
+html.tema-claro .ci { background: #f1f5f9; }
+.ci.arrastando { opacity: .4; }
+.ci.alvo { box-shadow: 0 -2px 0 var(--destaque); }
+.ci .seq { width: 28px; height: 28px; border-radius: 8px; background: var(--destaque); color: #fff; display: grid; place-items: center; font-weight: 800; font-size: 13px; }
+.ci .op { font-weight: 800; font-size: 13px; }
+.ci .d { font-size: 11.5px; color: var(--texto-suave); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.ci > div { min-width: 0; }
+.ci .k { white-space: nowrap; text-align: right; font-weight: 800; font-size: 13px; }
+.ci .k small { display: block; font-weight: 600; color: var(--texto-suave); font-size: 11px; }
+.ci .x, .ord-l .x { border: 0; background: transparent; color: var(--texto-suave); font-size: 18px; cursor: pointer; }
+.cor-acoes { padding: 12px; border-top: 1px solid var(--linha); display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.cor-acoes .btn2 { justify-content: center; }
+.cor-acoes .btn2:disabled { cursor: not-allowed; opacity: .5; }
+.cor-acoes .fechar { grid-column: 1 / -1; background: #16a34a; border-color: #16a34a; color: #fff; height: 42px; }
+.nota { font-size: 11px; color: var(--texto-suave); text-align: center; padding: 0 12px 12px; }
+
+/* celular: resumo da corrida fixo no topo */
+.cor-mob { position: sticky; top: -16px; z-index: 5; background: var(--painel); border: 1px solid var(--linha); border-radius: 12px; padding: 10px 12px; margin-bottom: 10px; display: grid; gap: 7px; }
+.cor-mob .l { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--texto-suave); flex-wrap: wrap; }
+.cor-mob .l b.kg { font-size: 22px; color: var(--texto); }
+body.acima .cor-mob .l b.kg { color: #ef4444; }
+.cor-mob .id { margin-left: auto; font-weight: 800; color: var(--destaque); font-family: ui-monospace, Consolas, monospace; }
+.cm .passo { height: 38px; } .cm .passo button { width: 40px; } .cm .passo input { width: 50px; }
+.cm.na-corrida { border-left: 3px solid var(--destaque); }
+.cm-top .ordem { margin: 0; }
+.cm-rod { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--texto-suave); }
+.cm-rod .passo { margin-left: auto; }
+.cm-rod .resta { margin: 0; white-space: nowrap; }
+.ligas-mob { gap: 8px; margin-bottom: 10px; }
+.ligas-mob select { height: 40px; font-weight: 800; flex: 1; }
+.barra-mob button:disabled { opacity: .5; }
+
+/* janela "ordem do romaneio" (celular) */
+.ord-l { display: grid; grid-template-columns: 28px 1fr auto auto auto; gap: 8px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--linha); font-size: 13px; }
+.ord-l .seq { width: 28px; height: 28px; border-radius: 8px; background: var(--destaque); color: #fff; display: grid; place-items: center; font-weight: 800; }
+.ord-l small { display: block; color: var(--texto-suave); }
+.ord-l .mv { width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--borda); background: var(--painel-2); font-weight: 800; cursor: pointer; }
+.ord-l .mv:disabled { opacity: .35; }
+
+@media (max-width: 1200px) { .fusao { grid-template-columns: 1fr 320px; } }
+@media (max-width: 760px) {
+  .fusao { display: block; }
+  .cor-mob.so-mob { display: grid !important; }
+  .ligas-mob.so-mob { display: flex !important; }
+  .lista-mob { padding-bottom: 90px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Planejamento de Fusão — monta a corrida por liga.
+     Lógica igual à aba Fusão do painel Gerencial antigo: só OPs com moldes
+     e peso disponíveis, uma liga por corrida (trocar a liga limpa a corrida),
+     moldes nunca passam do saldo, romaneio com o mesmo layout.
+     Mudanças aprovadas: alerta acima de 700 kg (era 650), romaneio na ORDEM
+     DE SELEÇÃO (o antigo ordenava pelo nº da OP), campo de moldes com − e +
+     e "resta N", kg livres até 700. Só entram OPs ativas (ABERTA/EM_PRODUCAO).
+     O nº da corrida (FS-0001) é gerado pelo servidor ao fechar. -->
+<main class="conteudo">
+  <div class="tit-pagina">
+    <div><h1>Planejamento de Fusão</h1><p>Monte a corrida por liga · o romaneio sai na ordem em que as OPs entram</p></div>
+    <div class="acoes-pagina so-desk">
+      <a class="btn2" href="historico.html" id="lk-hist" hidden style="text-decoration:none"><svg class="i"><use href="#i-hist"/></svg>Histórico de corridas</a>
+    </div>
+  </div>
+
+  <div class="fusao">
+    <div class="bloco so-desk" style="padding:0">
+      <div class="filtros">
+        <select id="fLiga" title="Liga da corrida"><option value="">Selecione a liga</option></select>
+        <div class="f-busca"><svg class="i"><use href="#i-busca"/></svg><input id="busca" placeholder="Buscar OP, cliente ou código…" autocomplete="off"></div>
+        <span class="info" id="info"></span>
+      </div>
+      <div class="tab-wrap">
+        <table class="tab">
+          <thead><tr><th>OP</th><th>Cliente</th><th>Item</th><th class="num">Prazo</th><th class="num">Moldes disp.</th><th class="num">Peso disp.</th><th>P/ corrida</th></tr></thead>
+          <tbody id="linhas"><tr><td colspan="7"><div class="carregando">Carregando…</div></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <aside class="corrida so-desk">
+      <div class="cor-cab"><h3><svg class="i"><use href="#i-fogo"/></svg>Corrida atual</h3><span class="id" data-id-corrida>—</span></div>
+      <div class="cor-peso">
+        <div class="linha1"><span class="kg" id="kg">0,0</span><span class="un">kg</span><span class="liga lig" id="liga-corrida" hidden></span></div>
+        <div class="barra"><i data-barra style="width:0"></i></div>
+        <div class="escala"><span>0</span><span>limite do forno · <b>700 kg</b></span></div>
+        <div class="aviso"><svg class="i"><use href="#i-alerta"/></svg>ACIMA DE 700 kg — VERIFICAR RECARGA</div>
+      </div>
+      <div class="cor-resumo"><div><b id="r-ops">0</b>OPs</div><div><b id="r-mol">0</b>moldes</div><div><b id="r-livre">700,0</b>kg livres</div></div>
+      <div class="cor-itens">
+        <div class="tit"><span>Ordem do romaneio</span><span>arraste para reordenar</span></div>
+        <div id="itens-corrida"><div class="nada">Nenhum molde adicionado</div></div>
+      </div>
+      <div class="cor-acoes">
+        <button class="btn2" data-imprimir disabled><svg class="i"><use href="#i-imp"/></svg><span class="rot">Romaneio</span></button>
+        <button class="btn2" id="bt-limpar" disabled>Limpar</button>
+        <button class="btn2 fechar" data-fechar data-editar disabled><svg class="i"><use href="#i-check"/></svg><span class="rot">Fechar corrida</span></button>
+      </div>
+      <div class="nota" id="nota">Ao fechar, os moldes saem do saldo das OPs. Erro? Estorno no Histórico de Corridas.</div>
+    </aside>
+
+    <!-- celular -->
+    <div class="cor-mob so-mob">
+      <div class="l"><b class="kg" id="kg-mob">0,0</b> kg de 700 · <span id="r-mob">0 OPs · 0 moldes</span><span class="id" data-id-corrida>—</span></div>
+      <div class="barra"><i data-barra style="width:0"></i></div>
+      <div class="aviso"><svg class="i"><use href="#i-alerta"/></svg>ACIMA DE 700 kg — VERIFICAR RECARGA</div>
+    </div>
+    <div class="ligas-mob so-mob">
+      <select id="fLiga-mob" title="Liga da corrida"><option value="">Selecione a liga</option></select>
+    </div>
+    <div class="busca-mob so-mob">
+      <div class="f"><svg class="i"><use href="#i-busca"/></svg><input id="busca-mob" placeholder="OP, cliente, código…" autocomplete="off"></div>
+    </div>
+    <div class="info-mob so-mob" id="info-mob"></div>
+    <div class="lista-mob so-mob" id="cartoes"></div>
+    <div class="barra-mob so-mob">
+      <button class="ic" id="bt-ordem-mob" title="Ver ordem do romaneio" disabled><svg class="i"><use href="#i-tabela"/></svg></button>
+      <button class="ic" data-imprimir title="Imprimir romaneio" disabled><svg class="i"><use href="#i-imp"/></svg></button>
+      <button class="pri" data-fechar data-editar disabled><svg class="i"><use href="#i-check"/></svg><span class="rot">Fechar corrida</span></button>
+    </div>
+  </div>
+</main>
+
+<script src="js/config.js"></script>
+<script src="js/icones.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/api.js"></script>
+<script src="js/sessao.js"></script>
+<script src="js/shell.js"></script>
+<script>
+Sessao.iniciarPagina('fusao').then(function (ctx) {
+  const $ = function (s) { return document.querySelector(s); };
+  const $$ = function (s) { return Array.prototype.slice.call(document.querySelectorAll(s)); };
+  const LIMITE_FORNO = 700;   // era 650 no painel antigo (mudança aprovada)
+  const STATUS_ATIVOS = ['ABERTA', 'EM_PRODUCAO'];
+
+  let base = [];          // OPs ativas com moldes e peso disponíveis
+  let corrida = [];       // [{ id, moldes }] — a ORDEM do array é a ordem do romaneio
+  let ultima = null;      // romaneio da última corrida fechada (para imprimir depois)
+  let proximoId = '';     // prévia do nº da próxima corrida (o servidor confirma ao fechar)
+  let ligaSel = '';       // liga da corrida (o select só muda depois de confirmar)
+  let fechando = false;
+  let idReqPendente = null;  // mesmo ID se o usuário tentar de novo após falha de rede
+  const veHistorico = ctx.nivelDe('historico') !== 'NENHUM';
+
+  if (!ctx.podeEditar) {
+    $$('[data-editar]').forEach(function (b) { b.hidden = true; });
+    $('#nota').textContent = 'Você pode montar e imprimir a corrida, mas não tem permissão para fechá-la.';
+  }
+  if (veHistorico) $('#lk-hist').hidden = false;
+
+  carregar();
+  atualizarPrevia();
+  // Igual ao antigo: recarrega a carteira a cada 1 min (a corrida montada é mantida)
+  setInterval(function () {
+    if (document.hidden || fechando || document.querySelector('.modal-fundo')) return;
+    carregar(true);
+  }, 60000);
+
+  // ---------- Dados ----------
+  async function carregar(silencioso) {
+    try {
+      const r = await Api.chamar('listarCarteira', { visao: 'PRODUCAO' }, { rapido: function () {
+        if (!fechando && !document.querySelector('.modal-fundo')) carregar(true);
+      } });
+      // Só OPs ativas, com nº de OP, liga e moldes/peso disponíveis (como no antigo: qtdmoldes > 0 e pesomoldes > 0)
+      base = r.itens.filter(function (x) {
+        return x.op && STATUS_ATIVOS.indexOf(x.status) !== -1 && x.liga &&
+          Number(x.qtdmoldes || 0) > 0 && Number(x.pesomoldes || 0) > 0;
+      });
+      // A corrida montada continua, mas respeita o saldo novo
+      corrida = corrida.filter(function (c) {
+        const x = item(c.id);
+        if (!x || x.liga !== ligaAtual()) return false;
+        c.moldes = Math.min(c.moldes, Number(x.qtdmoldes));
+        return c.moldes > 0;
+      });
+      popularLigas();
+      desenharLista();
+      desenharCorrida();
+    } catch (e) {
+      if (!silencioso) Ui.erro(e);
+    }
+  }
+
+  // Prévia do próximo nº (maior FS já usado + 1), só para quem vê o histórico
+  async function atualizarPrevia() {
+    if (!veHistorico) { proximoId = ''; mostrarId(); return; }
+    try {
+      const r = await Api.chamar('listarCorridas', { canceladas: true });
+      const maior = r.corridas.reduce(function (m, c) {
+        const k = /FS-(\d+)/.exec(c.id_corrida || '');
+        return k ? Math.max(m, parseInt(k[1], 10)) : m;
+      }, 0);
+      proximoId = 'FS-' + String(maior + 1).padStart(4, '0');
+    } catch (e) { proximoId = ''; }
+    mostrarId();
+  }
+  function mostrarId() {
+    $$('[data-id-corrida]').forEach(function (el) { el.textContent = proximoId || 'Nova'; });
+    $$('[data-fechar] .rot').forEach(function (el, i) {
+      el.textContent = i === 0 && proximoId ? 'Fechar corrida ' + proximoId : 'Fechar corrida';
+    });
+  }
+
+  const item = function (id) { return base.find(function (b) { return b.id_item === id; }); };
+  const pesoPorMolde = function (x) { const q = Number(x.qtdmoldes || 0); return q > 0 ? Number(x.pesomoldes || 0) / q : 0; };
+  const naCorrida = function (id) { return corrida.find(function (c) { return c.id === id; }); };
+  const posicao = function (id) { return corrida.findIndex(function (c) { return c.id === id; }); };
+  const ligaAtual = function () { return ligaSel; };
+  const mob = function () { return window.innerWidth <= 760; };
+  const kg = function (n) { return Fmt.num(n, 1); };
+
+  // ---------- Ligas ----------
+  function popularLigas() {
+    const atual = ligaAtual();
+    const cont = {};
+    base.forEach(function (x) { cont[x.liga] = (cont[x.liga] || 0) + 1; });
+    const ligas = Object.keys(cont).sort();
+    if (atual && ligas.indexOf(atual) === -1) ligas.push(atual);   // mantém a liga escolhida mesmo se zerou
+    const html = '<option value="">Selecione a liga</option>' + ligas.map(function (l) {
+      return '<option value="' + Ui.esc(l) + '">Liga: ' + Ui.esc(l) + ' · ' + (cont[l] || 0) + ' OP' + (cont[l] === 1 ? '' : 's') + '</option>';
+    }).join('');
+    ['#fLiga', '#fLiga-mob'].forEach(function (s) { $(s).innerHTML = html; $(s).value = atual; });
+  }
+
+  // Trocar a liga limpa a corrida (uma corrida não mistura ligas)
+  async function trocarLiga(nova) {
+    const antiga = ligaAtual();
+    if (nova === antiga) return;
+    if (corrida.length) {
+      const ok = await Ui.confirmar({
+        titulo: 'Trocar a liga?',
+        texto: 'A corrida atual (' + antiga + ', ' + corrida.length + ' OP' + (corrida.length > 1 ? 's' : '') + ') será limpa. Uma corrida não pode misturar ligas.',
+        ok: 'Trocar e limpar'
+      });
+      if (!ok) { $('#fLiga').value = antiga; $('#fLiga-mob').value = antiga; return; }
+    }
+    corrida = [];
+    idReqPendente = null;
+    ligaSel = nova;
+    $('#fLiga').value = nova; $('#fLiga-mob').value = nova;
+    desenharLista();
+    desenharCorrida();
+  }
+  $('#fLiga').addEventListener('change', function () { trocarLiga(this.value); });
+  $('#fLiga-mob').addEventListener('change', function () { trocarLiga(this.value); });
+
+  // ---------- Lista de OPs ----------
+  function filtrar() {
+    const liga = ligaAtual();
+    if (!liga) return [];
+    const busca = (mob() ? $('#busca-mob') : $('#busca')).value.toUpperCase().trim();
+    return base.filter(function (x) {
+      if (x.liga !== liga) return false;
+      if (busca && (String(x.op) + String(x.cliente) + String(x.codigo)).toUpperCase().indexOf(busca) === -1) return false;
+      return true;
+    });
+  }
+
+  function passoHTML(x) {
+    const c = naCorrida(x.id_item);
+    const q = c ? c.moldes : 0;
+    return '<span class="passo' + (q ? ' on' : '') + '"><button type="button" data-passo="-1" title="Tirar 1 molde">−</button>' +
+      '<input data-qtd inputmode="numeric" value="' + q + '" aria-label="Moldes para a corrida">' +
+      '<button type="button" data-passo="1" title="Pôr 1 molde">+</button></span>';
+  }
+
+  function desenharLista() {
+    const liga = ligaAtual();
+    const lista = filtrar();
+    const vazio = !liga ? 'Selecione uma LIGA para ver as OPs disponíveis'
+      : (lista.length ? '' : 'Nenhuma OP com moldes disponíveis para esta liga');
+    $('#linhas').innerHTML = vazio ? '<tr><td colspan="7"><div class="vazio">' + vazio + '</div></td></tr>' : lista.map(function (x) {
+      return '<tr data-id="' + Ui.esc(x.id_item) + '">' +
+        '<td><b>' + Ui.esc(x.op) + '</b></td><td>' + Ui.esc(x.cliente || '-') + '</td>' +
+        '<td class="desc" title="' + Ui.esc(x.descricao) + '">' + Ui.esc(x.descricao || '-') + '<small class="cod">' + Ui.esc(x.codigo || '-') + '</small></td>' +
+        '<td class="num' + (x.atrasada ? ' atraso' : '') + '">' + Ui.esc(x.prazo ? x.prazo.slice(0, 5) : '-') + '</td>' +
+        '<td class="num n-mol">' + Ui.esc(x.qtdmoldes) + '</td><td class="num n-kg">' + kg(x.pesomoldes) + '</td>' +
+        '<td style="white-space:nowrap">' + passoHTML(x) + '<span class="ordem" data-ordem></span><span class="resta" data-resta></span></td></tr>';
+    }).join('');
+    $('#cartoes').innerHTML = vazio ? '<div class="vazio">' + vazio + '</div>' : lista.map(function (x) {
+      return '<div class="cm" data-id="' + Ui.esc(x.id_item) + '">' +
+        '<div class="cm-top"><span class="op">' + Ui.esc(x.op) + '</span><span class="cli">' + Ui.esc(x.cliente || '-') + '</span>' +
+        '<span class="ordem" data-ordem></span><span class="prazo' + (x.atrasada ? ' atraso' : '') + '">' + Ui.esc(x.prazo ? x.prazo.slice(0, 5) : '-') + '</span></div>' +
+        '<div class="cm-desc">' + Ui.esc(x.descricao || '-') + '<small>' + Ui.esc(x.codigo || '-') + '</small></div>' +
+        '<div class="cm-rod"><span><b class="n-mol">' + Ui.esc(x.qtdmoldes) + '</b> moldes · <b class="n-kg">' + Fmt.num(x.pesomoldes, 0) + ' kg</b></span>' +
+        '<span class="resta" data-resta></span>' + passoHTML(x) + '</div></div>';
+    }).join('');
+    const txt = liga ? lista.length + ' OP' + (lista.length === 1 ? '' : 's') + ' com moldes disponíveis' : '';
+    $('#info').textContent = txt;
+    $('#info-mob').textContent = txt;
+    atualizarMarcas();
+  }
+
+  // Atualiza, sem redesenhar, as marcas de cada linha/cartão (valor, ordem, resta)
+  function atualizarMarcas() {
+    $$('[data-id]').forEach(function (el) {
+      const x = item(el.dataset.id);
+      if (!x) return;
+      const c = naCorrida(x.id_item);
+      const q = c ? c.moldes : 0;
+      const saldo = Number(x.qtdmoldes);
+      el.classList.toggle('na-corrida', !!q);
+      el.querySelector('.passo').classList.toggle('on', !!q);
+      const inp = el.querySelector('[data-qtd]');
+      if (document.activeElement !== inp) inp.value = q;
+      el.querySelector('[data-passo="-1"]').disabled = q <= 0;
+      el.querySelector('[data-passo="1"]').disabled = q >= saldo;
+      el.querySelector('[data-ordem]').textContent = q ? (posicao(x.id_item) + 1) + 'º' : '';
+      el.querySelector('[data-resta]').textContent = q ? 'resta ' + (saldo - q) : '';
+    });
+  }
+
+  // Define os moldes de uma OP na corrida (trava no saldo; 0 tira da corrida)
+  function definir(id, valor) {
+    const x = item(id);
+    if (!x) return;
+    let q = Math.max(0, parseInt(valor, 10) || 0);
+    const saldo = Number(x.qtdmoldes);
+    if (q > saldo) { q = saldo; Ui.toast('A OP ' + x.op + ' só tem ' + saldo + ' molde' + (saldo > 1 ? 's' : '') + ' disponíve' + (saldo > 1 ? 'is' : 'l') + '.', 'aviso'); }
+    const c = naCorrida(id);
+    if (q > 0 && c) c.moldes = q;
+    else if (q > 0) corrida.push({ id: id, moldes: q });       // entra no FIM (ordem de seleção)
+    else if (c) corrida.splice(posicao(id), 1);
+    idReqPendente = null;
+    atualizarMarcas();
+    desenharCorrida();
+  }
+
+  document.addEventListener('click', function (ev) {
+    const bp = ev.target.closest('[data-passo]');
+    if (bp) {
+      const id = bp.closest('[data-id]').dataset.id;
+      const c = naCorrida(id);
+      definir(id, (c ? c.moldes : 0) + Number(bp.dataset.passo));
+      return;
+    }
+    const bx = ev.target.closest('[data-tirar]');
+    if (bx) { definir(bx.dataset.tirar, 0); return; }
+    if (ev.target.closest('[data-imprimir]')) { imprimirRomaneio(); return; }
+    if (ev.target.closest('[data-fechar]')) { fecharCorrida(); return; }
+  });
+  document.addEventListener('change', function (ev) {
+    if (ev.target.matches('[data-qtd]')) definir(ev.target.closest('[data-id]').dataset.id, ev.target.value);
+  });
+  document.addEventListener('input', function (ev) {
+    // só números inteiros (igual ao antigo)
+    if (ev.target.matches('[data-qtd]')) ev.target.value = String(ev.target.value).replace(/\D/g, '');
+  });
+  document.addEventListener('keydown', function (ev) {
+    if (ev.key === 'Enter' && ev.target.matches('[data-qtd]')) ev.target.blur();
+  });
+  $('#busca').addEventListener('input', desenharLista);
+  $('#busca-mob').addEventListener('input', desenharLista);
+
+  // ---------- Painel da corrida ----------
+  function totais() {
+    let peso = 0, moldes = 0;
+    const linhas = corrida.map(function (c) {
+      const x = item(c.id);
+      const p = c.moldes * pesoPorMolde(x);
+      peso += p; moldes += c.moldes;
+      return { x: x, moldes: c.moldes, peso: p };
+    });
+    return { linhas: linhas, peso: peso, moldes: moldes };
+  }
+
+  function desenharCorrida() {
+    const t = totais();
+    const acima = t.peso > LIMITE_FORNO;
+    document.body.classList.toggle('acima', acima);
+    $('#kg').textContent = kg(t.peso);
+    $('#kg-mob').textContent = kg(t.peso);
+    $$('[data-barra]').forEach(function (b) { b.style.width = Math.min(100, t.peso / LIMITE_FORNO * 100) + '%'; });
+    const liga = ligaAtual();
+    $('#liga-corrida').hidden = !liga;
+    $('#liga-corrida').textContent = liga;
+    $('#r-ops').textContent = t.linhas.length;
+    $('#r-mol').textContent = t.moldes;
+    $('#r-livre').textContent = acima ? '—' : kg(LIMITE_FORNO - t.peso);
+    $('#r-mob').textContent = t.linhas.length + ' OP' + (t.linhas.length === 1 ? '' : 's') + ' · ' + t.moldes + ' molde' + (t.moldes === 1 ? '' : 's');
+    $('#itens-corrida').innerHTML = t.linhas.length ? t.linhas.map(function (l, i) {
+      return '<div class="ci" draggable="true" data-pos="' + i + '">' +
+        '<span class="seq">' + (i + 1) + '</span>' +
+        '<div><div class="op">OP ' + Ui.esc(l.x.op) + '</div><div class="d">' + Ui.esc(l.x.descricao || '') + '</div></div>' +
+        '<div class="k">' + kg(l.peso) + ' kg<small>' + l.moldes + ' molde' + (l.moldes !== 1 ? 's' : '') + '</small></div>' +
+        '<button class="x" data-tirar="' + Ui.esc(l.x.id_item) + '" title="Tirar da corrida">×</button></div>';
+    }).join('') : '<div class="nada">Nenhum molde adicionado</div>';
+    const tem = t.linhas.length > 0;
+    $$('[data-fechar]').forEach(function (b) { b.disabled = !tem || fechando; });
+    $('#bt-limpar').disabled = !tem;
+    $('#bt-ordem-mob').disabled = !tem;
+    $$('[data-imprimir]').forEach(function (b) { b.disabled = !tem && !ultima; });
+    $('[data-imprimir] .rot').textContent = !tem && ultima ? 'Romaneio ' + ultima.id_corrida : 'Romaneio';
+  }
+
+  // Arrastar para reordenar (computador)
+  let arrastado = null;
+  const caixaItens = $('#itens-corrida');
+  caixaItens.addEventListener('dragstart', function (ev) {
+    const ci = ev.target.closest('.ci'); if (!ci) return;
+    arrastado = Number(ci.dataset.pos);
+    ci.classList.add('arrastando');
+    ev.dataTransfer.effectAllowed = 'move';
+    try { ev.dataTransfer.setData('text/plain', String(arrastado)); } catch (e) { /* ok */ }
+  });
+  caixaItens.addEventListener('dragover', function (ev) {
+    const ci = ev.target.closest('.ci'); if (!ci || arrastado === null) return;
+    ev.preventDefault();
+    $$('.ci.alvo').forEach(function (n) { n.classList.remove('alvo'); });
+    ci.classList.add('alvo');
+  });
+  caixaItens.addEventListener('drop', function (ev) {
+    const ci = ev.target.closest('.ci'); if (!ci || arrastado === null) return;
+    ev.preventDefault();
+    mover(arrastado, Number(ci.dataset.pos));
+  });
+  caixaItens.addEventListener('dragend', function () { arrastado = null; desenharCorrida(); });
+  function mover(de, para) {
+    if (de === para || de < 0 || para < 0 || de >= corrida.length || para >= corrida.length) return;
+    const c = corrida.splice(de, 1)[0];
+    corrida.splice(para, 0, c);
+    idReqPendente = null;
+    atualizarMarcas();
+    desenharCorrida();
+  }
+
+  // Ordem do romaneio (celular): subir / descer / tirar
+  $('#bt-ordem-mob').addEventListener('click', function () {
+    Ui.janela({ titulo: 'Ordem do romaneio', subtitulo: 'O romaneio sai nesta ordem', corpo: '<div id="ord-lista"></div>', botoes: [{ texto: 'Fechar', classe: 'pri', valor: 'ok' }] });
+    const cx = document.getElementById('ord-lista');
+    function pintar() {
+      const t = totais();
+      cx.innerHTML = t.linhas.map(function (l, i) {
+        return '<div class="ord-l"><span class="seq">' + (i + 1) + '</span><div><b>OP ' + Ui.esc(l.x.op) + '</b><small>' + l.moldes + ' molde' + (l.moldes !== 1 ? 's' : '') + ' · ' + kg(l.peso) + ' kg</small></div>' +
+          '<button class="mv" data-mv="' + i + ',-1"' + (i === 0 ? ' disabled' : '') + ' title="Subir">↑</button>' +
+          '<button class="mv" data-mv="' + i + ',1"' + (i === t.linhas.length - 1 ? ' disabled' : '') + ' title="Descer">↓</button>' +
+          '<button class="x" data-tirar-ord="' + i + '" title="Tirar da corrida">×</button></div>';
+      }).join('') || '<div class="vazio">Nenhum molde adicionado</div>';
+    }
+    cx.addEventListener('click', function (ev) {
+      const mv = ev.target.closest('[data-mv]');
+      if (mv) { const p = mv.dataset.mv.split(','); mover(Number(p[0]), Number(p[0]) + Number(p[1])); pintar(); return; }
+      const tx = ev.target.closest('[data-tirar-ord]');
+      if (tx) { const c = corrida[Number(tx.dataset.tirarOrd)]; if (c) definir(c.id, 0); pintar(); }
+    });
+    pintar();
+  });
+
+  // Limpar corrida (igual ao antigo: pede confirmação)
+  $('#bt-limpar').addEventListener('click', async function () {
+    if (!corrida.length) return;
+    if (!(await Ui.confirmar({ titulo: 'Limpar a corrida?', texto: 'Limpar a corrida atual? Os dados não serão salvos.', ok: 'Limpar' }))) return;
+    corrida = [];
+    idReqPendente = null;
+    atualizarMarcas();
+    desenharCorrida();
+  });
+
+  // ---------- Fechar corrida ----------
+  async function fecharCorrida() {
+    if (!ctx.podeEditar || fechando || !corrida.length) return;
+    const t = totais();
+    const liga = ligaAtual();
+    const ok = await Ui.confirmar({
+      titulo: 'Fechar a corrida' + (proximoId ? ' ' + proximoId : '') + '?',
+      texto: 'Liga ' + liga + ' · ' + t.linhas.length + ' OP' + (t.linhas.length > 1 ? 's' : '') + ' · ' + t.moldes + ' moldes · ' + kg(t.peso) + ' kg.' +
+        (t.peso > LIMITE_FORNO ? ' ATENÇÃO: acima de ' + LIMITE_FORNO + ' kg — verificar recarga.' : '') +
+        ' Os moldes saem do saldo das OPs.',
+      ok: 'Fechar corrida'
+    });
+    if (!ok) return;
+    const itens = t.linhas.map(function (l) {
+      return { id_item: l.x.id_item, moldes: l.moldes, peso: Math.round(l.peso * 100) / 100 };
+    });
+    fechando = true;
+    idReqPendente = idReqPendente || Api.idReq();
+    $$('[data-fechar]').forEach(function (b) { b.disabled = true; b.querySelector('.rot').textContent = 'Fechando…'; });
+    try {
+      const r = await Api.chamar('fecharCorrida', { idReq: idReqPendente, liga: liga, itens: itens });
+      ultima = r.romaneio || await Api.chamar('dadosRomaneio', { id_corrida: r.id_corrida });
+      idReqPendente = null;
+      corrida = [];
+      const n = /FS-(\d+)/.exec(r.id_corrida || '');
+      proximoId = n ? 'FS-' + String(parseInt(n[1], 10) + 1).padStart(4, '0') : proximoId;
+      fechando = false;
+      mostrarId();
+      await carregar(true);
+      const imp = await Ui.janela({
+        titulo: 'Corrida ' + r.id_corrida + ' fechada',
+        corpo: '<p style="margin:0">' + ultima.itens.length + ' OP' + (ultima.itens.length > 1 ? 's' : '') + ' · ' + ultima.moldes + ' moldes · ' + kg(ultima.peso) + ' kg. Os moldes já saíram do saldo das OPs.</p>',
+        botoes: [{ texto: 'Depois', valor: false }, { texto: 'Imprimir romaneio', classe: 'pri', valor: true }]
+      });
+      if (imp === true) imprimirRomaneio();
+    } catch (e) {
+      Ui.erro(e);
+    } finally {
+      fechando = false;
+      mostrarId();
+      desenharCorrida();
+    }
+  }
+
+  // ---------- Romaneio (HTML do painel antigo; limite 700 kg; ordem de seleção) ----------
+  function imprimirRomaneio() {
+    // Corrida vazia + já fechou uma → imprime a última fechada (igual ao antigo)
+    const usarUltima = corrida.length === 0 && ultima;
+    let dados;
+    if (usarUltima) {
+      dados = {
+        id: ultima.id_corrida, liga: ultima.liga,
+        linhas: ultima.itens.map(function (it) {
+          return { op: it.op, pedido: it.pedido, codigo: it.codigo, descricao: it.descricao, cliente: it.cliente, liga: ultima.liga, prazo: it.prazo, moldes: it.moldes, peso: it.peso };
+        })
+      };
+    } else {
+      if (!corrida.length) return;
+      dados = {
+        id: proximoId, liga: ligaAtual(),
+        linhas: totais().linhas.map(function (l) {
+          const x = l.x;
+          return { op: x.op, pedido: x.pedido, codigo: x.codigo, descricao: x.descricao, cliente: x.cliente, liga: x.liga, prazo: x.prazo, moldes: l.moldes, peso: l.peso };
+        })
+      };
+    }
+    const e = Ui.esc;
+    let pesoTotal = 0, totalMoldes = 0, seq = 1, linhas = '';
+    dados.linhas.forEach(function (it) {
+      pesoTotal += Number(it.peso) || 0;
+      totalMoldes += Number(it.moldes) || 0;
+      linhas += `<tr>
+        <td>${seq++}</td><td>${e(it.op)}</td><td>${e(it.pedido || '-')}</td>
+        <td>${e(it.codigo || '-')}</td><td>${e(it.descricao || '-')}</td>
+        <td>${e(it.cliente || '-')}</td><td>${e(it.liga || '-')}</td><td>${e(it.prazo || '-')}</td>
+        <td style="text-align:center">${e(it.moldes)}</td>
+        <td style="text-align:right;font-weight:700">${(Number(it.peso) || 0).toFixed(1)}</td>
+      </tr>`;
+    });
+    const corId = '#000000';
+    const alertaTxt = pesoTotal > LIMITE_FORNO
+      ? `<p style="color:red;font-weight:bold">⚠ PESO ACIMA DO LIMITE DO FORNO (${LIMITE_FORNO} kg) — VERIFICAR RECARGA</p>`
+      : '';
+    const w = window.open('');
+    if (!w) { Ui.toast('O navegador bloqueou a janela de impressão. Libere pop-ups para este site.', 'erro'); return; }
+    w.document.write(`
+  <html><head><title>ROMANEIO DE FUSÃO</title>
+  <style>
+    body{font-family:Arial;padding:24px;color:#111}
+    .header-print{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px}
+    h2{font-size:18px;margin:0}
+    .id-corrida{font-size:20px;font-weight:900;color:${corId}}
+    .sub{font-size:12px;color:#555;margin-bottom:16px}
+    table{width:100%;border-collapse:collapse;font-size:11px;margin-top:12px}
+    th,td{border:1px solid #ccc;padding:7px;text-align:left}
+    th{background:#f0f0f0;font-weight:700}
+    tfoot td{font-weight:800;background:#f0f0f0}
+    .rodape{margin-top:32px;border-top:1px solid #ccc;padding-top:16px;display:flex;gap:40px;font-size:13px}
+    .rodape-campo{flex:1}
+    .rodape-label{font-weight:700;margin-bottom:8px}
+    .rodape-linha{border-bottom:1px solid #333;height:24px;margin-top:4px}
+    @media print{body{padding:10px}}
+  </style></head>
+  <body>
+    <div class="header-print">
+      <div>
+        <h2>PLANEJAMENTO DE FUSÃO — LIGA ${e(dados.liga)}</h2>
+        <div class="sub">Emitido em: ${new Date().toLocaleString('pt-BR')}</div>
+      </div>
+      <div class="id-corrida">${e(dados.id || '—')}</div>
+    </div>
+    ${alertaTxt}
+    <table>
+      <thead><tr>
+        <th>#</th><th>OP</th><th>PEDIDO</th><th>CÓDIGO</th><th>DESCRIÇÃO</th>
+        <th>CLIENTE</th><th>LIGA</th><th>PRAZO</th>
+        <th style="text-align:center">MOLDES</th>
+        <th style="text-align:right">PESO (kg)</th>
+      </tr></thead>
+      <tbody>${linhas}</tbody>
+      <tfoot><tr>
+        <td colspan="8" style="text-align:right">TOTAL DA CORRIDA:</td>
+        <td style="text-align:center">${totalMoldes}</td>
+        <td style="text-align:right">${pesoTotal.toFixed(1)} kg</td>
+      </tr></tfoot>
+    </table>
+    <div class="rodape">
+      <div class="rodape-campo">
+        <div class="rodape-label">Lote da Liga:</div>
+        <div class="rodape-linha"></div>
+      </div>
+      <div class="rodape-campo">
+        <div class="rodape-label">OP da Liga:</div>
+        <div class="rodape-linha"></div>
+      </div>
+    </div>
+    <script>window.onload=()=>window.print();<\/script>
+  </body></html>`);
+    w.document.close();
+  }
+
+  // Aviso ao sair com corrida montada e não fechada
+  window.addEventListener('beforeunload', function (ev) { if (corrida.length && ctx.podeEditar) { ev.preventDefault(); ev.returnValue = ''; } });
+});
+</script>
+</body>
+</html>

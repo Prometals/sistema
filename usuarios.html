@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Usuários e Permissões · Prometals</title>
+<link rel="stylesheet" href="css/tema.css">
+<link rel="stylesheet" href="css/sistema.css">
+<style>
+/* ---------- específico desta página ---------- */
+.adm { display: grid; grid-template-columns: 330px 1fr; gap: 14px; align-items: start; }
+.adm > * { min-width: 0; }
+.bx { background: var(--painel); border: 1px solid var(--linha); border-radius: 14px; overflow: hidden; }
+.bx-cab { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--linha); flex-wrap: wrap; }
+.bx-cab h3 { margin: 0; font-size: 15px; }
+.bx-cab .s { font-size: 12px; color: var(--texto-suave); }
+.bx-cab .dir { margin-left: auto; display: flex; gap: 8px; }
+
+/* lista de usuários */
+.us { display: grid; grid-template-columns: 36px 1fr auto; gap: 2px 10px; align-items: center; padding: 9px 16px; border-bottom: 1px solid var(--linha); font-size: 12.5px; cursor: pointer; }
+.us:hover { background: var(--hover); }
+.us .av { grid-row: 1 / span 2; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: 12px; background: var(--painel-2); }
+.us b { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.us small { color: var(--texto-suave); font-size: 11.5px; grid-column: 2; }
+.us .cg { grid-row: 1 / span 2; grid-column: 3; font-size: 10.5px; font-weight: 800; padding: 3px 8px; border-radius: 6px; background: var(--painel-2); }
+.us.eu .av { background: var(--destaque); color: #fff; }
+.us.inat { opacity: .45; }
+.us-rod { padding: 9px 16px; font-size: 11.5px; color: var(--texto-suave); }
+
+/* matriz de permissões */
+.mtz { overflow: auto; max-height: calc(100vh - 250px); }
+table.mx { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+table.mx th { font-size: 9.5px; letter-spacing: .2px; color: var(--texto-suave); padding: 9px 2px; text-align: center; border-bottom: 1px solid var(--linha); white-space: nowrap; background: var(--bg); position: sticky; top: 0; z-index: 1; }
+table.mx th:first-child { text-align: left; padding-left: 16px; }
+table.mx td { padding: 5px 2px; border-bottom: 1px solid var(--linha); text-align: center; }
+table.mx td:first-child { text-align: left; padding-left: 16px; font-weight: 700; white-space: nowrap; }
+table.mx tr.grp td { background: var(--bg); font-size: 10px; letter-spacing: .6px; color: var(--texto-suave); font-weight: 800; padding: 6px 16px; text-align: left; text-transform: uppercase; }
+.cel { display: inline-block; min-width: 50px; padding: 0 3px; height: 24px; line-height: 22px; border-radius: 6px; font-size: 10px; font-weight: 800; cursor: pointer; border: 1px solid var(--linha); color: var(--texto-suave); user-select: none; }
+.cel.e { background: rgba(34,197,94,.18); color: #34d399; border-color: transparent; }
+.cel.v { background: rgba(59,130,246,.18); color: #93c5fd; border-color: transparent; }
+html.tema-claro .cel.e { color: #166534; }
+html.tema-claro .cel.v { color: #1d4ed8; }
+.cel.fixo { opacity: .55; cursor: not-allowed; }
+.cel.mud { box-shadow: 0 0 0 2px var(--destaque); }
+.leg { display: flex; gap: 14px; padding: 10px 16px; font-size: 11.5px; color: var(--texto-suave); border-top: 1px solid var(--linha); flex-wrap: wrap; align-items: center; }
+.btn2.salvar { background: #16a34a; border-color: #16a34a; color: #fff; }
+.btn2 .n { background: rgba(255,255,255,.25); border-radius: 999px; padding: 0 7px; font-size: 11px; }
+
+/* janela do usuário */
+.fu { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.fc { display: grid; gap: 5px; font-size: 11px; font-weight: 800; color: var(--texto-suave); letter-spacing: .4px; }
+.fc input, .fc select { height: 38px; font-size: 13.5px; padding: 0 10px; }
+.fc input:disabled, .fc select:disabled { opacity: .6; }
+.fc small { font-weight: 600; letter-spacing: 0; font-size: 11px; }
+.pinbox { grid-column: 1 / -1; display: flex; gap: 10px; align-items: center; background: var(--painel-2); border-radius: 10px; padding: 10px 12px; font-size: 12.5px; flex-wrap: wrap; }
+.pinbox .btn2 { margin-left: auto; }
+.pinbox input { width: 130px; height: 36px; }
+.exc { grid-column: 1 / -1; border: 1px dashed var(--borda); border-radius: 10px; padding: 10px 12px; display: grid; gap: 8px; font-size: 12.5px; }
+.exc > b { font-size: 11px; color: var(--texto-suave); letter-spacing: .4px; }
+.exc .l { display: flex; gap: 8px; align-items: center; }
+.exc .l span { flex: 1; }
+.exc select { height: 32px; width: auto; padding: 0 8px; font-size: 12px; }
+.exc .add { display: flex; gap: 8px; flex-wrap: wrap; }
+.exc .add select:first-child { flex: 1; min-width: 160px; }
+.exc .x { width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--borda); background: transparent; cursor: pointer; display: grid; place-items: center; color: var(--texto-suave); }
+.exc .dica { color: var(--texto-suave); font-size: 11.5px; }
+
+/* celular: permissões de um cargo por vez */
+.cargo-mob select { height: 34px; width: auto; padding: 0 8px; }
+.pg { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 16px; border-bottom: 1px solid var(--linha); font-size: 13px; font-weight: 700; }
+.sg3 { display: flex; border: 1px solid var(--borda); border-radius: 8px; overflow: hidden; flex: none; }
+.sg3 button { padding: 6px 9px; font-size: 10.5px; font-weight: 800; color: var(--texto-suave); background: transparent; border: 0; cursor: pointer; }
+.sg3 button + button { border-left: 1px solid var(--borda); }
+.sg3 button.on-e { background: rgba(34,197,94,.2); color: #34d399; }
+.sg3 button.on-v { background: rgba(59,130,246,.2); color: #93c5fd; }
+.sg3 button.on-n { background: var(--painel-2); color: var(--texto); }
+.pg.mud { box-shadow: inset 3px 0 0 var(--destaque); }
+
+@media (max-width: 1200px) { .adm { grid-template-columns: 1fr; } }
+@media (max-width: 760px) {
+  .fu { grid-template-columns: 1fr; }
+  .conteudo { padding-bottom: 90px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Usuários e Permissões (só ADMIN).
+     Esquerda: usuários (clique = editar). Direita: matriz página × cargo.
+     No celular: um cargo por vez, com os três níveis lado a lado. -->
+<main class="conteudo">
+  <div class="tit-pagina">
+    <div><h1>Usuários e Permissões</h1><p>Quem acessa o quê · o menu mostra todas as páginas, mas só abre as liberadas</p></div>
+    <div class="acoes-pagina so-desk"><button class="btn2 pri" data-acao="novo"><svg class="i"><use href="#i-mais"/></svg>Novo usuário</button></div>
+  </div>
+
+  <div class="adm" id="adm"><div class="carregando">Carregando…</div></div>
+
+  <div class="barra-mob so-mob">
+    <button class="ic" data-acao="novo" title="Novo usuário"><svg class="i"><use href="#i-mais"/></svg></button>
+    <button class="pri" data-acao="salvar"><svg class="i"><use href="#i-check"/></svg>Salvar permissões <span class="n" data-n>0</span></button>
+  </div>
+</main>
+
+<script src="js/config.js"></script>
+<script src="js/icones.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/api.js"></script>
+<script src="js/sessao.js"></script>
+<script src="js/shell.js"></script>
+<script>
+Sessao.iniciarPagina('usuarios').then(function (ctx) {
+  const $ = function (s) { return document.querySelector(s); };
+  const NOME_CARGO = { ADMIN: 'ADMIN', PCP: 'PCP', GERENCIA: 'GERÊNCIA', COMERCIAL: 'COMERCIAL', FINANCEIRO: 'FINANC.',
+    COMPRAS: 'COMPRAS', ALMOXARIFADO: 'ALMOX.', QUALIDADE: 'QUALID.', OPERADOR: 'OPERADOR', CONSULTA: 'CONSULTA' };
+  const NOME_SETOR = { FUNDICAO: 'Fundição', USINAGEM: 'Usinagem' };
+  const TXT = { EDITAR: 'EDITAR', VER: 'VER', NENHUM: '—' };
+  const CLS = { EDITAR: 'e', VER: 'v', NENHUM: '' };
+  const PROXIMO = { NENHUM: 'VER', VER: 'EDITAR', EDITAR: 'NENHUM' };
+  const SO_ADMIN = 'usuarios';   // as ações desta página são sempre só do ADMIN
+
+  let usuarios = [], perm = null;
+  let original = {}, atual = {};   // "CARGO|pagina" → nível
+  let cargoMob = '';
+
+  carregar();
+
+  // ---------- Dados ----------
+  async function carregar() {
+    try {
+      const r = await Promise.all([Api.chamar('listarUsuarios', {}), Api.chamar('listarPermissoes', {})]);
+      usuarios = r[0];
+      perm = r[1];
+      original = {};
+      perm.cargos.forEach(function (c) { perm.paginas.forEach(function (p) { original[c + '|' + p.id] = c === 'ADMIN' ? 'EDITAR' : 'NENHUM'; }); });
+      perm.matriz.forEach(function (m) { original[m.cargo + '|' + m.id_pagina] = m.nivel; });
+      atual = Object.assign({}, original);
+      if (!cargoMob) cargoMob = perm.cargos.filter(function (c) { return c !== 'ADMIN'; })[0];
+      desenhar();
+    } catch (e) {
+      if (e.codigo === 'SEM_PERMISSAO') {
+        $('#adm').innerHTML = '<div class="bloqueio" style="grid-column:1/-1">' + Ui.ic('i-cadeado') +
+          '<h2>Só o Administrador</h2><p>Esta página cria usuários e muda permissões. Ela é exclusiva do cargo ADMIN.</p></div>';
+        document.querySelectorAll('[data-acao="novo"], .barra-mob').forEach(function (b) { b.hidden = true; });
+      } else {
+        Ui.erro(e);
+        $('#adm').innerHTML = '<div class="vazio">Não foi possível carregar. ' + Ui.esc(e.message) + '</div>';
+      }
+    }
+  }
+
+  function desenhar() {
+    const ativos = usuarios.filter(function (u) { return u.ativo !== 'NAO'; }).length;
+    $('#adm').innerHTML =
+      '<section class="bx"><div class="bx-cab"><h3>Usuários</h3><span class="s">' + usuarios.length + ' · ' + ativos + ' ativos</span></div>' +
+      htmlUsuarios() + '<div class="us-rod">Clique para editar, redefinir PIN ou inativar · nada é apagado</div></section>' +
+      '<section class="bx so-desk"><div class="bx-cab"><h3>Permissões por cargo</h3><span class="s">clique na célula: — → VER → EDITAR</span>' +
+      '<div class="dir"><button class="btn2 salvar" data-acao="salvar"><svg class="i"><use href="#i-check"/></svg>Salvar <span class="n" data-n>0</span></button></div></div>' +
+      '<div class="mtz">' + htmlMatriz() + '</div>' +
+      '<div class="leg"><span class="cel e">EDITAR</span> pode alterar <span class="cel v">VER</span> só consulta <span class="cel">—</span> aparece com cadeado · ' +
+      'ADMIN sempre edita tudo · toda mudança fica no histórico (quem, quando, de → para)</div></section>' +
+      '<section class="bx so-mob cargo-mob"><div class="bx-cab"><h3>Permissões</h3><div class="dir"><select data-cargo-mob>' +
+      perm.cargos.filter(function (c) { return c !== 'ADMIN'; }).map(function (c) {
+        return '<option value="' + c + '"' + (c === cargoMob ? ' selected' : '') + '>Cargo: ' + NOME_CARGO[c] + '</option>';
+      }).join('') + '</select></div></div><div data-lista-mob>' + htmlMob() + '</div></section>';
+    contarMudancas();
+  }
+
+  function htmlUsuarios() {
+    const ordem = usuarios.slice().sort(function (a, b) {
+      const ia = a.ativo === 'NAO' ? 1 : 0, ib = b.ativo === 'NAO' ? 1 : 0;
+      if (ia !== ib) return ia - ib;
+      if ((a.cargo === 'ADMIN') !== (b.cargo === 'ADMIN')) return a.cargo === 'ADMIN' ? -1 : 1;
+      return String(a.nome).localeCompare(String(b.nome));
+    });
+    return ordem.map(function (u) {
+      const det = [u.login];
+      if (u.setor) det.push(NOME_SETOR[u.setor] || u.setor);
+      det.push(u.ativo === 'NAO' ? 'inativo' : (u.ultimoAcesso ? 'último acesso ' + quando(u.ultimoAcesso) : 'nunca entrou'));
+      return '<div class="us' + (u.ativo === 'NAO' ? ' inat' : '') + (u.login === ctx.usuario.login ? ' eu' : '') + '" data-login="' + Ui.esc(u.login) + '">' +
+        '<span class="av">' + Ui.esc(iniciais(u.nome)) + '</span><b>' + Ui.esc(u.nome) + '</b>' +
+        '<span class="cg">' + Ui.esc(NOME_CARGO[u.cargo] || u.cargo) + '</span><small>' + Ui.esc(det.join(' · ')) + '</small></div>';
+    }).join('');
+  }
+
+  function htmlMatriz() {
+    let grupoAtual = null;
+    let linhas = '';
+    perm.paginas.forEach(function (p) {
+      if (p.grupo !== grupoAtual) {
+        grupoAtual = p.grupo;
+        linhas += '<tr class="grp"><td colspan="' + (perm.cargos.length + 1) + '">' + Ui.esc(p.grupo || 'Início') + '</td></tr>';
+      }
+      linhas += '<tr><td>' + Ui.esc(p.nome) + '</td>' + perm.cargos.map(function (c) {
+        return '<td>' + htmlCelula(c, p.id) + '</td>';
+      }).join('') + '</tr>';
+    });
+    return '<table class="mx"><thead><tr><th>PÁGINA</th>' + perm.cargos.map(function (c) { return '<th>' + NOME_CARGO[c] + '</th>'; }).join('') +
+      '</tr></thead><tbody>' + linhas + '</tbody></table>';
+  }
+
+  function htmlCelula(cargo, pagina) {
+    const k = cargo + '|' + pagina;
+    const fixo = cargo === 'ADMIN' || pagina === SO_ADMIN;
+    const nivel = cargo === 'ADMIN' ? 'EDITAR' : pagina === SO_ADMIN ? 'NENHUM' : atual[k];
+    const titulo = cargo === 'ADMIN' ? 'O ADMIN sempre edita tudo' : pagina === SO_ADMIN ? 'Só o ADMIN usa esta página' : NOME_CARGO[cargo] + ' · clique para mudar';
+    return '<span class="cel ' + CLS[nivel] + (fixo ? ' fixo' : '') + (atual[k] !== original[k] ? ' mud' : '') + '" data-k="' + k + '" title="' + titulo + '">' + TXT[nivel] + '</span>';
+  }
+
+  function htmlMob() {
+    return perm.paginas.filter(function (p) { return p.id !== SO_ADMIN; }).map(function (p) {
+      const k = cargoMob + '|' + p.id;
+      const n = atual[k];
+      return '<div class="pg' + (n !== original[k] ? ' mud' : '') + '"><span>' + Ui.esc(p.nome) + '</span><div class="sg3" data-k="' + k + '">' +
+        '<button data-n="NENHUM" class="' + (n === 'NENHUM' ? 'on-n' : '') + '">—</button>' +
+        '<button data-n="VER" class="' + (n === 'VER' ? 'on-v' : '') + '">VER</button>' +
+        '<button data-n="EDITAR" class="' + (n === 'EDITAR' ? 'on-e' : '') + '">EDITAR</button></div></div>';
+    }).join('');
+  }
+
+  // ---------- Matriz: cliques e salvar ----------
+  function mudancas() {
+    return Object.keys(atual).filter(function (k) { return atual[k] !== original[k]; }).map(function (k) {
+      const p = k.split('|');
+      return { cargo: p[0], id_pagina: p[1], nivel: atual[k] };
+    });
+  }
+  function contarMudancas() {
+    const n = mudancas().length;
+    document.querySelectorAll('[data-n]').forEach(function (el) { if (el.tagName === 'SPAN') el.textContent = n; });
+    document.querySelectorAll('[data-acao="salvar"]').forEach(function (b) { b.disabled = !n; });
+  }
+
+  document.addEventListener('click', function (ev) {
+    const cel = ev.target.closest('.cel[data-k]');
+    if (cel && !cel.classList.contains('fixo')) {
+      atual[cel.dataset.k] = PROXIMO[atual[cel.dataset.k]];
+      cel.outerHTML = htmlCelula.apply(null, cel.dataset.k.split('|'));
+      contarMudancas();
+      return;
+    }
+    const seg = ev.target.closest('.sg3 button');
+    if (seg) {
+      atual[seg.parentNode.dataset.k] = seg.dataset.n;
+      document.querySelector('[data-lista-mob]').innerHTML = htmlMob();
+      contarMudancas();
+      return;
+    }
+    const us = ev.target.closest('.us[data-login]');
+    if (us) { abrirUsuario(usuarios.find(function (u) { return u.login === us.dataset.login; })); return; }
+    const bt = ev.target.closest('[data-acao]');
+    if (!bt || bt.disabled) return;
+    if (bt.dataset.acao === 'novo') abrirUsuario(null);
+    if (bt.dataset.acao === 'salvar') salvarMatriz();
+  });
+  document.addEventListener('change', function (ev) {
+    if (ev.target.matches('[data-cargo-mob]')) {
+      cargoMob = ev.target.value;
+      document.querySelector('[data-lista-mob]').innerHTML = htmlMob();
+    }
+  });
+  window.addEventListener('beforeunload', function (ev) {
+    if (perm && mudancas().length) { ev.preventDefault(); ev.returnValue = ''; }
+  });
+
+  async function salvarMatriz() {
+    const alteracoes = mudancas();
+    if (!alteracoes.length) return;
+    const ok = await Ui.confirmar({
+      titulo: 'Salvar permissões',
+      texto: alteracoes.length + ' mudança(s) de permissão. Elas valem na próxima ação de cada usuário e ficam registradas no histórico.',
+      ok: 'Salvar'
+    });
+    if (!ok) return;
+    document.querySelectorAll('[data-acao="salvar"]').forEach(function (b) { b.disabled = true; });
+    try {
+      const r = await Api.chamar('salvarPermissoes', { alteracoes: alteracoes });
+      Ui.toast(r.alterados + ' permissão(ões) salva(s).');
+      await carregar();
+    } catch (e) {
+      Ui.erro(e);
+      contarMudancas();
+    }
+  }
+
+  // ---------- Janela do usuário (novo / editar) ----------
+  function abrirUsuario(u) {
+    const novo = !u;
+    const eu = u && u.login === ctx.usuario.login;
+    let exc = novo ? [] : perm.excecoes.filter(function (x) { return x.login === u.login; }).map(function (x) { return { id: x.id_pagina, nivel: x.nivel, antes: x.nivel }; });
+    const nomePag = function (id) { const p = perm.paginas.find(function (x) { return x.id === id; }); return p ? p.nome : id; };
+
+    const corpo =
+      '<div class="msg-erro"></div><div class="fu">' +
+      '<label class="fc">LOGIN<input name="login" autocapitalize="none" spellcheck="false" value="' + Ui.esc(u ? u.login : '') + '"' + (novo ? '' : ' disabled') + ' placeholder="ex.: jose.almox"></label>' +
+      '<label class="fc">NOME<input name="nome" value="' + Ui.esc(u ? u.nome : '') + '"></label>' +
+      '<label class="fc">CARGO<select name="cargo"' + (eu ? ' disabled title="Você não pode mudar o próprio cargo"' : '') + '>' +
+        (novo ? '<option value="">Escolha…</option>' : '') +
+        perm.cargos.map(function (c) { return '<option value="' + c + '"' + (u && u.cargo === c ? ' selected' : '') + '>' + c + '</option>'; }).join('') + '</select></label>' +
+      '<label class="fc">SETOR<select name="setor"><option value="">— sem setor —</option>' +
+        Object.keys(NOME_SETOR).map(function (s) { return '<option value="' + s + '"' + (u && u.setor === s ? ' selected' : '') + '>' + NOME_SETOR[s].toUpperCase() + '</option>'; }).join('') +
+        '</select><small>define processos e retrabalho no refugo</small></label>' +
+      (novo
+        ? '<div class="pinbox">PIN inicial (4 a 8 números)<input name="pin" type="password" inputmode="numeric" maxlength="8" autocomplete="new-password"></div>'
+        : '<div class="pinbox" data-pinbox>PIN: <b>••••</b><button type="button" class="btn2" data-redefinir>Redefinir PIN</button></div>') +
+      '<div class="exc"><b>EXCEÇÕES DESTE USUÁRIO (além do cargo)</b><div data-exc></div>' +
+      '<div class="add"><select data-add-pag><option value="">Adicionar página…</option>' +
+        perm.paginas.filter(function (p) { return p.id !== SO_ADMIN; }).map(function (p) { return '<option value="' + p.id + '">' + Ui.esc(p.nome) + '</option>'; }).join('') +
+        '</select><select data-add-nv><option value="EDITAR">EDITAR</option><option value="VER">VER</option><option value="NENHUM">SEM ACESSO</option></select>' +
+        '<button type="button" class="btn2" data-add>Adicionar</button></div>' +
+      '<span class="dica">Ex.: o operador que passar a montar as corridas recebe a Fusão sem mudar o cargo OPERADOR inteiro. "Sem acesso" tira uma página que o cargo libera.</span></div>' +
+      '</div>';
+
+    const botoes = [];
+    if (!novo && !eu) botoes.push({ texto: u.ativo === 'NAO' ? 'Reativar' : 'Inativar', classe: 'esq', valor: 'ativo' });
+    botoes.push({ texto: 'Cancelar', valor: null });
+    botoes.push({ texto: novo ? 'Criar usuário' : 'Salvar', classe: 'pri', valor: 'salvar' });
+
+    const promessa = Ui.janela({
+      titulo: novo ? 'Novo usuário' : 'Editar usuário · ' + u.nome,
+      subtitulo: novo ? 'o PIN inicial pode ser trocado pelo próprio usuário depois' :
+        'criado' + (u.criadoEm ? ' em ' + Fmt.data(u.criadoEm) : '') + (u.criadoPor ? ' por ' + u.criadoPor : '') +
+        ' · ' + (u.ultimoAcesso ? 'último acesso ' + quando(u.ultimoAcesso) : 'nunca entrou') + (u.ativo === 'NAO' ? ' · INATIVO' : ''),
+      largura: 580,
+      corpo: corpo,
+      botoes: botoes,
+      enterConfirma: false,
+      antesDeFechar: function (valor, caixa) { return valor === 'ativo' ? alternarAtivo(u, caixa) : salvarUsuario(u, caixa, exc); }
+    });
+
+    // liga os controles da janela (ela já está na tela)
+    const caixa = document.querySelector('.modal-caixa');
+    const desenharExc = function () {
+      caixa.querySelector('[data-exc]').innerHTML = exc.filter(function (x) { return x.nivel !== ''; }).map(function (x) {
+        return '<div class="l"><span>' + Ui.esc(nomePag(x.id)) + '</span><select data-exc-nv="' + x.id + '">' +
+          ['EDITAR', 'VER', 'NENHUM'].map(function (n) { return '<option value="' + n + '"' + (x.nivel === n ? ' selected' : '') + '>' + (n === 'NENHUM' ? 'SEM ACESSO' : n) + '</option>'; }).join('') +
+          '</select><button type="button" class="x" title="Remover exceção" data-exc-x="' + x.id + '">' + Ui.ic('i-x', 'width:14px;height:14px') + '</button></div>';
+      }).join('') || '<span class="dica">Nenhuma exceção: vale só o cargo.</span>';
+    };
+    desenharExc();
+    caixa.addEventListener('click', function (ev) {
+      if (ev.target.closest('[data-redefinir]')) {
+        caixa.querySelector('[data-pinbox]').innerHTML = 'Novo PIN (4 a 8 números)<input name="pin" type="password" inputmode="numeric" maxlength="8" autocomplete="new-password">' +
+          '<small class="mut">o usuário pode trocar depois em "Trocar PIN"</small>';
+        caixa.querySelector('[name="pin"]').focus();
+      }
+      if (ev.target.closest('[data-add]')) {
+        const id = caixa.querySelector('[data-add-pag]').value;
+        if (!id) return;
+        const nv = caixa.querySelector('[data-add-nv]').value;
+        const ex = exc.find(function (x) { return x.id === id; });
+        if (ex) ex.nivel = nv; else exc.push({ id: id, nivel: nv, antes: '' });
+        caixa.querySelector('[data-add-pag]').value = '';
+        desenharExc();
+      }
+      const x = ev.target.closest('[data-exc-x]');
+      if (x) { exc.find(function (e) { return e.id === x.dataset.excX; }).nivel = ''; desenharExc(); }
+    });
+    caixa.addEventListener('change', function (ev) {
+      if (ev.target.matches('[data-exc-nv]')) exc.find(function (e) { return e.id === ev.target.dataset.excNv; }).nivel = ev.target.value;
+    });
+    return promessa;
+  }
+
+  async function salvarUsuario(u, caixa, exc) {
+    const v = function (n) { const el = caixa.querySelector('[name="' + n + '"]'); return el ? el.value.trim() : ''; };
+    const erro = caixa.querySelector('.msg-erro');
+    const login = u ? u.login : v('login').toLowerCase();
+    if (!u && !/^[a-z0-9._-]{3,30}$/.test(login)) { Ui.msgErro(erro, 'Login: 3 a 30 caracteres, só letras minúsculas, números, ponto, hífen ou _.'); return false; }
+    if (!v('nome')) { Ui.msgErro(erro, 'Informe o nome.'); return false; }
+    if (!v('cargo')) { Ui.msgErro(erro, 'Escolha o cargo.'); return false; }
+    if ((!u || v('pin')) && !/^\d{4,8}$/.test(v('pin'))) { Ui.msgErro(erro, 'O PIN deve ter de 4 a 8 números.'); return false; }
+    if (!u && usuarios.some(function (x) { return x.login === login; })) { Ui.msgErro(erro, 'Já existe um usuário com o login ' + login + '.'); return false; }
+    try {
+      const dados = { login: login, nome: v('nome'), cargo: v('cargo'), setor: v('setor'), ativo: u ? u.ativo : 'SIM' };
+      if (v('pin')) dados.pin = v('pin');
+      await Api.chamar('salvarUsuario', dados);
+      const mudou = exc.filter(function (x) { return x.nivel !== x.antes; });
+      for (let i = 0; i < mudou.length; i++) {
+        await Api.chamar('salvarExcecao', { login: login, id_pagina: mudou[i].id, nivel: mudou[i].nivel });
+      }
+      Ui.toast(u ? 'Usuário ' + login + ' salvo.' : 'Usuário ' + login + ' criado. Passe o login e o PIN inicial para a pessoa.');
+      carregar();
+      return true;
+    } catch (e) {
+      Ui.msgErro(erro, e.message);
+      return false;
+    }
+  }
+
+  async function alternarAtivo(u, caixa) {
+    const inativar = u.ativo !== 'NAO';
+    const ok = await Ui.confirmar({
+      titulo: inativar ? 'Inativar usuário' : 'Reativar usuário',
+      texto: inativar ? u.nome + ' não vai mais conseguir entrar. Nada é apagado: o histórico dele continua e dá para reativar depois.'
+                      : u.nome + ' volta a poder entrar com o PIN que já tinha.',
+      ok: inativar ? 'Inativar' : 'Reativar', perigo: inativar
+    });
+    if (!ok) return false;
+    try {
+      await Api.chamar('salvarUsuario', { login: u.login, ativo: inativar ? 'NAO' : 'SIM' });
+      Ui.toast(u.nome + (inativar ? ' inativado.' : ' reativado.'));
+      carregar();
+      return true;
+    } catch (e) {
+      Ui.msgErro(caixa.querySelector('.msg-erro'), e.message);
+      return false;
+    }
+  }
+
+  // ---------- Apoio ----------
+  function iniciais(nome) {
+    const p = String(nome || '?').trim().split(/\s+/);
+    return ((p[0] || '?').charAt(0) + (p.length > 1 ? p[p.length - 1].charAt(0) : '')).toUpperCase();
+  }
+  // "hoje 10:58" · "ontem 17:42" · "29/09 10:38" · "05/01/2025"
+  function quando(v) {
+    const d = Fmt._d(v);
+    if (!d) return String(v);
+    const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+    const dia = new Date(d); dia.setHours(0, 0, 0, 0);
+    const hm = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+    const dif = Math.round((hoje - dia) / 86400000);
+    if (dif === 0) return 'hoje ' + hm;
+    if (dif === 1) return 'ontem ' + hm;
+    if (d.getFullYear() === hoje.getFullYear()) return Fmt.data(d).slice(0, 5) + ' ' + hm;
+    return Fmt.data(d);
+  }
+});
+</script>
+</body>
+</html>

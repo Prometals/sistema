@@ -1,0 +1,134 @@
+/* ============================================================
+   tema.css — Tema GLOBAL do sistema Prometals.
+   Escuro  = padrão do painel Gerencial   (:root)
+   Claro   = padrão do painel Financeiro  (html.tema-claro)
+   Toda página usa SÓ estas variáveis — nunca cor escrita direto.
+   ============================================================ */
+:root {
+  /* base */
+  --bg: #0f1720;
+  --painel: #172230;
+  --painel-2: #1e293b;
+  --cabecalho: #172230;
+  --cabecalho-texto: #f07a1f;
+  --cabecalho-sub: #9eb0c1;
+  --texto: #e5edf5;
+  --texto-suave: #9eb0c1;
+  --borda: #334155;
+  --linha: #263445;
+  --th-fundo: #243244;
+  --th-texto: #e5edf5;
+  --hover: #1d2a3a;
+  --destaque: #f07a1f;
+  --destaque-texto: #ffffff;
+  --foco: #1e3a5f;
+  --sombra: 0 8px 24px rgba(0, 0, 0, .35);
+
+  /* cards de indicador (Gerencial) */
+  --card-vermelho: #5b1d1d;  --card-vermelho-t: #ffffff;
+  --card-laranja: #704010;   --card-laranja-t: #ffffff;
+  --card-roxo: #4b2d73;      --card-roxo-t: #ffffff;
+  --card-verde: #1d5a3d;     --card-verde-t: #ffffff;
+  --card-azul: #20527c;      --card-azul-t: #ffffff;
+  --card-amarelo: #a17a10;   --card-amarelo-t: #ffffff;
+  --card-cinza: #334155;     --card-cinza-t: #ffffff;
+
+  /* estados */
+  --ok: #34d399;
+  --alerta: #fbbf24;
+  --erro: #f87171;
+  --bloqueado: #475569;
+
+  /* menu lateral */
+  --lateral: #121b26;
+  --lateral-borda: #1f2a37;
+  --lateral-texto: #aebdcc;
+  --lateral-titulo: #5f7388;
+  --lateral-ativo: #1c2a3b;
+
+  /* forma */
+  --raio: 14px;
+  --raio-sm: 10px;
+  --fonte: "Segoe UI", Arial, sans-serif;
+}
+
+html.tema-claro {
+  --bg: #dfe6ee;
+  --painel: #ffffff;
+  --painel-2: #cfd8e3;
+  --cabecalho: #1f2b3d;          /* o Financeiro mantém o cabeçalho escuro */
+  --cabecalho-texto: #f07a1f;
+  --cabecalho-sub: #9eb0c1;
+  --texto: #1f2937;
+  --texto-suave: #475569;
+  --borda: #b8c4d1;
+  --linha: #e5e7eb;
+  --th-fundo: #1f2b3d;
+  --th-texto: #ffffff;
+  --hover: #eef3f8;
+  --destaque: #f07a1f;
+  --destaque-texto: #ffffff;
+  --foco: #dbeafe;
+  --sombra: 0 2px 6px rgba(0, 0, 0, .08);
+
+  /* cards de indicador (Financeiro) */
+  --card-vermelho: #fee2e2;  --card-vermelho-t: #b91c1c;
+  --card-laranja: #ffedd5;   --card-laranja-t: #9a3412;
+  --card-roxo: #e9d5ff;      --card-roxo-t: #6b21a8;
+  --card-verde: #dcfce7;     --card-verde-t: #166534;
+  --card-azul: #dbeafe;      --card-azul-t: #1d4ed8;
+  --card-amarelo: #fef3c7;   --card-amarelo-t: #92400e;
+  --card-cinza: #e2e8f0;     --card-cinza-t: #334155;
+
+  --lateral: #1f2b3d;
+  --lateral-borda: #2a3a50;
+  --lateral-texto: #c3cfdb;
+  --lateral-titulo: #7d91a6;
+  --lateral-ativo: #2a3a50;
+
+  --ok: #166534;
+  --alerta: #92400e;
+  --erro: #b91c1c;
+  --bloqueado: #94a3b8;
+}
+
+/* ---------- base comum ---------- */
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--texto); font-family: var(--fonte); font-size: 14px; }
+button, input, select { font: inherit; color: inherit; }
+input, select {
+  background: var(--painel-2); border: 1px solid var(--borda); border-radius: var(--raio-sm);
+  padding: 10px 12px; width: 100%;
+}
+html.tema-claro input, html.tema-claro select { background: #ffffff; }
+input:focus, select:focus { outline: 2px solid var(--destaque); outline-offset: -1px; }
+.btn {
+  background: var(--painel-2); border: 1px solid var(--borda); border-radius: var(--raio-sm);
+  padding: 9px 16px; cursor: pointer; font-weight: 600;
+}
+.btn:hover { border-color: var(--destaque); }
+.btn-pri { background: var(--destaque); border-color: var(--destaque); color: var(--destaque-texto); }
+.btn-cab { background: transparent; border: 1px solid #334155; color: #e5edf5; padding: 6px 12px; font-size: 12px; }
+
+/* cabeçalho padrão de todas as páginas */
+.cabecalho {
+  background: var(--cabecalho); border-radius: var(--raio); border-bottom: 3px solid var(--destaque);
+  padding: 12px 18px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+}
+html.tema-claro .cabecalho { border-radius: 0 0 var(--raio) var(--raio); }
+.cabecalho h1 { margin: 0; color: var(--cabecalho-texto); font-size: 22px; font-weight: 800; letter-spacing: .5px; }
+.cabecalho .sub { color: var(--cabecalho-sub); font-size: 12px; margin-top: 2px; }
+.cabecalho .dir { margin-left: auto; display: flex; align-items: center; gap: 10px; color: var(--cabecalho-sub); font-size: 13px; }
+
+/* ---------- barras de rolagem ----------
+   Invisíveis até o mouse passar em cima do bloco; aí aparecem finas,
+   na cor do tema. A rolagem pela roda do mouse funciona sempre.   */
+* { scrollbar-width: thin; scrollbar-color: transparent transparent; }
+*:hover { scrollbar-color: var(--borda) transparent; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track, ::-webkit-scrollbar-corner { background: transparent; }
+::-webkit-scrollbar-thumb { background: transparent; border-radius: 8px; }
+:hover::-webkit-scrollbar-thumb { background: var(--borda); }
+::-webkit-scrollbar-thumb:hover { background: var(--texto-suave); }
+::-webkit-scrollbar-button { display: none; }

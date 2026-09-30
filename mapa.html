@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mapa · Calendário · Prometals</title>
+<link rel="stylesheet" href="css/tema.css">
+<link rel="stylesheet" href="css/sistema.css">
+<style>
+/* ---------- específico desta página ---------- */
+.mp { display: grid; grid-template-columns: 1fr 340px; gap: 14px; align-items: start; }
+.mp > * { min-width: 0; }
+.cx { background: var(--painel); border: 1px solid var(--linha); border-radius: 12px; }
+.ctl { padding: 10px; display: grid; gap: 10px; margin-bottom: 14px; }
+.ctl .l1 { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.ctl select { height: 38px; width: auto; padding: 0 10px; }
+.nav { display: flex; align-items: center; border: 1px solid var(--borda); border-radius: 10px; overflow: hidden; }
+.nav button { height: 36px; min-width: 36px; padding: 0 12px; border: 0; background: transparent; cursor: pointer; font-weight: 700; }
+.nav button:hover { background: var(--hover); }
+.nav .per { padding: 0 18px; font-weight: 800; color: var(--destaque); letter-spacing: .5px; min-width: 190px; text-align: center; }
+.ctl .f { position: relative; }
+.ctl .f input { height: 38px; padding-left: 36px; }
+.ctl .f svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--texto-suave); }
+
+.cal { display: grid; grid-template-columns: repeat(7, 1fr); overflow: hidden; }
+.cal .h { font-size: 11px; font-weight: 800; letter-spacing: .6px; color: var(--texto-suave); text-align: center; padding: 10px 0; border-bottom: 1px solid var(--linha); }
+.cal .c { min-height: 82px; border-right: 1px solid var(--linha); border-bottom: 1px solid var(--linha); padding: 8px; cursor: pointer; display: flex; flex-direction: column; gap: 6px; }
+.cal .c:nth-child(7n) { border-right: 0; }
+.cal .c.vz { cursor: default; }
+.cal .c.fds { background: color-mix(in srgb, var(--bg) 60%, transparent); }
+.cal .c:hover:not(.vz) { background: var(--hover); }
+.cal .c.sel { outline: 2px solid #3b82f6; outline-offset: -2px; }
+.cal .n { font-size: 12px; font-weight: 800; }
+.cal .c.hoje .n { background: var(--destaque); color: #fff; border-radius: 6px; padding: 1px 6px; align-self: flex-start; }
+.pips { display: flex; flex-wrap: wrap; gap: 3px; }
+.pip { width: 9px; height: 9px; border-radius: 2px; }
+.ok { --s: #22c55e; } .bad { --s: #ef4444; } .warn { --s: #eab308; } .future { --s: #3b82f6; }
+.pip { background: var(--s); }
+.cnt { font-size: 10.5px; color: var(--texto-suave); font-weight: 700; margin-top: auto; }
+.chips { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; }
+.chip { background: var(--s); color: #fff; border-radius: 4px; padding: 1px 3px; font-size: 9.5px; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; text-align: center; }
+.mais { grid-column: 1 / -1; font-size: 10px; color: #f59e0b; font-weight: 800; }
+.dias-g { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; padding: 12px; }
+.dg { background: var(--painel-2); border-radius: 10px; padding: 10px; border: 1px solid var(--linha); }
+.dg b { font-size: 10.5px; color: var(--destaque); text-transform: uppercase; letter-spacing: .4px; }
+.dg small { display: block; font-size: 10.5px; color: var(--texto-suave); margin: 2px 0 6px; }
+.dg .chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.dg .chip { padding: 4px 10px; font-size: 11px; border-radius: 6px; }
+.ano { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 12px; }
+.ano div { background: var(--painel-2); border-radius: 10px; padding: 12px; text-align: center; cursor: pointer; border: 1px solid var(--linha); }
+.ano div.atual { border-color: var(--destaque); }
+.ano i { display: block; font-style: normal; font-size: 11px; font-weight: 800; color: var(--texto-suave); }
+.ano div.atual i { color: var(--destaque); }
+.ano b { display: block; font-size: 24px; margin: 4px 0; }
+.ano small { display: block; font-size: 10px; color: var(--texto-suave); }
+.msg { padding: 30px; text-align: center; color: var(--texto-suave); }
+.lat-at { max-height: calc(100vh - 330px); overflow-y: auto; padding: 10px 14px; }
+.lat-at h4 { margin: 8px 0 6px; font-size: 11.5px; padding-bottom: 5px; border-bottom: 1px solid var(--linha); }
+.la { display: flex; gap: 8px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--linha); font-size: 12px; cursor: pointer; }
+.la:hover { background: var(--hover); }
+.la .o { color: var(--destaque); font-weight: 800; min-width: 52px; }
+.cd { background: rgba(59,130,246,.18); color: #93c5fd; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 6px; white-space: nowrap; }
+html.tema-claro .cd { color: #1d4ed8; }
+.la .d { flex: 1; color: var(--texto-suave); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.leg { display: flex; gap: 16px; flex-wrap: wrap; padding: 10px 14px; font-size: 11.5px; color: var(--texto-suave); }
+.leg i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; background: var(--s); }
+
+/* faixa de atrasadas */
+.fx { margin-top: 14px; }
+.fx-cab { display: flex; justify-content: space-between; padding: 10px 14px; font-size: 13px; font-weight: 800; color: #f87171; border-bottom: 1px solid var(--linha); }
+.fx-cab span { color: var(--texto-suave); font-weight: 700; }
+/* faixa de atrasadas: cartões quebram linha (sem rolagem lateral) */
+.fx-l { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; max-height: 280px; overflow-y: auto; overflow-x: hidden; padding: 10px 14px; }
+.at { min-width: 0; background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.35); border-radius: 10px; padding: 8px 10px; cursor: pointer; font-size: 11.5px; }
+.at .t { display: flex; justify-content: space-between; font-weight: 800; }
+.at .t em { font-style: normal; color: #f87171; font-size: 11px; }
+.at div { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--texto-suave); }
+
+/* painel do dia */
+.lado { position: sticky; top: 0; }
+.lado .cab { padding: 14px 16px; border-bottom: 1px solid var(--linha); }
+.lado .cab b { display: block; font-size: 15px; text-transform: capitalize; }
+.lado .cab small { color: var(--texto-suave); font-size: 12px; }
+.ops { max-height: calc(100vh - 250px); overflow-y: auto; padding: 10px; display: grid; gap: 10px; }
+.oc { background: var(--painel-2); border-radius: 10px; border-left: 3px solid var(--s); padding: 10px 12px; cursor: pointer; font-size: 12px; display: grid; gap: 4px; }
+.oc .t { display: flex; justify-content: space-between; align-items: center; }
+.oc .t b { font-size: 13px; }
+.st { font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 5px; background: color-mix(in srgb, var(--s) 20%, transparent); color: var(--s); white-space: nowrap; }
+.oc .ds { font-weight: 600; }
+.oc .gr { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 10px; color: var(--texto-suave); font-size: 11.5px; }
+.oc .gr span b { color: var(--texto); }
+.vazio2 { padding: 26px 10px; text-align: center; color: var(--texto-suave); font-size: 13px; }
+
+/* detalhe */
+.dt-g { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.dt-g div { background: var(--painel-2); border-radius: 8px; padding: 8px 10px; font-size: 11px; color: var(--texto-suave); }
+.dt-g b { display: block; font-size: 13.5px; color: var(--texto); margin-top: 2px; }
+.cron { background: var(--painel-2); border-radius: 8px; padding: 10px 12px; margin-top: 10px; }
+.cron > b { font-size: 11px; letter-spacing: .5px; }
+.cron div { display: flex; justify-content: space-between; font-size: 12px; padding: 3px 0; border-bottom: 1px solid var(--linha); }
+.cron div span:last-child { color: var(--texto-suave); font-size: 11px; }
+
+/* celular */
+.dstrip { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 8px; }
+.dstrip button { flex: none; width: 54px; border: 1px solid var(--linha); background: var(--painel); border-radius: 10px; padding: 6px 0; display: grid; gap: 2px; justify-items: center; font-size: 10.5px; font-weight: 800; color: var(--texto-suave); cursor: pointer; }
+.dstrip button b { font-size: 17px; color: var(--texto); }
+.dstrip button span { font-size: 10px; background: var(--painel-2); border-radius: 6px; padding: 0 6px; }
+.dstrip button.sel { border-color: #3b82f6; background: color-mix(in srgb, #3b82f6 12%, var(--painel)); }
+.dstrip button.hoje b { color: var(--destaque); }
+.dstrip button.fds { opacity: .55; }
+.mob-cab { display: flex; justify-content: space-between; align-items: center; margin: 4px 0 10px; }
+.mob-cab b { color: var(--destaque); letter-spacing: .5px; }
+@media (max-width: 1200px) { .mp { grid-template-columns: 1fr; } .lado { position: static; } }
+@media (max-width: 760px) {
+  .dt-g { grid-template-columns: 1fr 1fr; }
+  .ops { max-height: none; padding: 0; }
+}
+</style>
+</head>
+<body>
+
+<!-- Mapa · Calendário — planejamento mestre por prazo (cronograma reverso).
+     Lógica igual ao mapa_planejamento.html antigo: filtro por depto,
+     vistas Mês/Semana/Dia/Ano/Atrasadas, painel do dia, faixa de
+     atrasadas, detalhe com cronograma, impressão pela vista.
+     Sem a aba Gantt e sem Prioridade (aprovado no mockup). -->
+<main class="conteudo">
+  <div class="tit-pagina">
+    <div><h1>Mapa · Calendário</h1><p>Planejamento mestre por prazo · cronograma reverso (25 dias úteis SFK/CRK/DRF, 20 demais)</p></div>
+    <div class="acoes-pagina so-desk"><button class="btn2 pri" data-imprimir><svg class="i"><use href="#i-imp"/></svg>Imprimir</button></div>
+  </div>
+
+  <!-- computador -->
+  <div class="mp so-desk">
+    <div>
+      <div class="cx ctl">
+        <div class="l1">
+          <select id="fDepto"><option value="">Todos os departamentos</option></select>
+          <select id="fVista"><option value="mes">Mês</option><option value="semana">Semana</option><option value="dia">Dia</option><option value="ano">Ano</option><option value="atrasadas">Atrasadas</option></select>
+          <div class="nav"><button data-nav="-1" title="Anterior">‹</button><span class="per" id="periodo"></span><button data-nav="0">Hoje</button><button data-nav="1" title="Próximo">›</button></div>
+        </div>
+        <div class="f"><svg class="i"><use href="#i-busca"/></svg><input id="busca" placeholder="Buscar OP, pedido, código, descrição ou liga…" autocomplete="off"></div>
+      </div>
+      <div class="cx" id="grade"><div class="carregando">Carregando o cronograma…</div></div>
+      <div class="leg"><span><i class="ok"></i>No prazo / realizado</span><span><i class="bad"></i>Atrasado</span><span><i class="warn"></i>Sem movimentação</span><span><i class="future"></i>Adiantado / futuro</span></div>
+      <div class="cx fx"><div class="fx-cab">OPs atrasadas / com gargalo <span id="atCont"></span></div><div class="fx-l" id="atLista"></div></div>
+    </div>
+    <aside class="cx lado">
+      <div class="cab"><b id="ladoTit">Selecione um dia</b><small id="ladoSub">Clique em uma data no calendário</small></div>
+      <div class="ops" id="ladoOps"><div class="vazio2">Selecione um dia para ver as OPs planejadas</div></div>
+    </aside>
+  </div>
+
+  <!-- celular: faixa de dias + lista do dia -->
+  <div class="so-mob">
+    <div class="kpi-mini" id="mobKpi"></div>
+    <div class="mob-cab"><b id="mobMes"></b><div class="nav"><button data-semana="-1">‹</button><button data-semana="0">Hoje</button><button data-semana="1">›</button></div></div>
+    <div class="dstrip" id="mobDias"></div>
+    <div class="busca-mob"><div class="f"><svg class="i"><use href="#i-busca"/></svg><input id="buscaMob" placeholder="OP, código, liga…" autocomplete="off"></div>
+      <button class="bt" id="btDeptoMob" title="Departamento"><svg class="i"><use href="#i-filtro"/></svg></button>
+      <button class="bt" data-imprimir title="Imprimir"><svg class="i"><use href="#i-imp"/></svg></button></div>
+    <div class="info-mob" id="mobInfo"></div>
+    <div class="ops" id="mobOps"></div>
+  </div>
+</main>
+
+<script src="js/config.js"></script>
+<script src="js/icones.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/api.js"></script>
+<script src="js/sessao.js"></script>
+<script src="js/shell.js"></script>
+<script src="js/cronograma.js"></script>
+<script>
+Sessao.iniciarPagina('mapa').then(function (ctx) {
+  const $ = function (s) { return document.querySelector(s); };
+  const ORDEM_DEPTOS = ['VALIDAÇÃO TÉCNICA', 'ENGENHARIA', 'PLANEJAMENTO', 'FILA DE PRODUÇÃO', 'MODELAÇÃO', 'MOLDAGEM', 'PINTURA', 'FUSÃO',
+    'REBARBAÇÃO', 'TRATAMENTO TÉRMICO', 'JATEAMENTO', 'USINAGEM', 'BALANCEAMENTO EXTERNO', 'INSPEÇÃO FINAL', 'EXPEDIÇÃO'];
+  const LIGAS_DISCO = ['SFK', 'CRK', 'DRF'];
+
+  // ---------- Datas (mesmas funções do painel antigo) ----------
+  const add = function (d, n) { const r = new Date(d); r.setDate(r.getDate() + n); return r; };
+  const hoje = function () { const d = new Date(); d.setHours(0, 0, 0, 0); return d; };
+  const sameDay = function (a, b) { return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate(); };
+  const fmtBR = function (d) { return d ? String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear() : '-'; };
+  const fmtShort = function (d) { return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0'); };
+  const parseBR = Cronograma.parseBR;
+  const cronograma = Cronograma.cronograma;
+  const statusOP = Cronograma.status;
+  const isDisco = function (l) { return LIGAS_DISCO.indexOf(String(l || '').toUpperCase().trim()) !== -1; };
+  const fds = function (d) { return d.getDay() === 0 || d.getDay() === 6; };
+  function contaDU(a, b) { let c = 0; const cur = new Date(a); while (cur < b) { if (!fds(cur)) c++; cur.setDate(cur.getDate() + 1); } return c; }
+  function fasePlanejadaParaDia(cron, dia) {
+    if (!cron) return null;
+    for (let i = 0; i < cron.fases.length; i++) { const f = cron.fases[i]; if (f.n !== 'BUFFER' && dia >= f.ini && dia < f.fim) return f; }
+    return null;
+  }
+
+  // ---------- Estado ----------
+  let OPS = [];
+  let calOffset = 0, diaSelecionado = null, filtDepto = '', filtVista = 'mes', filtBusca = '';
+  let semanaMob = 0, diaMob = hoje();
+
+  carregarDados();
+  setInterval(function () { if (!document.hidden && !document.querySelector('.modal-fundo')) carregarDados(true); }, 60000);   // igual ao antigo
+
+  async function carregarDados(silencioso) {
+    try {
+      const r = await Api.chamar('listarCarteira', { visao: 'PRODUCAO' }, { rapido: function () {
+        if (!document.querySelector('.modal-fundo')) carregarDados(true);
+      } });
+      // Mesma preparação do painel antigo: item sem OP conta como ENGENHARIA
+      OPS = r.itens.map(function (x) {
+        const semOP = !x.op;
+        const processoRaw = x.processo === 'SEM MOVIMENTAÇÃO' ? '' : x.processo;
+        return {
+          id: x.id_item, op: x.op, pedido: x.pedido, cliente: x.cliente, codigo: x.codigo, descricao: x.descricao,
+          liga: x.liga, prazo: x.prazo, qtdordem: x.qtdordem,
+          processo: semOP ? 'ENGENHARIA' : (processoRaw || 'SEM MOVIMENTAÇÃO'),
+          processoReal: processoRaw || 'ENGENHARIA',
+          ultima: x.ultima && x.ultima !== '-' ? x.ultima : null
+        };
+      });
+      popularFiltros();
+      renderCal();
+      renderMob();
+    } catch (e) {
+      if (!silencioso) Ui.erro(e);
+    }
+  }
+
+  function rotulo(x) { return x.op || x.pedido || '?'; }
+
+  // A OP aparece num departamento num dia se: (1) a fase planejada do dia é o depto;
+  // (2) ela está no depto e o dia está dentro do cronograma; (3) vai passar pelo depto em até 60 dias.
+  function opPertenceAoDepto(op, depto, dia) {
+    if (fds(dia)) return false;
+    const cron = cronograma(op); if (!cron) return false;
+    const faseDia = fasePlanejadaParaDia(cron, dia);
+    if (faseDia && faseDia.n === depto) return true;
+    if (op.processo === depto && dia >= cron.ini && dia <= cron.prazo) return true;
+    const faseFutura = cron.fases.find(function (f) { return f.n === depto; });
+    if (faseFutura && faseFutura.ini >= dia && faseFutura.ini <= add(dia, 60)) return true;
+    return false;
+  }
+  function opsDoDia(lista, dt) {
+    if (filtDepto) return lista.filter(function (x) { return opPertenceAoDepto(x, filtDepto, dt); });
+    return lista.filter(function (x) {
+      if (fds(dt)) return false;
+      const cron = cronograma(x); if (!cron) return false;
+      return cron.fases.some(function (f) { return f.n !== 'BUFFER' && dt >= f.ini && dt < f.fim; }) || (hoje() >= cron.prazo && dt >= hoje());
+    });
+  }
+  function bateBusca(x) {
+    return !filtBusca || (String(x.op) + String(x.pedido) + String(x.codigo) + String(x.descricao) + String(x.liga)).toUpperCase().indexOf(filtBusca) !== -1;
+  }
+  function listaCal() { return OPS.filter(function (x) { return (!filtDepto || x.processo === filtDepto) && bateBusca(x); }); }
+
+  function popularFiltros() {
+    const base = new Set(OPS.map(function (x) { return x.processo; }).filter(function (p) { return p && p !== 'SEM MOVIMENTAÇÃO'; }));
+    const deptos = ORDEM_DEPTOS.filter(function (d) { return base.has(d); });
+    base.forEach(function (d) { if (ORDEM_DEPTOS.indexOf(d) === -1) deptos.push(d); });
+    const s = $('#fDepto'), cur = s.value;
+    s.innerHTML = '<option value="">Todos os departamentos</option>' + deptos.map(function (d) { return '<option value="' + Ui.esc(d) + '">' + Ui.esc(d) + '</option>'; }).join('');
+    if (cur && deptos.indexOf(cur) !== -1) s.value = cur;
+  }
+
+  // ---------- Calendário ----------
+  function renderCal() {
+    const lista = listaCal();
+    const nav = ['mes', 'semana', 'dia'].indexOf(filtVista) !== -1 || filtVista === 'ano';
+    document.querySelectorAll('[data-nav]').forEach(function (b) { b.hidden = !nav; });
+    if (filtVista === 'atrasadas') renderVistaAtrasadas(lista);
+    else if (filtVista === 'semana') renderCalSemana(lista);
+    else if (filtVista === 'dia') renderCalDia(lista);
+    else if (filtVista === 'ano') renderCalAno(lista);
+    else renderCalMes(lista);
+    renderAtrasadas();
+  }
+
+  function cabecalhoSemana() {
+    return ['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB', 'DOM'].map(function (d) { return '<div class="h">' + d + '</div>'; }).join('');
+  }
+
+  function renderCalMes(lista) {
+    const h = hoje();
+    const mes = new Date(h.getFullYear(), h.getMonth() + calOffset, 1);
+    $('#periodo').textContent = mes.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }).toUpperCase();
+    const ultDia = new Date(mes.getFullYear(), mes.getMonth() + 1, 0).getDate();
+    const firstDow = mes.getDay() || 7;
+    let html = cabecalhoSemana();
+    for (let i = 1; i < firstDow; i++) html += '<div class="c vz"></div>';
+    for (let d = 1; d <= ultDia; d++) {
+      const dt = new Date(mes.getFullYear(), mes.getMonth(), d);
+      const ops = opsDoDia(lista, dt);
+      const pips = ops.map(function (x) { const cls = h > dt ? 'ok' : statusOP(x).cls; return '<i class="pip ' + cls + '" title="OP ' + Ui.esc(rotulo(x)) + '"></i>'; }).join('');
+      html += '<div class="c' + (sameDay(dt, h) ? ' hoje' : '') + (fds(dt) ? ' fds' : '') + (diaSelecionado && sameDay(dt, diaSelecionado) ? ' sel' : '') + '" data-dia="' + dt.getTime() + '">' +
+        '<span class="n">' + d + '</span><div class="pips">' + pips + '</div>' + (ops.length ? '<span class="cnt">' + ops.length + ' OP' + (ops.length > 1 ? 's' : '') + '</span>' : '') + '</div>';
+    }
+    $('#grade').innerHTML = '<div class="cal">' + html + '</div>';
+    if (diaSelecionado) renderDia(diaSelecionado, lista); else renderDiaVazio();
+  }
+
+  function renderCalSemana(lista) {
+    const h = hoje(); const dow = h.getDay() || 7;
+    const seg = add(h, -dow + 1 + calOffset * 7);
+    $('#periodo').textContent = 'SEMANA ' + fmtShort(seg) + ' – ' + fmtShort(add(seg, 6));
+    let html = cabecalhoSemana();
+    for (let i = 0; i < 7; i++) {
+      const dt = add(seg, i); dt.setHours(0, 0, 0, 0);
+      const ops = opsDoDia(lista, dt);
+      const chips = ops.slice(0, 28).map(function (x) {
+        return '<span class="chip ' + statusOP(x).cls + '" data-op="' + x.id + '" title="' + Ui.esc(x.codigo + ' — ' + x.descricao) + '">' + Ui.esc(rotulo(x)) + '</span>';
+      }).join('');
+      html += '<div class="c' + (sameDay(dt, h) ? ' hoje' : '') + (fds(dt) ? ' fds' : '') + (diaSelecionado && sameDay(dt, diaSelecionado) ? ' sel' : '') + '" style="min-height:130px" data-dia="' + dt.getTime() + '">' +
+        '<span class="n">' + fmtShort(dt) + '</span><div class="chips">' + chips + (ops.length > 28 ? '<span class="mais">+' + (ops.length - 28) + ' OPs</span>' : '') + '</div>' +
+        (ops.length ? '<span class="cnt">' + ops.length + ' OP' + (ops.length > 1 ? 's' : '') + '</span>' : '') + '</div>';
+    }
+    $('#grade').innerHTML = '<div class="cal">' + html + '</div>';
+    if (diaSelecionado) renderDia(diaSelecionado, lista); else renderDiaVazio();
+  }
+
+  function renderCalDia(lista) {
+    const h = hoje(); const dia = add(h, calOffset); dia.setHours(0, 0, 0, 0);
+    $('#periodo').textContent = dia.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase();
+    diaSelecionado = dia;
+    if (fds(dia)) { $('#grade').innerHTML = '<div class="msg">Fim de semana — sem produção planejada</div>'; renderDia(dia, lista); return; }
+    // Agrupa pelo departamento planejado; OP com cronograma todo no passado aparece hoje no depto onde está
+    const grupos = {};
+    const ehHojeOuDepois = dia >= h;
+    lista.forEach(function (x) {
+      const cron = cronograma(x); if (!cron) return;
+      let fase = fasePlanejadaParaDia(cron, dia);
+      if (!fase && ehHojeOuDepois && h >= cron.prazo) {
+        const real = String(x.processo || '').trim();
+        if (real && real !== 'SEM MOVIMENTAÇÃO' && ORDEM_DEPTOS.indexOf(real) !== -1) fase = { n: real };
+      }
+      if (!fase) return;
+      (grupos[fase.n] = grupos[fase.n] || []).push(x);
+    });
+    const deptos = ORDEM_DEPTOS.filter(function (d) { return grupos[d]; });
+    $('#grade').innerHTML = deptos.length ? '<div class="dias-g">' + deptos.map(function (d) {
+      const ops = grupos[d];
+      return '<div class="dg"><b>' + Ui.esc(d) + '</b><small>' + ops.length + ' OP' + (ops.length > 1 ? 's' : '') + '</small><div class="chips">' +
+        ops.map(function (x) { return '<span class="chip ' + statusOP(x).cls + '" data-op="' + x.id + '" title="' + Ui.esc(x.codigo + ' — ' + x.descricao) + '">' + Ui.esc(rotulo(x)) + '</span>'; }).join('') + '</div></div>';
+    }).join('') + '</div>' : '<div class="msg">Nenhuma OP planejada para este dia</div>';
+    renderDia(dia, lista);
+  }
+
+  function renderCalAno(lista) {
+    const h = hoje(); const ano = h.getFullYear() + calOffset;
+    $('#periodo').textContent = String(ano);
+    const meses = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
+    let html = '';
+    for (let m = 0; m < 12; m++) {
+      const ini = new Date(ano, m, 1); const fim = new Date(ano, m + 1, 0, 23, 59, 59);
+      const ops = lista.filter(function (x) {
+        const cron = cronograma(x); if (!cron) return false;
+        return cron.fases.some(function (f) { return f.n !== 'BUFFER' && f.ini <= fim && f.fim >= ini; }) || (h >= cron.prazo && fim >= h);
+      });
+      const atr = ops.filter(function (x) { return statusOP(x).cls === 'bad'; }).length;
+      const warn = ops.filter(function (x) { return statusOP(x).cls === 'warn'; }).length;
+      const cor = atr ? '#ef4444' : warn ? '#f59e0b' : '#22c55e';
+      html += '<div class="' + (h.getMonth() === m && h.getFullYear() === ano ? 'atual' : '') + '" data-mes="' + m + '"><i>' + meses[m] + '</i><b style="color:' + cor + '">' + ops.length + '</b><small>OPs</small>' +
+        (atr ? '<small style="color:#ef4444">' + atr + ' atrasada' + (atr > 1 ? 's' : '') + '</small>' : '') + '</div>';
+    }
+    $('#grade').innerHTML = '<div class="ano">' + html + '</div>';
+    renderDiaVazio();
+  }
+
+  // 1) prazo vencido (mais antigo primeiro) · 2) atrasadas no depto com prazo ainda não vencido
+  function buildListaAtrasadas(lista) {
+    const h = hoje();
+    const porPrazo = lista.filter(function (x) { const p = parseBR(x.prazo); return p && p < h; }).sort(function (a, b) { return parseBR(a.prazo) - parseBR(b.prazo); });
+    const porDepto = lista.filter(function (x) { const p = parseBR(x.prazo); if (!p || p < h) return false; return statusOP(x).cls === 'bad'; })
+      .sort(function (a, b) { return parseBR(a.prazo) - parseBR(b.prazo); });
+    return porPrazo.concat(porDepto);
+  }
+
+  function renderVistaAtrasadas(lista) {
+    const h = hoje();
+    $('#periodo').textContent = 'ATRASADAS';
+    const todas = buildListaAtrasadas(lista);
+    if (!todas.length) { $('#grade').innerHTML = '<div class="msg">Nenhuma OP atrasada</div>'; renderDiaVazio(); return; }
+    const nPrazo = todas.filter(function (x) { const p = parseBR(x.prazo); return p && p < h; }).length;
+    const linha = function (x, extra) {
+      return '<div class="la" data-op="' + x.id + '"><span class="o">' + Ui.esc(rotulo(x)) + '</span><span class="cd">' + Ui.esc(x.codigo || '-') + '</span>' +
+        '<span class="d">' + Ui.esc(x.descricao || '-') + '</span>' + extra + '</div>';
+    };
+    $('#grade').innerHTML = '<div class="lat-at">' +
+      (nPrazo ? '<h4 style="color:#ef4444">PRAZO VENCIDO (' + nPrazo + ')</h4>' : '') +
+      todas.slice(0, nPrazo).map(function (x) {
+        const dias = Math.floor((h - parseBR(x.prazo)) / 86400000);
+        return linha(x, '<span class="mut" style="font-size:11px">' + Ui.esc(x.processo || '-') + '</span><span style="color:#f59e0b">' + Ui.esc(x.prazo) + '</span><b style="color:#ef4444">' + dias + 'd</b>');
+      }).join('') +
+      (todas.length > nPrazo ? '<h4 style="color:#f59e0b">ATRASADAS NO DEPARTAMENTO (' + (todas.length - nPrazo) + ')</h4>' : '') +
+      todas.slice(nPrazo).map(function (x) {
+        const st = statusOP(x);
+        return linha(x, '<span style="color:#f59e0b;font-size:11px;white-space:nowrap">' + Ui.esc(st.fase ? st.fase.n : '-') + ' ← planejado</span><span class="mut" style="font-size:11px">' + Ui.esc(x.processo || '-') + '</span><span style="color:#f59e0b">' + Ui.esc(x.prazo) + '</span>');
+      }).join('') + '</div>';
+    renderDiaVazio();
+  }
+
+  // ---------- Painel do dia ----------
+  function renderDiaVazio() {
+    $('#ladoTit').textContent = 'Selecione um dia';
+    $('#ladoSub').textContent = 'Clique em uma data no calendário';
+    $('#ladoOps').innerHTML = '<div class="vazio2">Selecione um dia para ver as OPs planejadas</div>';
+  }
+  function renderDia(dia, lista) {
+    const ops = opsDoDia(lista, dia);
+    $('#ladoTit').textContent = dia.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' });
+    $('#ladoSub').textContent = ops.length + ' OP' + (ops.length !== 1 ? 's' : '') + ' planejada' + (ops.length !== 1 ? 's' : '');
+    $('#ladoOps').innerHTML = ops.length ? ops.map(function (x) { return cartao(x, dia); }).join('') : '<div class="vazio2">Nenhuma OP planejada para este dia</div>';
+  }
+  function cartao(x, dia) {
+    const h = hoje();
+    const cron = cronograma(x);
+    const fase = cron ? cron.fases.find(function (f) { return f.n !== 'BUFFER' && dia >= f.ini && dia < f.fim; }) : null;
+    const st = statusOP(x);
+    const real = String(x.processo || '').trim() || '-';
+    const diasNoDept = x.ultima ? (function () { const d = parseBR(x.ultima); return d ? Math.floor((h - d) / 86400000) : 0; })() : 0;
+    const diasPrazo = Math.floor((parseBR(x.prazo) - h) / 86400000);
+    const corPrazo = diasPrazo < 0 ? '#ef4444' : diasPrazo <= 3 ? '#f59e0b' : '#4ade80';
+    return '<div class="oc ' + st.cls + '" data-op="' + x.id + '"><div class="t"><b>' + (x.op ? 'OP ' + Ui.esc(x.op) : 'Ped. ' + Ui.esc(x.pedido)) + '</b><span class="st">' + st.label + '</span></div>' +
+      '<div><span class="cd">' + Ui.esc(x.codigo || '-') + '</span> <span class="mut" style="font-size:11px">' + Ui.esc(x.liga || '-') + '</span></div>' +
+      '<div class="ds">' + Ui.esc(x.descricao) + '</div><div class="gr">' +
+      '<span>Planejado: <b>' + Ui.esc(fase ? fase.n : '-') + '</b></span><span>Atual: <b>' + Ui.esc(real) + '</b></span>' +
+      '<span>Prazo: <b style="color:' + corPrazo + '">' + Ui.esc(String(x.prazo).slice(0, 5)) + '</b></span><span>No depto: <b>' + diasNoDept + 'd</b></span>' +
+      (st.diasAtraso > 0 ? '<span style="grid-column:1/-1">Atraso no processo: <b style="color:#ef4444">' + st.diasAtraso + ' dias</b></span>' : '') + '</div></div>';
+  }
+
+  // ---------- Faixa de atrasadas (atraso no cronograma OU prazo vencido) ----------
+  function renderAtrasadas() {
+    const h = hoje();
+    const lista = OPS.filter(function (x) { return !filtDepto || x.processo === filtDepto; });
+    const atr = lista.filter(function (x) { return statusOP(x).cls === 'bad' || parseBR(x.prazo) < h; })
+      .sort(function (a, b) { return parseBR(a.prazo) - parseBR(b.prazo); });
+    $('#atCont').textContent = atr.length + ' OPs';
+    $('#atLista').innerHTML = atr.length ? atr.map(function (x) {
+      const st = statusOP(x);
+      const dias = Math.floor((h - parseBR(x.prazo)) / 86400000);
+      const real = String(x.processo || '').trim() || '-';
+      return '<div class="at" data-op="' + x.id + '"><div class="t"><span>' + Ui.esc(rotulo(x)) + '</span><em>' + (dias > 0 ? dias + 'd atraso' : st.diasAtraso + 'd') + '</em></div>' +
+        '<div>' + Ui.esc(x.descricao) + '</div><div>' + Ui.esc(real) + ' → ' + Ui.esc(st.fase ? st.fase.n : '-') + '</div></div>';
+    }).join('') : '<div class="mut" style="font-size:12px">Nenhuma OP atrasada</div>';
+  }
+
+  // ---------- Detalhe da OP ----------
+  function abrirModal(id) {
+    const x = OPS.find(function (b) { return b.id === id; }); if (!x) return;
+    const cron = cronograma(x); const st = statusOP(x); const h = hoje();
+    const diasPrazo = Math.floor((parseBR(x.prazo) - h) / 86400000);
+    const corPrazo = diasPrazo < 0 ? '#ef4444' : diasPrazo <= 3 ? '#f59e0b' : '#4ade80';
+    const diasNoDept = x.ultima ? (function () { const d = parseBR(x.ultima); return d ? Math.floor((h - d) / 86400000) : 0; })() : 0;
+    const real = String(x.processo || '').trim() || '-';
+    const cronHTML = cron ? '<div class="cron"><b>CRONOGRAMA</b>' + cron.fases.filter(function (f) { return f.n !== 'BUFFER'; }).map(function (f) {
+      const pass = f.fim <= h, atual = f.ini <= h && f.fim > h;
+      const cor = pass ? '#22c55e' : atual ? 'var(--destaque)' : 'var(--texto-suave)';
+      return '<div><span style="color:' + cor + '">' + (pass ? '✓' : atual ? '▶' : '·') + ' ' + Ui.esc(f.n) + '</span><span>' + fmtShort(f.ini) + ' → ' + fmtShort(f.fim) + '</span></div>';
+    }).join('') + '</div>' : '';
+    const cel = function (rot, val, cor) { return '<div>' + rot + '<b' + (cor ? ' style="color:' + cor + '"' : '') + '>' + val + '</b></div>'; };
+    Ui.janela({
+      titulo: (x.op ? 'OP ' + x.op : 'Pedido ' + x.pedido) + ' · ' + x.cliente,
+      subtitulo: x.codigo + ' · ' + x.descricao,
+      largura: 620,
+      corpo: '<div style="margin:-4px 0 10px"><span class="st ' + st.cls + '">' + st.label + '</span></div><div class="dt-g">' +
+        cel('Pedido', Ui.esc(x.pedido || '-')) + cel('Cliente', Ui.esc(x.cliente || '-')) + cel('Liga / tipo', Ui.esc((x.liga || '-') + ' · ' + (isDisco(x.liga) ? 'Disco 25d' : 'Fundido 20d'))) +
+        cel('Prazo', Ui.esc(x.prazo) + ' · ' + (diasPrazo < 0 ? Math.abs(diasPrazo) + 'd atrasado' : diasPrazo + 'd restantes'), corPrazo) +
+        cel('Início planejado', cron ? fmtBR(cron.ini) : '-') + cel('Dias no departamento', diasNoDept + ' dias') +
+        cel('Processo planejado', Ui.esc(st.fase ? st.fase.n : '-'), '#60a5fa') + cel('Processo atual', Ui.esc(real)) +
+        (st.diasAtraso > 0 ? cel('Atraso no processo', st.diasAtraso + ' dias', '#ef4444') : cel('Situação', st.label)) +
+        '</div>' + cronHTML,
+      botoes: [{ texto: 'Fechar', valor: null }]
+    });
+  }
+
+  // ---------- Impressão (segue a vista — MESMO layout do painel antigo) ----------
+  function imprimir() {
+    const h = hoje();
+    const lista = OPS.filter(function (x) { return !filtDepto || x.processo === filtDepto || opPertenceAoDepto(x, filtDepto, h); });
+    const sufixo = filtDepto ? ' — ' + filtDepto : '';
+    const naFase = function (x, ini, fim) {
+      const cron = cronograma(x); if (!cron) return false;
+      return cron.fases.some(function (f) { return f.n !== 'BUFFER' && f.ini <= fim && f.fim >= ini; }) || (h >= cron.prazo && fim >= h);
+    };
+    const mobil = window.innerWidth <= 760;
+    if (!mobil && filtVista === 'atrasadas') return imprimirLista(buildListaAtrasadas(lista), 'Atrasadas' + sufixo);
+    const dia = mobil ? diaMob : diaSelecionado;
+    if (dia) {
+      const ops = filtDepto ? lista.filter(function (x) { return opPertenceAoDepto(x, filtDepto, dia); }) : lista.filter(function (x) {
+        const cron = cronograma(x); if (!cron) return false;
+        return cron.fases.some(function (f) { return f.n !== 'BUFFER' && dia >= f.ini && dia < f.fim; }) || (h >= cron.prazo && dia >= h);
+      });
+      return imprimirLista(ops, 'OPs do Dia ' + fmtBR(dia) + sufixo);
+    }
+    if (filtVista === 'semana') {
+      const dow = h.getDay() || 7; const seg = add(h, -dow + 1 + calOffset * 7); const fim = add(seg, 7);
+      const ops = filtDepto ? lista.filter(function (x) { for (let i = 0; i < 7; i++) { if (opPertenceAoDepto(x, filtDepto, add(seg, i))) return true; } return false; })
+        : lista.filter(function (x) { const cron = cronograma(x); if (!cron) return false; return cron.fases.some(function (f) { return f.n !== 'BUFFER' && f.ini < fim && f.fim > seg; }) || (h >= cron.prazo && fim > h); });
+      return imprimirLista(ops, 'OPs da Semana ' + fmtBR(seg) + ' – ' + fmtBR(add(fim, -1)) + sufixo);
+    }
+    if (filtVista === 'ano') {
+      const ano = h.getFullYear() + calOffset;
+      return imprimirLista(lista.filter(function (x) { return naFase(x, new Date(ano, 0, 1), new Date(ano, 11, 31)); }), 'OPs do Ano ' + ano + sufixo);
+    }
+    const mes = new Date(h.getFullYear(), h.getMonth() + calOffset, 1);
+    const mesFim = new Date(h.getFullYear(), h.getMonth() + calOffset + 1, 0);
+    imprimirLista(lista.filter(function (x) { return naFase(x, mes, mesFim); }), 'OPs de ' + mes.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }) + sufixo);
+  }
+
+  function imprimirLista(lista, titulo) {
+    const h = hoje(); const e = Ui.esc;
+    const ordenada = lista.slice().sort(function (a, b) { return (parseBR(a.prazo) || new Date(9999, 0)) - (parseBR(b.prazo) || new Date(9999, 0)); });
+    const linhas = ordenada.map(function (x) {
+      const st = statusOP(x); const cron = cronograma(x);
+      const inicio = cron ? fmtBR(cron.ini) : '-';
+      const diasPrazo = parseBR(x.prazo) ? Math.floor((parseBR(x.prazo) - h) / 86400000) : null;
+      const diasNoDept = x.ultima ? (function () { const d = parseBR(x.ultima); return d ? contaDU(d, h) : 0; })() : 0;
+      const cor = st.label === 'ADIANTADO' ? '#1d4ed8' : st.cls === 'bad' ? '#b91c1c' : st.cls === 'warn' ? '#ca8a04' : '#166634';
+      return `<tr>
+      <td>${e(x.op || '-')}</td><td>${e(x.pedido || '-')}</td><td>${e(x.cliente || '-')}</td>
+      <td><strong>${e(x.codigo || '-')}</strong></td><td>${e(x.descricao || '-')}</td>
+      <td>${e(x.liga || '-')}</td><td>${e(x.prazo || '-')}</td>
+      <td>${inicio}</td>
+      <td>${e(st.fase ? st.fase.n : '-')}</td><td>${e(x.processo || '-')}</td>
+      <td style="font-weight:700;color:${cor}">${st.label}</td>
+      <td style="text-align:center;color:${diasPrazo !== null && diasPrazo < 0 ? '#b91c1c' : diasPrazo !== null && diasPrazo <= 3 ? '#ca8a04' : 'inherit'}">${diasPrazo !== null ? Math.abs(diasPrazo) : '-'}</td>
+      <td style="text-align:center">${diasNoDept}</td>
+    </tr>`;
+    }).join('');
+    const w = window.open('');
+    if (!w) { Ui.toast('O navegador bloqueou a janela de impressão. Libere pop-ups para este site.', 'erro'); return; }
+    w.document.write(`<html><head><title>${e(titulo)}</title>
+  <style>body{font-family:Arial;padding:14px;font-size:8px}h2{font-size:11px;margin-bottom:3px}
+  .sub{color:#555;margin-bottom:8px;font-size:8px}
+  table{width:100%;border-collapse:collapse}th,td{border:1px solid #ccc;padding:3px 4px;text-align:left;font-size:8px;word-wrap:break-word;overflow-wrap:break-word}
+  th{background:#f2f2f2;font-weight:700}td{-webkit-print-color-adjust:exact;print-color-adjust:exact}</style>
+  </head><body><h2>${e(titulo)}</h2>
+  <div class="sub">Emitido em: ${new Date().toLocaleString('pt-BR')} | ${lista.length} OPs | Ordenado por prazo</div>
+  <table><thead><tr>
+    <th>OP</th><th>PEDIDO</th><th>CLIENTE</th><th>CÓDIGO</th><th>PRODUTO</th><th>LIGA</th>
+    <th>PRAZO</th><th>INÍCIO PLANEJADO</th><th>PROC. PLANEJADO</th><th>PROC. ATUAL</th><th>STATUS</th>
+    <th>DIAS P/PRAZO</th><th>DIAS DEPTO</th>
+  </tr></thead>
+  <tbody>${linhas}</tbody></table>
+  <script>window.onload=()=>window.print();<\/script></body></html>`);
+    w.document.close();
+  }
+
+  // ---------- Celular: faixa de dias + lista do dia ----------
+  function renderMob() {
+    const h = hoje();
+    const lista = listaCal();
+    const cont = { ok: 0, bad: 0, warn: 0, future: 0 };
+    lista.forEach(function (x) { if (cronograma(x)) cont[statusOP(x).cls]++; });
+    $('#mobKpi').innerHTML =
+      '<span class="km" style="--c:#22c55e"><b>' + cont.ok + '</b> No prazo</span><span class="km' + (cont.bad ? ' piscando' : '') + '" style="--c:#ef4444"><b>' + cont.bad + '</b> Atrasadas</span>' +
+      '<span class="km" style="--c:#eab308"><b>' + cont.warn + '</b> Sem mov.</span><span class="km" style="--c:#3b82f6"><b>' + cont.future + '</b> Futuro</span>';
+    const dow = h.getDay() || 7;
+    const seg = add(h, -dow + 1 + semanaMob * 7);
+    $('#mobMes').textContent = seg.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }).toUpperCase();
+    const nomes = ['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB', 'DOM'];
+    let html = '';
+    for (let i = 0; i < 7; i++) {
+      const d = add(seg, i); d.setHours(0, 0, 0, 0);
+      html += '<button class="' + (sameDay(d, diaMob) ? 'sel' : '') + (sameDay(d, h) ? ' hoje' : '') + (fds(d) ? ' fds' : '') + '" data-dia-mob="' + d.getTime() + '">' + nomes[i] +
+        '<b>' + d.getDate() + '</b><span>' + opsDoDia(lista, d).length + '</span></button>';
+    }
+    $('#mobDias').innerHTML = html;
+    const ops = opsDoDia(lista, diaMob);
+    const nomeDia = diaMob.toLocaleDateString('pt-BR', { weekday: 'long' }).split('-')[0];
+    $('#mobInfo').textContent = nomeDia.charAt(0).toUpperCase() + nomeDia.slice(1) + ', ' + fmtShort(diaMob) + ' · ' + ops.length + ' OP' + (ops.length !== 1 ? 's' : '') + ' planejada' + (ops.length !== 1 ? 's' : '') + (filtDepto ? ' · ' + filtDepto : '');
+    $('#mobOps').innerHTML = ops.length ? ops.map(function (x) { return cartao(x, diaMob); }).join('') : '<div class="vazio2">Nenhuma OP planejada para este dia</div>';
+  }
+
+  // ---------- Eventos ----------
+  $('#fDepto').addEventListener('change', aplicarFiltros);
+  $('#fVista').addEventListener('change', aplicarFiltros);
+  function aplicarFiltros() {
+    filtDepto = $('#fDepto').value;
+    const nova = $('#fVista').value;
+    if (nova !== filtVista) diaSelecionado = null;   // limpa o dia ao trocar de vista
+    filtVista = nova;
+    calOffset = 0;
+    renderCal();
+    renderMob();
+  }
+  $('#busca').addEventListener('input', function () { filtBusca = $('#busca').value.toUpperCase(); renderCal(); });
+  $('#buscaMob').addEventListener('input', function () { filtBusca = $('#buscaMob').value.toUpperCase(); renderMob(); });
+  $('#btDeptoMob').addEventListener('click', function () {
+    const opcoes = '<option value="">Todos os departamentos</option>' + Array.from($('#fDepto').options).slice(1).map(function (o) { return '<option' + (o.value === filtDepto ? ' selected' : '') + '>' + Ui.esc(o.value) + '</option>'; }).join('');
+    Ui.janela({ titulo: 'Departamento', corpo: '<select name="d" style="height:42px">' + opcoes + '</select>', botoes: [{ texto: 'Aplicar', classe: 'pri', valor: 'ok' }],
+      antesDeFechar: function (v, cx) { $('#fDepto').value = cx.querySelector('[name="d"]').value; aplicarFiltros(); return true; } });
+  });
+
+  document.addEventListener('click', function (ev) {
+    const op = ev.target.closest('[data-op]');
+    if (op) { ev.stopPropagation(); abrirModal(op.dataset.op); return; }
+    const dia = ev.target.closest('[data-dia]');
+    if (dia) { diaSelecionado = new Date(Number(dia.dataset.dia)); renderCal(); return; }
+    const mes = ev.target.closest('[data-mes]');
+    if (mes) {
+      const h = hoje(); const ano = h.getFullYear() + calOffset;
+      calOffset = Number(mes.dataset.mes) - h.getMonth() + (ano - h.getFullYear()) * 12;
+      $('#fVista').value = 'mes'; filtVista = 'mes'; renderCal(); return;
+    }
+    const nav = ev.target.closest('[data-nav]');
+    if (nav) { const n = Number(nav.dataset.nav); calOffset = n === 0 ? 0 : calOffset + n; renderCal(); return; }
+    const dm = ev.target.closest('[data-dia-mob]');
+    if (dm) { diaMob = new Date(Number(dm.dataset.diaMob)); renderMob(); return; }
+    const sm = ev.target.closest('[data-semana]');
+    if (sm) {
+      const n = Number(sm.dataset.semana);
+      if (n === 0) { semanaMob = 0; diaMob = hoje(); } else { semanaMob += n; diaMob = add(diaMob, n * 7); }
+      renderMob(); return;
+    }
+    if (ev.target.closest('[data-imprimir]')) imprimir();
+  });
+});
+</script>
+</body>
+</html>

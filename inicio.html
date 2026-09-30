@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Visão geral · Prometals</title>
+<link rel="stylesheet" href="css/tema.css">
+<link rel="stylesheet" href="css/sistema.css">
+</head>
+<body>
+
+<!-- Visão geral: a página de entrada de quem tem mais de uma página.
+     Os números vêm do resumo do BI (resumoBI); se o usuário não tiver
+     acesso ao BI, aparecem só os atalhos das páginas liberadas. -->
+<main class="conteudo">
+  <div class="tit-pagina">
+    <div><h1 id="titulo">Visão geral</h1><p id="subtitulo"></p></div>
+    <div class="acoes-pagina so-desk">
+      <button class="btn2" id="atualizar"><svg class="i"><use href="#i-volta"/></svg>Atualizar</button>
+    </div>
+  </div>
+
+  <!-- indicadores: cards no computador, pílulas no celular -->
+  <div class="kpis so-desk" id="kpis" hidden></div>
+  <div class="kpi-mini so-mob" id="kpis-mob" hidden></div>
+
+  <div class="grade2">
+    <div class="bloco" id="bloco-atencao">
+      <div class="bloco-cab"><h3>OPs que exigem atenção</h3><a id="link-pcp" href="pcp.html" hidden>Abrir PCP · Monitor →</a></div>
+      <div id="atencao"><div class="carregando">Carregando…</div></div>
+    </div>
+    <div class="bloco">
+      <div class="bloco-cab"><h3>Suas páginas</h3></div>
+      <ul class="atalhos" id="atalhos"></ul>
+    </div>
+  </div>
+</main>
+
+<script src="js/config.js"></script>
+<script src="js/icones.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/api.js"></script>
+<script src="js/sessao.js"></script>
+<script src="js/shell.js"></script>
+<script src="js/cronograma.js"></script>
+<script>
+Sessao.iniciarPagina('inicio').then(function (ctx) {
+  const $ = function (id) { return document.getElementById(id); };
+  const primeiroNome = String(ctx.usuario.nome || '').split(' ')[0];
+  $('titulo').textContent = Fmt.saudacao() + ', ' + primeiroNome.charAt(0) + primeiroNome.slice(1).toLowerCase();
+  const podeAbrir = function (id) { return ctx.nivelDe(id) !== 'NENHUM' && CONFIG.PAGINAS_PRONTAS.indexOf(id) !== -1; };
+  $('link-pcp').hidden = !podeAbrir('pcp');
+
+  desenharAtalhos();
+  const temBI = ctx.nivelDe('bi') !== 'NENHUM';
+  if (!temBI) {
+    $('subtitulo').textContent = Fmt.hojeExtenso();
+    $('bloco-atencao').innerHTML = '<div class="vazio">Os indicadores da produção aparecem para quem tem acesso ao <b>Dashboard BI</b>.<br>Use os atalhos ao lado para abrir suas páginas.</div>';
+    return;
+  }
+  carregar();
+  $('atualizar').addEventListener('click', carregar);
+  setInterval(function () { if (!document.hidden) carregar(); }, 5 * 60 * 1000);
+
+  // ---------- Dados ----------
+  async function carregar() {
+    $('atualizar').disabled = true;
+    try {
+      const r = await Api.chamar('resumoBI', {}, { rapido: function () { carregar(); } });
+      desenharIndicadores(r);
+      desenharAtencao(r);
+      $('subtitulo').textContent = Fmt.hojeExtenso() + ' · dados atualizados às ' + Fmt.hora().slice(0, 5);
+    } catch (e) {
+      Ui.erro(e);
+      if (!$('kpis').innerHTML) $('atencao').innerHTML = '<div class="vazio">Não foi possível carregar os dados. ' + Ui.esc(e.message) + '</div>';
+    } finally {
+      $('atualizar').disabled = false;
+    }
+  }
+
+  // Mesmas regras do PCP · Monitor e do BI antigo (js/cronograma.js):
+  // em produção = tem nº de OP · atrasada = pelo cronograma · parada = 4+ dias sem movimentar.
+  function classificar(r) {
+    r.carteira.forEach(function (c) {
+      c._st = Cronograma.status(c);
+      c._atr = Cronograma.categoria(c) === 'ATRASADO';
+      c._par = Cronograma.parada(c);
+    });
+  }
+
+  function desenharIndicadores(r) {
+    classificar(r);
+    const cart = r.carteira;
+    const clientes = new Set(cart.map(function (c) { return c.cliente; })).size;
+    const prod = cart.filter(function (c) { return !!c.op; }).length;
+    const eng = cart.filter(function (c) { return !c.op; });
+    const atr = cart.filter(function (c) { return c._atr; }).length;
+    const par = cart.filter(function (c) { return c._par; }).length;
+    const pct = cart.length ? Math.round(prod / cart.length * 100) : 0;
+    const em7 = eng.filter(function (e) { const d = diasAte(e.prazo); return d !== null && d <= 7; }).length;
+    const k = [
+      { c: '#3b82f6', ic: 'i-tabela', rot: 'Carteira ativa', val: cart.length, det: clientes + ' cliente' + (clientes === 1 ? '' : 's') },
+      { c: '#22c55e', ic: 'i-relogio', rot: 'Em produção', val: prod, det: pct + '% da carteira' },
+      { c: '#a855f7', ic: 'i-clip', rot: 'Engenharia (sem OP)', val: eng.length, det: em7 + ' com prazo em 7 dias' },
+      { c: '#ef4444', ic: 'i-alerta', rot: 'Atrasadas', val: atr, det: par + ' parada' + (par === 1 ? '' : 's') + ' há 4+ dias' }
+    ];
+    $('kpis').innerHTML = k.map(function (x) {
+      return '<div class="kpi" style="--c:' + x.c + '"><div class="rot">' + Ui.ic(x.ic) + x.rot + '</div>' +
+             '<div class="val">' + x.val + '</div><div class="det">' + Ui.esc(x.det) + '</div></div>';
+    }).join('');
+    $('kpis-mob').innerHTML = k.map(function (x, i) {
+      return '<span class="km' + (i === 3 && x.val > 0 ? ' piscando' : '') + '" style="--c:' + x.c + '">' + x.rot.replace(' (sem OP)', '') + ' <b>' + x.val + '</b></span>';
+    }).join('');
+    $('kpis').hidden = false;
+    $('kpis-mob').hidden = false;
+  }
+
+  // Atrasadas pelo cronograma (mais atrasada primeiro) + paradas, sem repetir OP.
+  function desenharAtencao(r) {
+    const cart = r.carteira;
+    const linhas = cart.filter(function (c) { return c._atr; })
+      .sort(function (a, b) { return b._st.diasAtraso - a._st.diasAtraso; })
+      .map(function (o) { return { o: o, tag: 't-verm', txt: (o._st.label === 'PRAZO VENCIDO' ? 'Prazo vencido' : 'Atrasada') + (o._st.diasAtraso ? ' · ' + o._st.diasAtraso + ' d' : '') }; })
+      .concat(cart.filter(function (c) { return c._par && !c._atr; })
+        .sort(function (a, b) { return Cronograma.diasParada(b) - Cronograma.diasParada(a); })
+        .map(function (o) { return { o: o, tag: 't-amar', txt: 'Parada · ' + Cronograma.diasParada(o) + ' d' }; }));
+    const lista = linhas.slice(0, 10);
+    if (!lista.length) {
+      $('atencao').innerHTML = '<div class="vazio">' + Ui.ic('i-check') + '<br>Nenhuma OP atrasada ou parada. Tudo em dia.</div>';
+      return;
+    }
+    const proc = function (p) { return p ? p.charAt(0) + p.slice(1).toLowerCase() : '—'; };
+    const deveria = function (o) { return o._st.fase ? proc(o._st.fase.n) : '—'; };
+    $('atencao').innerHTML =
+      '<table class="tab so-desk"><thead><tr><th>OP</th><th>Cliente</th><th class="col-opc">Código</th><th class="col-opc">Liga</th>' +
+      '<th>Processo atual</th><th class="col-opc">Deveria estar</th><th class="num">Prazo</th><th>Situação</th></tr></thead><tbody>' +
+      lista.map(function (l) {
+        const o = l.o;
+        return '<tr><td><b>' + Ui.esc(o.op || '—') + '</b></td><td>' + Ui.esc(o.cliente) + '</td>' +
+               '<td class="col-opc mut">' + Ui.esc(o.codigo) + '</td><td class="col-opc">' + Ui.esc(o.liga) + '</td>' +
+               '<td>' + Ui.esc(proc(o.processo)) + '</td><td class="col-opc mut">' + Ui.esc(deveria(o)) + '</td>' +
+               '<td class="num">' + Ui.esc(String(o.prazo).slice(0, 5)) + '</td>' +
+               '<td><span class="tag ' + l.tag + '">' + Ui.esc(l.txt) + '</span></td></tr>';
+      }).join('') + '</tbody></table>' +
+      '<div class="lista-mob so-mob" style="padding:10px;gap:8px">' +
+      lista.map(function (l) {
+        const o = l.o;
+        return '<div class="cm"><div class="cm-top"><span class="op">' + Ui.esc(o.op || '—') + '</span>' +
+               '<span class="cli">' + Ui.esc(o.cliente) + '</span><span class="prazo' + (l.tag === 't-verm' ? ' atraso' : '') + '">' + Ui.esc(String(o.prazo).slice(0, 5)) + '</span></div>' +
+               '<div class="cm-desc">' + Ui.esc(o.descricao) + '<small>' + Ui.esc(proc(o.processo)) + ' · <span class="tag ' + l.tag + '">' + Ui.esc(l.txt) + '</span></small></div></div>';
+      }).join('') + '</div>';
+  }
+
+  // Páginas do usuário: liberadas primeiro (com o nível), bloqueadas no fim.
+  function desenharAtalhos() {
+    const liberadas = ctx.paginas.filter(function (p) { return p.id !== 'inicio' && p.nivel !== 'NENHUM'; });
+    const html = liberadas.map(function (p) {
+      const nv = '<span class="nv ' + (p.nivel === 'EDITAR' ? 'editar">EDITAR' : 'ver">VER') + '</span>';
+      const ic = Ui.ic(CONFIG.ICONES[p.id] || 'i-lista');
+      return CONFIG.PAGINAS_PRONTAS.indexOf(p.id) !== -1
+        ? '<li><a href="' + p.id + '.html">' + ic + Ui.esc(p.nome) + nv + '</a></li>'
+        : '<li><span class="bl" title="Em construção">' + ic + Ui.esc(p.nome) + ' <small class="mut">· em breve</small>' + nv + '</span></li>';
+    }).join('');
+    $('atalhos').innerHTML = html || '<li class="vazio">Nenhuma página liberada ainda. Fale com o administrador.</li>';
+  }
+
+  function diasAte(ddmmaaaa) {
+    const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(ddmmaaaa || '');
+    if (!m) return null;
+    const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+    return Math.round((new Date(+m[3], m[2] - 1, +m[1]) - hoje) / 86400000);
+  }
+});
+</script>
+</body>
+</html>

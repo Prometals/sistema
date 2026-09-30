@@ -1,0 +1,1136 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Apontamento de Refugo · Prometals</title>
+<link rel="stylesheet" href="css/tema.css">
+<link rel="stylesheet" href="css/sistema.css">
+<style>
+/* ---------- específico desta página ----------
+   Terminal do operador (touch): sem menu lateral, sem topo do sistema.
+   A moldura do Shell é montada (permissões, tema), mas fica escondida;
+   a página tem o próprio cabeçalho (mockup aprovado). */
+.app { display: block; height: auto; }
+.app > .lateral, .app > .topo, .app > .status, .app > .veu { display: none !important; }
+body.kiosque main.conteudo { display: grid; grid-template-rows: 56px auto 1fr 58px; height: 100vh; height: 100dvh; overflow: hidden; padding: 0; }
+body.kiosque.sem-step main.conteudo { grid-template-rows: 56px 1fr; }
+body.sem-step .stepper, body.sem-step .rod { display: none !important; }
+
+/* cabeçalho */
+.kcab { display: flex; align-items: center; gap: 16px; padding: 0 20px; background: var(--painel); border-bottom: 1px solid var(--linha); min-width: 0; }
+.kcab .m { white-space: nowrap; }
+.kcab .m b { letter-spacing: 1.5px; } .kcab .m span { color: var(--destaque); font-weight: 800; margin-left: 10px; font-size: 13px; letter-spacing: 1px; }
+.kcab .u { margin-left: auto; display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--texto-suave); min-width: 0; }
+.kcab .u b { color: var(--texto); }
+.kcab .nome-op { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.chip { font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 999px; background: rgba(59,130,246,.18); color: #93c5fd; letter-spacing: .5px; white-space: nowrap; }
+html.tema-claro .chip { color: #1d4ed8; }
+.kbt { height: 36px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--borda); background: transparent; display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 12px; cursor: pointer; text-decoration: none; color: var(--texto); white-space: nowrap; }
+.kbt svg { width: 15px; height: 15px; }
+.kbt.ic { width: 36px; padding: 0; justify-content: center; }
+
+/* stepper */
+.stepper { display: flex; padding: 12px 20px; background: var(--bg); }
+.st { flex: 1; display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 700; color: var(--texto-suave); min-width: 0; }
+.st span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.st i { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-style: normal; background: var(--painel-2); font-size: 13px; flex: none; }
+.st::after { content: ""; flex: 1; height: 2px; background: var(--linha); margin: 0 12px; min-width: 12px; }
+.st:last-child::after { display: none; }
+.st.feito i { background: #16a34a; color: #fff; } .st.feito { color: var(--texto); }
+.st.atual i { background: var(--destaque); color: #fff; } .st.atual { color: var(--destaque); }
+
+/* área das etapas */
+.corpo { padding: 6px 20px 14px; min-height: 0; display: flex; }
+.etapa { display: none; flex: 1; min-width: 0; min-height: 0; gap: 16px; }
+.etapa.ativa { display: grid; }
+#etapa2 { grid-template-columns: minmax(300px, 400px) 1fr; }
+#etapa3 { grid-template-columns: 1.05fr 1fr; }
+#etapa4 { grid-template-columns: 1fr 340px; }
+#etapa5.ativa { display: grid; place-items: center; }
+#etapa6 { grid-template-columns: 1fr; }
+.cx { background: var(--painel); border: 1px solid var(--linha); border-radius: 14px; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; min-height: 0; min-width: 0; }
+.cx h2 { margin: 0; font-size: 18px; } .cx .sub { margin: -8px 0 0; font-size: 12.5px; color: var(--texto-suave); }
+.cx h2 small { color: var(--texto-suave); font-weight: 600; font-size: 18px; }
+.rot { font-size: 11px; font-weight: 800; color: var(--texto-suave); letter-spacing: .5px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+kbd { font: 700 10px var(--fonte); padding: 1px 5px; border-radius: 4px; border: 1px solid var(--borda); background: var(--painel-2); color: var(--texto-suave); }
+
+/* botões de escolha (tipo, processo, lado) */
+.grade { display: grid; gap: 8px; }
+.op-b { min-height: 46px; padding: 4px 8px; border-radius: 10px; border: 1px solid var(--borda); background: var(--painel-2); font-weight: 800; font-size: 13.5px; line-height: 1.15; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; text-align: center; }
+.op-b small { font-size: 10px; color: var(--texto-suave); font-weight: 700; }
+.op-b.on { background: color-mix(in srgb, var(--destaque) 20%, var(--painel-2)); border-color: var(--destaque); color: var(--destaque); }
+.op-b.ref.on { background: rgba(220,38,38,.18); border-color: #dc2626; color: #f87171; }
+.op-b.ret.on { background: rgba(59,130,246,.18); border-color: #3b82f6; color: #93c5fd; }
+html.tema-claro .op-b.ref.on { color: #b91c1c; } html.tema-claro .op-b.ret.on { color: #1d4ed8; }
+.op-b:disabled { opacity: .4; cursor: not-allowed; }
+.op-b:focus-visible { outline: 2px solid #3b82f6; outline-offset: 1px; }
+
+/* campos */
+.lin { display: grid; gap: 10px; }
+.cmp { display: grid; gap: 6px; position: relative; align-content: start; min-width: 0; }
+.cmp input { height: 46px; font-size: 16px; font-weight: 700; }
+.cmp input:disabled { opacity: .4; }
+input.valido { border-color: #16a34a; } input.invalido { border-color: #dc2626; }
+.op-grande { height: 60px !important; font-size: 28px !important; font-weight: 800; letter-spacing: 2px; }
+.msg { font-size: 11.5px; font-weight: 700; min-height: 14px; color: var(--texto-suave); }
+.msg.erro { color: #f87171; } .msg.ok { color: #34d399; }
+html.tema-claro .msg.erro { color: #b91c1c; } html.tema-claro .msg.ok { color: #15803d; }
+.inp-mot { position: relative; }
+.sug { position: absolute; top: calc(100% + 4px); left: 0; right: 0; margin: 0; padding: 0; list-style: none; background: var(--painel); border: 1px solid var(--destaque); border-radius: 10px; box-shadow: var(--sombra); z-index: 5; overflow: hidden; }
+.sug li { padding: 11px 12px; font-size: 13px; font-weight: 700; cursor: pointer; border-top: 1px solid var(--linha); }
+.sug li:first-child { border-top: 0; }
+.sug li.on, .sug li:hover { background: color-mix(in srgb, var(--destaque) 18%, transparent); }
+.sug mark { background: none; color: var(--destaque); font-weight: 800; }
+.add { height: 46px; border-radius: 10px; background: #16a34a; border: 0; color: #fff; font-weight: 800; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; width: 100%; }
+.add svg { width: 18px; height: 18px; }
+.add:disabled { opacity: .45; cursor: not-allowed; }
+.bbusca { height: 50px; border-radius: 10px; border: 1px solid var(--borda); background: var(--painel-2); font-weight: 800; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; width: 100%; }
+.bbusca.ok { background: #16a34a; border-color: #16a34a; color: #fff; }
+.aviso { padding: 9px 12px; font-size: 12.5px; font-weight: 700; border-radius: 10px; background: rgba(220,38,38,.12); color: #f87171; border: 1px solid rgba(220,38,38,.35); }
+.aviso.trava { background: rgba(234,179,8,.13); color: #eab308; border-color: rgba(234,179,8,.4); }
+html.tema-claro .aviso { color: #b91c1c; } html.tema-claro .aviso.trava { color: #92400e; }
+.so-ver { font-size: 12.5px; }
+
+/* dados da OP */
+.dados { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.dado { background: var(--painel-2); border-radius: 10px; padding: 10px 12px; min-width: 0; }
+.dado span { display: block; font-size: 10.5px; font-weight: 800; color: var(--texto-suave); letter-spacing: .5px; }
+.dado b { display: block; font-size: 15px; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dado.inteiro { grid-column: 1 / -1; }
+.dado.destaque b { font-size: 24px; color: #34d399; }
+html.tema-claro .dado.destaque b { color: #15803d; }
+.dado b small { font-size: 12px; color: var(--texto-suave); font-weight: 600; }
+.vazio-op { flex: 1; display: grid; place-items: center; color: var(--texto-suave); font-size: 13px; border: 1px dashed var(--borda); border-radius: 10px; min-height: 140px; }
+
+/* tabelas de itens */
+.lista-box { flex: 1; min-height: 0; overflow: auto; }
+table.it { width: 100%; border-collapse: collapse; font-size: 13px; }
+table.it th { text-align: left; font-size: 10.5px; color: var(--texto-suave); letter-spacing: .5px; padding: 7px 8px; border-bottom: 1px solid var(--linha); position: sticky; top: 0; background: var(--painel); }
+table.it td { padding: 9px 8px; border-bottom: 1px solid var(--linha); }
+table.it tr.novo td { background: color-mix(in srgb, #16a34a 10%, transparent); }
+table.it .n { text-align: right; font-variant-numeric: tabular-nums; }
+.tt { font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 5px; white-space: nowrap; } .tt.ref { background: rgba(220,38,38,.18); color: #f87171; } .tt.ret { background: rgba(59,130,246,.18); color: #93c5fd; }
+html.tema-claro .tt.ref { color: #b91c1c; } html.tema-claro .tt.ret { color: #1d4ed8; }
+.tt.est { background: var(--painel-2); color: var(--texto-suave); }
+.x { width: 34px; height: 34px; border: 1px solid var(--borda); background: transparent; border-radius: 8px; color: var(--texto-suave); cursor: pointer; font-size: 16px; }
+.lista-vazia { padding: 22px; text-align: center; font-size: 13px; color: var(--texto-suave); border: 1px dashed var(--borda); border-radius: 10px; }
+.med { margin-top: auto; display: grid; gap: 6px; font-size: 12.5px; color: var(--texto-suave); }
+.med .l { display: flex; justify-content: space-between; gap: 10px; } .med b { color: var(--texto); }
+.bar { height: 12px; border-radius: 999px; background: var(--painel-2); overflow: hidden; } .bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #16a34a, #eab308); transition: width .2s; }
+.bar.cheio i { background: #dc2626; }
+
+/* confirmar */
+.tot { display: grid; gap: 10px; }
+.tot div { background: var(--painel-2); border-radius: 10px; padding: 12px 14px; font-size: 11px; font-weight: 800; color: var(--texto-suave); letter-spacing: .5px; }
+.tot b { display: block; font-size: 24px; color: var(--texto); letter-spacing: 0; margin-top: 3px; } .tot b small { font-size: 12px; color: var(--texto-suave); font-weight: 600; }
+.reg { height: 56px; border-radius: 12px; border: 0; background: #dc2626; color: #fff; font-weight: 800; font-size: 16px; margin-top: auto; cursor: pointer; width: 100%; }
+.reg:disabled { opacity: .55; cursor: wait; }
+
+/* resultado */
+.cartao { width: min(460px, 100%); background: var(--painel); border: 1px solid var(--linha); border-radius: 16px; padding: 26px; display: grid; gap: 12px; text-align: center; box-shadow: var(--sombra); }
+.cartao h2 { margin: 0; font-size: 20px; } .cartao p { margin: 0; color: var(--texto-suave); font-size: 13.5px; }
+.res-ic { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; margin: 0 auto; background: rgba(22,163,74,.16); color: #34d399; }
+.res-ic svg { width: 34px; height: 34px; }
+.res-ic.aviso-ic { background: rgba(234,179,8,.16); color: #eab308; }
+.bgrande { height: 52px; border-radius: 12px; border: 1px solid var(--borda); background: var(--painel-2); font-weight: 800; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; width: 100%; color: var(--texto); }
+.bgrande.verde { background: #16a34a; border-color: #16a34a; color: #fff; }
+
+/* conferência do dia */
+.conf-topo { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+.conf-totais { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.conf-rod { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.contagem { font-size: 13px; color: var(--texto-suave); } .contagem b { font-size: 20px; color: #eab308; display: inline-block; min-width: 26px; text-align: center; }
+.barra-tempo { height: 6px; border-radius: 999px; background: var(--painel-2); overflow: hidden; }
+.barra-tempo i { display: block; height: 100%; width: 100%; background: #eab308; transition: width 1s linear; }
+.conf-rod .bgrande { width: auto; min-width: 230px; padding: 0 20px; }
+
+/* rodapé */
+.rod { display: flex; align-items: center; gap: 14px; padding: 0 20px; background: var(--painel); border-top: 1px solid var(--linha); min-width: 0; }
+.rod .dica { font-size: 12px; color: var(--texto-suave); display: flex; gap: 6px; align-items: center; flex-wrap: wrap; min-width: 0; }
+.rod .dir { margin-left: auto; display: flex; gap: 10px; align-items: center; }
+.rod .trava { font-size: 12px; color: #eab308; font-weight: 700; }
+html.tema-claro .rod .trava { color: #92400e; }
+.bn { height: 42px; padding: 0 18px; border-radius: 10px; border: 1px solid var(--borda); background: var(--painel-2); font-weight: 800; cursor: pointer; color: var(--texto); white-space: nowrap; }
+.bn.pri { background: var(--destaque); border-color: var(--destaque); color: #fff; }
+.bn:disabled { opacity: .45; cursor: not-allowed; }
+
+/* ---------- celular / terminal estreito ---------- */
+@media (max-width: 760px) {
+  body.kiosque main.conteudo { grid-template-rows: 52px auto auto; height: auto; min-height: 100vh; overflow: visible; }
+  body.kiosque.sem-step main.conteudo { grid-template-rows: 52px auto; }
+  .kcab { padding: 0 12px; gap: 10px; }
+  .kcab .m span, .kcab .nome-op, .kcab .u > .quem { display: none; }
+  .kcab .kbt .tx { display: none; } .kcab .kbt { width: 40px; padding: 0; justify-content: center; }
+  .kcab .kbt.sair .tx { display: inline; } .kcab .kbt.sair { width: auto; padding: 0 10px; }
+  .stepper { padding: 8px 12px; } .st span { display: none; } .st::after { margin: 0 6px; }
+  .corpo { padding: 8px 12px 84px; display: block; }
+  .etapa.ativa { display: grid; grid-template-columns: 1fr !important; }
+  #etapa3 .lista-itens { order: 2; }
+  .grade.g4 { grid-template-columns: repeat(2, 1fr) !important; }
+  .lin.ml { grid-template-columns: 1fr !important; }
+  .lin.qp { grid-template-columns: 1fr 1fr !important; } .lin.qp .cmp:last-child { grid-column: 1 / -1; } .lin.qp .cmp:last-child .rot { display: none; }
+  .op-b { min-height: 50px; } kbd, .op-b small, .dica-k { display: none !important; }
+  table.it th.c-lado, table.it td.c-lado { display: none; }
+  table.it { font-size: 12px; } table.it td, table.it th { padding: 8px 5px; }
+  .lista-box { overflow: visible; }
+  .conf-totais { grid-template-columns: 1fr 1fr; }
+  .conf-rod .bgrande { width: 100%; }
+  .rod { position: fixed; left: 0; right: 0; bottom: 0; height: 64px; padding: 0 12px; z-index: 20; }
+  .rod .dica, .rod .trava { display: none; } .rod .dir { width: 100%; } .rod .dir .bn { flex: 1; height: 46px; }
+  .dados { grid-template-columns: 1fr 1fr; }
+  .dado.destaque b { font-size: 20px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Apontamento de Refugo — terminal do operador.
+     Fluxo igual ao painel antigo (OP → Lançar itens → Confirmar →
+     Resultado → Conferência do dia 15 s). Sem login próprio: o operador
+     entra pelo login do sistema; o setor vem do cadastro (inicioRefugo);
+     processos da aba CAD_PROCESSO_REFUGO; refugo/retrabalho só p/ quem
+     o backend libera; trava = max(peças, moldes planejados). -->
+<main class="conteudo">
+  <header class="kcab">
+    <div class="m"><b>PROMETALS</b><span>APONTAMENTO DE REFUGO</span></div>
+    <div class="u">
+      <span class="quem">Operador <b id="nomeOperador">—</b></span>
+      <span class="chip" id="chipSetor">—</span>
+      <span class="nome-op" id="nomeOP"></span>
+      <a class="kbt" id="lnkInicio" href="inicio.html" hidden title="Voltar ao sistema"><svg class="i"><use href="#i-home"/></svg><span class="tx">Início</span></a>
+      <button class="kbt ic" id="btnTema" title="Tema claro/escuro"><svg class="i"><use href="#i-lua"/></svg></button>
+      <button class="kbt sair" id="btnSairTopo" title="Sair"><svg class="i"><use href="#i-sair"/></svg><span class="tx">Sair</span></button>
+    </div>
+  </header>
+
+  <nav class="stepper" id="stepper">
+    <div class="st" data-etapa="2"><i>1</i><span>Ordem de Produção</span></div>
+    <div class="st" data-etapa="3"><i>2</i><span>Lançar itens</span></div>
+    <div class="st" data-etapa="4"><i>3</i><span>Confirmar</span></div>
+  </nav>
+
+  <div class="corpo">
+    <div class="carregando" id="carregandoCfg" style="flex:1">Carregando processos e motivos…</div>
+
+    <!-- ETAPA 2 · OP -->
+    <section class="etapa" id="etapa2">
+      <div class="cx">
+        <h2>Qual a OP?</h2><p class="sub">Digite o número e aperte <kbd>Enter</kbd>.</p>
+        <div class="cmp">
+          <span class="rot">NÚMERO DA OP</span>
+          <input id="op" class="op-grande" inputmode="numeric" autocomplete="off" placeholder="00000">
+          <span class="msg" id="msgOP"></span>
+        </div>
+        <button type="button" class="bbusca" id="btnBuscar"><svg class="i"><use href="#i-busca"/></svg><span>BUSCAR OP</span></button>
+        <div class="aviso trava so-ver" id="avisoSoVer" hidden>Seu perfil só pode consultar esta página. Para apontar refugo é preciso permissão EDITAR.</div>
+      </div>
+      <div class="cx">
+        <h2>Dados da OP</h2><p class="sub">Confira se é a peça certa antes de continuar.</p>
+        <div class="vazio-op" id="opVazia">Nenhuma OP carregada.</div>
+        <div class="dados" id="opDados" hidden>
+          <div class="dado"><span>CLIENTE</span><b id="dCliente">-</b></div>
+          <div class="dado"><span>PEDIDO</span><b id="dPedido">-</b></div>
+          <div class="dado"><span>CÓDIGO</span><b id="dCodigo">-</b></div>
+          <div class="dado"><span>LIGA</span><b id="dLiga">-</b></div>
+          <div class="dado inteiro"><span>DESCRIÇÃO</span><b id="dDescricao">-</b></div>
+          <div class="dado"><span>QTD ORDEM / QTD MOLDES</span><b id="dQtds">-</b></div>
+          <div class="dado"><span>PESO BRUTO UNITÁRIO</span><b id="dPesoBruto">-</b></div>
+          <div class="dado destaque"><span>QTD TOTAL DA OP</span><b id="dLimite">-</b></div>
+          <div class="dado destaque"><span>JÁ APONTADO · SALDO</span><b id="dSaldo">-</b></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ETAPA 3 · LANÇAR ITENS -->
+    <section class="etapa" id="etapa3">
+      <div class="cx">
+        <h2>Novo item</h2><p class="sub">Um item para cada combinação de processo, motivo e lado.</p>
+        <div id="blocoTipo" hidden>
+          <span class="rot" style="margin-bottom:6px">TIPO DE APONTAMENTO <kbd>T</kbd> <span class="dica-k">alterna</span></span>
+          <div class="grade" id="gradeTipos" style="grid-template-columns:1fr 1fr">
+            <button type="button" class="op-b ref" data-tipo="REFUGO">REFUGO</button>
+            <button type="button" class="op-b ret" data-tipo="RETRABALHO">RETRABALHO</button>
+          </div>
+        </div>
+        <span class="rot" id="rotuloProcesso">PROCESSO</span>
+        <div class="grade g4" id="gradeProcessos"></div>
+        <div class="lin ml" style="grid-template-columns:1.25fr 1fr">
+          <div class="cmp">
+            <span class="rot" id="rotuloMotivo">MOTIVO (digite para buscar)</span>
+            <div class="inp-mot">
+              <input id="motivo" autocomplete="off" placeholder="Ex.: rechupe" role="combobox" aria-expanded="false" aria-controls="listaSugestoes">
+              <ul class="sug" id="listaSugestoes" role="listbox" hidden></ul>
+            </div>
+            <span class="msg" id="msgMotivo"></span>
+          </div>
+          <div class="cmp">
+            <span class="rot">LADO <kbd>D</kbd><kbd>E</kbd><kbd>N</kbd></span>
+            <div class="grade" id="gradeLados" style="grid-template-columns:repeat(3,1fr)">
+              <button type="button" class="op-b" data-lado="LD">LD</button>
+              <button type="button" class="op-b" data-lado="LE">LE</button>
+              <button type="button" class="op-b" data-lado="N/A">N/A</button>
+            </div>
+            <span class="msg" id="msgLado"></span>
+          </div>
+        </div>
+        <div class="lin qp" style="grid-template-columns:1fr 1fr 1.1fr">
+          <div class="cmp"><span class="rot">QTD (peças)</span><input id="qtd" inputmode="numeric" autocomplete="off"><span class="msg" id="msgQtd"></span></div>
+          <div class="cmp"><span class="rot">PESO LÍQ. (kg)</span><input id="peso" inputmode="decimal" autocomplete="off" placeholder="0,000"><span class="msg" id="msgPeso"></span></div>
+          <div class="cmp"><span class="rot">&nbsp;</span><button type="button" class="add" id="btnAdicionar" disabled><svg class="i"><use href="#i-mais"/></svg>ADICIONAR <span class="dica-k">(Enter)</span></button></div>
+        </div>
+        <div class="aviso" id="avisoLimite" hidden></div>
+      </div>
+      <div class="cx lista-itens">
+        <h2>Itens desta OP <small id="contItens"></small></h2><p class="sub">O item mais recente fica destacado.</p>
+        <div class="lista-box" id="boxItens"></div>
+        <div class="med">
+          <div class="l"><span>Apontado na OP (antes + esta lista): <b id="medTxt">0 de 0</b> peças</span><span><b id="medPeso">0,000 kg</b></span></div>
+          <div class="bar" id="medidor"><i id="medBarra"></i></div>
+          <div class="l"><span id="medRegra"></span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ETAPA 4 · CONFIRMAR -->
+    <section class="etapa" id="etapa4">
+      <div class="cx">
+        <h2>Confira antes de registrar</h2><p class="sub" id="resumoOP"></p>
+        <div class="lista-box" id="boxResumo"></div>
+        <div class="aviso" id="avisoRegistro" hidden></div>
+      </div>
+      <div class="cx">
+        <div class="tot">
+          <div>TOTAL DE PEÇAS<b id="totPecas">0</b></div>
+          <div>PESO TOTAL<b id="totPeso">0,000 kg</b></div>
+          <div>ITENS<b id="totItens">0</b></div>
+        </div>
+        <button type="button" class="reg" id="btnRegistrar">REGISTRAR REFUGO</button>
+        <span class="msg dica-k" style="text-align:center"><kbd>Ctrl</kbd> + <kbd>Enter</kbd> registrar</span>
+      </div>
+    </section>
+
+    <!-- ETAPA 5 · RESULTADO -->
+    <section class="etapa" id="etapa5">
+      <div class="cartao">
+        <div class="res-ic" id="resIcone"><svg class="i"><use href="#i-check"/></svg></div>
+        <h2 id="resTitulo">Apontamento registrado!</h2>
+        <p id="resTexto"></p>
+        <div class="aviso" id="resAviso" hidden style="text-align:left"></div>
+        <button type="button" class="bgrande verde" id="btnNovo"><svg class="i"><use href="#i-mais"/></svg>NOVO APONTAMENTO <span class="dica-k">(Enter)</span></button>
+        <button type="button" class="bgrande" id="btnSair"><svg class="i"><use href="#i-sair"/></svg>SAIR</button>
+      </div>
+    </section>
+
+    <!-- ETAPA 6 · CONFERÊNCIA DO DIA (ao sair) -->
+    <section class="etapa" id="etapa6">
+      <div class="cx">
+        <div class="conf-topo">
+          <div><h2 id="confTitulo">Conferência do dia</h2><p class="sub" id="confSub" style="margin-top:4px">Confira se os apontamentos de hoje estão corretos.</p></div>
+          <span class="msg" id="confFonte"></span>
+        </div>
+        <div class="conf-totais" id="confTotais"></div>
+        <div class="lista-box" id="boxConf"></div>
+        <div class="conf-rod">
+          <div class="contagem">Saindo do sistema em <b id="confSeg">15</b> s</div>
+          <button type="button" class="bgrande verde" id="btnConfOk"><svg class="i"><use href="#i-check"/></svg>OK, CONFERI <span class="dica-k">(Enter)</span></button>
+        </div>
+        <div class="barra-tempo"><i id="confBarra"></i></div>
+      </div>
+    </section>
+  </div>
+
+  <footer class="rod">
+    <div class="dica" id="dicaTeclas"></div>
+    <div class="dir">
+      <span class="trava" id="trava"></span>
+      <button type="button" class="bn" id="btnVoltar">◀ VOLTAR</button>
+      <button type="button" class="bn pri" id="btnAvancar">PRÓXIMO ▶</button>
+    </div>
+  </footer>
+</main>
+
+<script src="js/config.js"></script>
+<script src="js/icones.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/api.js"></script>
+<script src="js/sessao.js"></script>
+<script src="js/shell.js"></script>
+<script>
+Sessao.iniciarPagina('refugo').then(function (ctx) {
+  document.body.classList.add('kiosque');
+  const $ = function (id) { return document.getElementById(id); };
+  const esc = Ui.esc;
+
+  const CONFERENCIA_SEGUNDOS = 15;
+  const MAX_SUGESTOES = 6;
+  const NOME_SETOR = { FUNDICAO: 'FUNDIÇÃO', USINAGEM: 'USINAGEM' };
+
+  /* ---------- ESTADO — tudo o que a tela sabe fica aqui ---------- */
+  const opVazia = function () { return { valida: false, numero: '', dados: null, jaApontado: 0 }; };
+  const estado = {
+    etapa: 2,
+    cfg: { setor: '', podeRetrabalho: false, processos: [], motivos: [] },
+    op: opVazia(),
+    form: { tipo: 'REFUGO', processo: '', motivo: '', lado: '' },
+    tocado: {},            // campos que o operador já mexeu (só mostra erro depois)
+    itens: [],             // [{tipo, processo, motivo, lado, qtd, peso}]
+    sugestoes: [], sugIndice: -1,
+    gravadosSessao: [],    // o que foi gravado com sucesso nesta sessão (reserva da conferência)
+    enviando: false, buscando: false,
+    idReq: null,           // mesmo ID se precisar tentar de novo (o servidor não grava em dobro)
+    qtdAnterior: ''
+  };
+
+  /* ---------- UTILITÁRIOS ---------- */
+  // Remove acentos e padroniza: "Rechupe" e "RECHUPE" viram a mesma coisa
+  function normalizar(txt) { return String(txt || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().trim(); }
+  // Aceita "1,2" ou "1.2" (vírgula brasileira)
+  function lerNumero(txt) {
+    const s = String(txt || '').trim();
+    const final = /,/.test(s) ? s.replace(/\./g, '').replace(',', '.') : s;
+    const n = Number(final);
+    return Number.isFinite(n) ? n : NaN;
+  }
+  function kg(n) { return (Number(n) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 3 }); }
+  function setMsg(id, texto, tipo) { const el = $(id); el.textContent = texto || ''; el.className = 'msg' + (tipo ? ' ' + tipo : ''); }
+  function marcarCampo(id, ok) { $(id).classList.toggle('invalido', ok === false); $(id).classList.toggle('valido', ok === true); }
+  function somaQtd(l) { return l.reduce(function (s, it) { return s + it.qtd; }, 0); }
+  function somaPeso(l) { return l.reduce(function (s, it) { return s + it.peso; }, 0); }
+  function limiteOP() { return estado.op.dados ? Number(estado.op.dados.qtdPrevalece) || 0 : 0; }
+  function jaApontado() { return estado.op.jaApontado || 0; }
+  function saldoOP() { return limiteOP() - jaApontado(); }            // antes desta lista
+  function saldo() { return saldoOP() - somaQtd(estado.itens); }      // o que ainda cabe agora
+  function temTipo() { return !!estado.cfg.podeRetrabalho; }
+  function listaProcessos() { return estado.cfg.processos.map(function (p) { return p.processo; }); }
+  function motivosDoTipo() {
+    const t = estado.form.tipo;
+    return estado.cfg.motivos.filter(function (m) { return m.tipo === t || m.tipo === 'AMBOS'; }).map(function (m) { return m.motivo; });
+  }
+  function tagTipo(t) { return t === 'RETRABALHO' ? '<span class="tt ret">RETRAB.</span>' : '<span class="tt ref">REFUGO</span>'; }
+  // Limite atingido: o formulário fica travado até remover um item da lista
+  function formTravado() { return estado.etapa === 3 && estado.op.valida && saldo() <= 0; }
+  function haModal() { return !!document.querySelector('.modal-fundo'); }
+
+  /* ---------- CABEÇALHO ---------- */
+  $('nomeOperador').textContent = ctx.usuario.nome || ctx.usuario.login;
+  const outras = ctx.paginas.filter(function (p) {
+    return p.id !== 'inicio' && p.id !== 'refugo' && p.nivel !== 'NENHUM' && CONFIG.PAGINAS_PRONTAS.indexOf(p.id) !== -1;
+  });
+  $('lnkInicio').hidden = !outras.length;       // quem só tem o refugo não vê o atalho
+  $('btnTema').addEventListener('click', function () {
+    const b = document.querySelector('.topo [data-acao="tema"]');   // usa o tema do Shell (fica salvo)
+    if (b) b.click();
+  });
+  if (!ctx.podeEditar) $('avisoSoVer').hidden = false;
+
+  /* ---------- CARGA INICIAL (setor, processos, motivos) ---------- */
+  carregarConfig();
+  async function carregarConfig() {
+    try {
+      const r = await Api.chamar('inicioRefugo', {});
+      estado.cfg = r;
+      $('chipSetor').textContent = r.setor ? (NOME_SETOR[r.setor] || r.setor) : 'TODOS OS SETORES';
+      $('carregandoCfg').remove();
+      ligarEventos();
+      montarProcessos();
+      irPara(2);
+    } catch (e) {
+      $('carregandoCfg').className = 'vazio';
+      $('carregandoCfg').innerHTML = esc(e.message) + '<br><br><button class="bn pri" id="btnDeNovo">Tentar de novo</button>';
+      $('btnDeNovo').addEventListener('click', function () { $('carregandoCfg').className = 'carregando'; $('carregandoCfg').textContent = 'Carregando…'; carregarConfig(); });
+    }
+  }
+
+  /* ---------- ETAPA 2 · OP ---------- */
+  function onOpDigitada() {
+    // Qualquer mudança no número invalida a OP e os itens lançados
+    $('op').value = $('op').value.replace(/\D/g, '');
+    if (estado.op.valida && $('op').value !== estado.op.numero) {
+      estado.op = opVazia();
+      limparItens();
+    }
+    renderOP();
+    render();
+  }
+
+  function renderOP() {
+    const op = estado.op;
+    $('opVazia').hidden = op.valida;
+    $('opDados').hidden = !op.valida;
+    const b = $('btnBuscar');
+    if (op.valida) {
+      const d = op.dados;
+      const lim = limiteOP();
+      $('dCliente').textContent = d.cliente || '-';
+      $('dPedido').textContent = d.pedido || '-';
+      $('dCodigo').textContent = d.codigo || '-';
+      $('dLiga').textContent = d.liga || '-';
+      $('dDescricao').textContent = d.descricao || '-';
+      $('dQtds').textContent = (Number(d.qtdOrdem) || 0) + ' / ' + (Number(d.qtdMoldes) || 0);
+      $('dPesoBruto').textContent = kg(lim > 0 ? (Number(d.pesoTotalMoldes) || 0) / lim : 0) + ' kg';
+      $('dLimite').textContent = lim;
+      $('dSaldo').innerHTML = jaApontado() + ' <small>· saldo ' + Math.max(saldoOP(), 0) + '</small>';
+      if (lim <= 0) setMsg('msgOP', 'OP sem quantidade cadastrada: não será possível lançar refugo', 'erro');
+      else if (saldoOP() <= 0) setMsg('msgOP', 'Esta OP já atingiu o total: ' + jaApontado() + ' de ' + lim + ' peças apontadas.', 'erro');
+      else setMsg('msgOP', 'OP encontrada' + (d.status && d.status !== 'ABERTA' && d.status !== 'EM_PRODUCAO' ? ' · situação ' + d.status.replace(/_/g, ' ') : ''), 'ok');
+      marcarCampo('op', true);
+      b.classList.add('ok');
+      b.querySelector('span').textContent = 'OP VALIDADA';
+    } else {
+      marcarCampo('op', null);
+      b.classList.remove('ok');
+      b.querySelector('span').textContent = estado.buscando ? 'BUSCANDO...' : 'BUSCAR OP';
+    }
+  }
+
+  async function buscarOP() {
+    const numero = $('op').value.trim();
+    if (!numero) { setMsg('msgOP', 'Digite o número da OP', 'erro'); marcarCampo('op', false); return; }
+    if (estado.buscando) return;
+    estado.buscando = true;
+    $('btnBuscar').disabled = true;
+    $('btnBuscar').querySelector('span').textContent = 'BUSCANDO...';
+    setMsg('msgOP', '');
+    try {
+      const d = await Api.chamar('buscarOPRefugo', { op: numero });
+      if ($('op').value.trim() !== numero) return;          // o operador mudou o número enquanto buscava
+      estado.op = { valida: true, numero: numero, dados: d, jaApontado: Number(d.jaApontado) || 0 };
+      limparItens();
+      renderOP();
+      $('btnAvancar').focus();
+    } catch (e) {
+      if ($('op').value.trim() !== numero) return;
+      estado.op = opVazia();
+      renderOP();
+      setMsg('msgOP', e.codigo === 'SEM_CONEXAO' ? 'Erro ao buscar a OP. Verifique a conexão e tente de novo.' : e.message, 'erro');
+      marcarCampo('op', false);
+    } finally {
+      estado.buscando = false;
+      $('btnBuscar').disabled = false;
+      if (!estado.op.valida) $('btnBuscar').querySelector('span').textContent = 'BUSCAR OP';
+      render();
+    }
+  }
+
+  // Relê o que já foi apontado na OP (ex.: depois de uma recusa por limite)
+  async function reconsultarSaldo() {
+    const numero = estado.op.numero;
+    try {
+      const d = await Api.chamar('buscarOPRefugo', { op: numero });
+      if (estado.op.numero !== numero) return;
+      estado.op.dados = d;
+      estado.op.jaApontado = Number(d.jaApontado) || 0;
+      if (estado.etapa === 4) renderResumo(true);
+      render();
+    } catch (e) { /* segue com o valor antigo */ }
+  }
+
+  /* ---------- ETAPA 3 · LANÇAR ITENS ---------- */
+  function montarProcessos() {
+    const lista = listaProcessos();
+    const grade = $('gradeProcessos');
+    grade.style.gridTemplateColumns = 'repeat(' + (lista.length > 6 ? 4 : 3) + ', 1fr)';
+    grade.innerHTML = lista.map(function (p, i) {
+      return '<button type="button" class="op-b" data-processo="' + esc(p) + '">' + (i < 9 ? '<small>' + (i + 1) + '</small>' : '') + esc(p) + '</button>';
+    }).join('');
+    const setor = estado.cfg.setor ? (NOME_SETOR[estado.cfg.setor] || estado.cfg.setor) : 'TODOS OS SETORES';
+    $('rotuloProcesso').innerHTML = 'PROCESSO · ' + esc(setor) + (lista.length ? ' <kbd>1</kbd>–<kbd>' + Math.min(lista.length, 9) + '</kbd>' : '');
+    // Seletor REFUGO | RETRABALHO só aparece para quem pode apontar retrabalho
+    $('blocoTipo').hidden = !temTipo();
+    estado.form.tipo = 'REFUGO';
+  }
+
+  function escolherProcesso(nome) {
+    if (formTravado()) return;
+    estado.form.processo = nome;
+    renderForm();
+    $('motivo').focus();
+  }
+
+  // Troca REFUGO ⇄ RETRABALHO. O motivo é limpo: cada tipo tem a sua lista.
+  function escolherTipo(tipo) {
+    if (!temTipo() || formTravado() || estado.form.tipo === tipo) return;
+    estado.form.tipo = tipo;
+    estado.form.motivo = '';
+    $('motivo').value = '';
+    fecharSugestoes();
+    renderForm();
+    const alvo = estado.form.processo ? $('motivo') : document.querySelector('#gradeProcessos .op-b');
+    if (alvo) alvo.focus();
+  }
+
+  function escolherLado(lado) {
+    if (formTravado()) return;
+    estado.form.lado = lado;
+    estado.tocado.lado = true;
+    renderForm();
+    $('qtd').focus();
+  }
+
+  // ---- Motivo com sugestões ----
+  function motivoCanonico(txt) {
+    const alvo = normalizar(txt);
+    return motivosDoTipo().find(function (m) { return normalizar(m) === alvo; }) || '';
+  }
+  function filtrarMotivos(txt) {
+    const alvo = normalizar(txt);
+    if (!alvo) return [];
+    const comeca = [], contem = [];
+    motivosDoTipo().forEach(function (m) {
+      const n = normalizar(m);
+      if (n.indexOf(alvo) === 0) comeca.push(m); else if (n.indexOf(alvo) !== -1) contem.push(m);
+    });
+    return comeca.concat(contem).slice(0, MAX_SUGESTOES);
+  }
+  function destacar(motivo, digitado) {
+    const n = normalizar(motivo), alvo = normalizar(digitado);
+    const i = n.indexOf(alvo);
+    if (i < 0 || !alvo) return esc(motivo);
+    return esc(motivo.slice(0, i)) + '<mark>' + esc(motivo.slice(i, i + alvo.length)) + '</mark>' + esc(motivo.slice(i + alvo.length));
+  }
+  function onMotivoInput() {
+    estado.tocado.motivo = true;
+    estado.form.motivo = motivoCanonico($('motivo').value);
+    estado.sugestoes = estado.form.motivo ? [] : filtrarMotivos($('motivo').value);
+    estado.sugIndice = estado.sugestoes.length ? 0 : -1;
+    renderSugestoes();
+    renderForm();
+  }
+  function renderSugestoes() {
+    const ul = $('listaSugestoes');
+    const abertas = estado.sugestoes.length > 0;
+    ul.hidden = !abertas;
+    $('motivo').setAttribute('aria-expanded', abertas);
+    ul.innerHTML = estado.sugestoes.map(function (m, i) {
+      return '<li role="option" data-indice="' + i + '" class="' + (i === estado.sugIndice ? 'on' : '') + '">' + destacar(m, $('motivo').value) + '</li>';
+    }).join('');
+  }
+  function fecharSugestoes() { estado.sugestoes = []; estado.sugIndice = -1; renderSugestoes(); }
+  function escolherMotivo(motivo) {
+    $('motivo').value = motivo;
+    estado.form.motivo = motivo;
+    estado.tocado.motivo = true;
+    fecharSugestoes();
+    renderForm();
+    // Próximo campo: lado (se ainda não escolhido) ou quantidade
+    (estado.form.lado ? $('qtd') : document.querySelector('#gradeLados .op-b')).focus();
+  }
+  function onMotivoKeydown(e) {
+    const temSug = estado.sugestoes.length > 0;
+    if (e.key === 'ArrowDown' && temSug) {
+      e.preventDefault(); estado.sugIndice = (estado.sugIndice + 1) % estado.sugestoes.length; renderSugestoes();
+    } else if (e.key === 'ArrowUp' && temSug) {
+      e.preventDefault(); estado.sugIndice = (estado.sugIndice - 1 + estado.sugestoes.length) % estado.sugestoes.length; renderSugestoes();
+    } else if (e.key === 'Enter' && !e.ctrlKey) {
+      e.preventDefault(); e.stopPropagation();
+      if (temSug && estado.sugIndice >= 0) escolherMotivo(estado.sugestoes[estado.sugIndice]);
+      else if (estado.form.motivo) escolherMotivo(estado.form.motivo);
+    } else if (e.key === 'Escape' && temSug) {
+      e.preventDefault(); e.stopPropagation(); fecharSugestoes();
+    }
+  }
+
+  // ---- Validação do formulário: mensagem de erro de cada campo ('' = ok) ----
+  function lerForm() {
+    return {
+      tipo: temTipo() ? estado.form.tipo : 'REFUGO',
+      processo: estado.form.processo, motivo: estado.form.motivo, lado: estado.form.lado,
+      qtdTxt: $('qtd').value.trim(), pesoTxt: $('peso').value.trim(),
+      qtd: Number($('qtd').value.trim()), peso: lerNumero($('peso').value)
+    };
+  }
+  function errosForm() {
+    const f = lerForm();
+    const lancado = jaApontado() + somaQtd(estado.itens);
+    const maximo = limiteOP() - lancado;
+    const e = { processo: '', motivo: '', lado: '', qtd: '', peso: '', limite: '' };
+    if (!f.processo) e.processo = 'Escolha o processo';
+    if (!f.motivo) e.motivo = $('motivo').value.trim() ? 'Motivo não encontrado na lista' : 'Informe o motivo';
+    if (!f.lado) e.lado = 'Escolha o lado';
+    if (!f.qtdTxt) e.qtd = 'Informe a quantidade';
+    else if (!/^\d+$/.test(f.qtdTxt) || f.qtd < 1) e.qtd = 'Número inteiro, mínimo 1';
+    else if (f.qtd > maximo) {
+      e.qtd = 'Máximo ' + Math.max(maximo, 0);
+      e.limite = maximo <= 0
+        ? 'A OP já está no limite: ' + lancado + ' de ' + limiteOP() + ' peças apontadas.'
+        : 'Passa do limite: já apontado ' + lancado + ' + ' + f.qtd + ' = ' + (lancado + f.qtd) + ', mas a OP tem ' + limiteOP() + '. Máximo para este item: ' + maximo + '.';
+    }
+    if (!f.pesoTxt) e.peso = 'Informe o peso';
+    else if (!(f.peso > 0)) e.peso = 'Peso inválido (ex.: 1,250)';
+    return e;
+  }
+  function formValido() { const e = errosForm(); return Object.keys(e).every(function (k) { return !e[k]; }); }
+  function formVazio() {
+    const f = lerForm();
+    return !f.processo && !$('motivo').value.trim() && !f.lado && !f.qtdTxt && !f.pesoTxt;
+  }
+
+  function renderForm() {
+    const e = errosForm();
+    const t = estado.tocado;
+    document.querySelectorAll('#gradeTipos .op-b').forEach(function (b) { b.classList.toggle('on', b.dataset.tipo === estado.form.tipo); });
+    const ret = estado.form.tipo === 'RETRABALHO';
+    $('motivo').placeholder = ret ? 'Ex.: solda' : 'Ex.: rechupe';
+    $('rotuloMotivo').textContent = ret ? 'MOTIVO DE RETRABALHO (digite para buscar)' : 'MOTIVO (digite para buscar)';
+    document.querySelectorAll('#gradeProcessos .op-b').forEach(function (b) { b.classList.toggle('on', b.dataset.processo === estado.form.processo); });
+    document.querySelectorAll('#gradeLados .op-b').forEach(function (b) { b.classList.toggle('on', b.dataset.lado === estado.form.lado); });
+
+    // Motivo
+    if (!$('motivo').value.trim()) { setMsg('msgMotivo', ''); marcarCampo('motivo', null); }
+    else if (estado.form.motivo) { setMsg('msgMotivo', '✓ motivo válido' + (ret ? ' · lista de retrabalho' : ''), 'ok'); marcarCampo('motivo', true); }
+    else if (t.motivo && !estado.sugestoes.length) { setMsg('msgMotivo', '✖ ' + e.motivo, 'erro'); marcarCampo('motivo', false); }
+    else { setMsg('msgMotivo', ''); marcarCampo('motivo', null); }
+
+    setMsg('msgLado', t.lado && e.lado ? '✖ ' + e.lado : '', 'erro');
+
+    // Qtd e peso: só mostra erro depois que o operador digitou algo
+    const qtdErro = t.qtd && $('qtd').value && e.qtd;
+    if (qtdErro) setMsg('msgQtd', '✖ ' + e.qtd, 'erro');
+    else setMsg('msgQtd', estado.op.valida && saldo() > 0 ? 'saldo da OP: máx. ' + saldo() : '');
+    marcarCampo('qtd', $('qtd').value ? !qtdErro : null);
+    const pesoErro = t.peso && $('peso').value && e.peso;
+    setMsg('msgPeso', pesoErro ? '✖ ' + e.peso : '', 'erro');
+    marcarCampo('peso', $('peso').value ? !pesoErro : null);
+
+    // Bloqueio por limite atingido
+    const travado = formTravado();
+    document.querySelectorAll('#gradeTipos .op-b, #gradeProcessos .op-b, #gradeLados .op-b').forEach(function (b) { b.disabled = travado; });
+    ['motivo', 'qtd', 'peso'].forEach(function (id) { $(id).disabled = travado; });
+    const textoAviso = travado
+      ? 'Limite da OP atingido: ' + (jaApontado() + somaQtd(estado.itens)) + ' de ' + limiteOP() + ' peças (' + jaApontado() + ' já registradas antes + ' + somaQtd(estado.itens) + ' nesta lista).' +
+        (estado.itens.length ? ' Para lançar outro item, remova um item da lista (×).' : '')
+      : e.limite;
+    $('avisoLimite').textContent = textoAviso;
+    $('avisoLimite').classList.toggle('trava', travado);
+    $('avisoLimite').hidden = !textoAviso;
+    $('btnAdicionar').disabled = travado || !formValido();
+    renderRodape();
+  }
+
+  function adicionarItem() {
+    if (!formValido()) {
+      // Mostra todos os erros de uma vez para o operador ver o que falta
+      estado.tocado = { motivo: true, lado: true, qtd: true, peso: true };
+      renderForm();
+      return false;
+    }
+    const f = lerForm();
+    estado.itens.push({ tipo: f.tipo, processo: f.processo, motivo: f.motivo, lado: f.lado, qtd: f.qtd, peso: f.peso });
+    estado.idReq = null;                    // lista mudou: novo envio
+    limparForm();
+    renderItens();
+    renderForm();
+    if (formTravado()) $('btnAvancar').focus(); else focarProcesso();
+    return true;
+  }
+  function removerItem(i) {
+    const estavaTravado = formTravado();
+    estado.itens.splice(i, 1);
+    estado.idReq = null;
+    renderItens();
+    renderForm();
+    if (estavaTravado && !formTravado()) focarProcesso();
+  }
+  function limparForm() {
+    estado.form = { tipo: estado.form.tipo, processo: '', motivo: '', lado: '' };
+    estado.tocado = {};
+    $('motivo').value = ''; $('qtd').value = ''; $('peso').value = '';
+    estado.qtdAnterior = '';
+    fecharSugestoes();
+  }
+  function limparItens() {
+    estado.itens = [];
+    estado.idReq = null;
+    estado.form.tipo = 'REFUGO';
+    limparForm();
+    renderItens();
+  }
+  function focarProcesso() { const b = document.querySelector('#gradeProcessos .op-b'); if (b) b.focus(); }
+
+  function tabelaItens(lista, comRemover) {
+    return '<table class="it"><thead><tr>' + (comRemover ? '' : '<th>#</th>') + (temTipo() ? '<th>TIPO</th>' : '') +
+      '<th>PROCESSO</th><th>MOTIVO</th><th class="c-lado">LADO</th><th class="n">QTD</th><th class="n">KG</th>' + (comRemover ? '<th></th>' : '') +
+      '</tr></thead><tbody>' +
+      // o mais recente em cima, destacado
+      lista.map(function (it, i) { return { it: it, i: i }; }).reverse().map(function (o) {
+        const it = o.it;
+        return '<tr class="' + (comRemover && o.i === lista.length - 1 ? 'novo' : '') + '">' + (comRemover ? '' : '<td>' + (o.i + 1) + '</td>') +
+          (temTipo() ? '<td>' + tagTipo(it.tipo) + '</td>' : '') +
+          '<td>' + esc(it.processo) + '</td><td>' + esc(it.motivo) + '</td><td class="c-lado">' + esc(it.lado) + '</td>' +
+          '<td class="n">' + it.qtd + '</td><td class="n">' + kg(it.peso) + '</td>' +
+          (comRemover ? '<td class="n"><button type="button" class="x" data-remover="' + o.i + '" title="Remover">×</button></td>' : '') + '</tr>';
+      }).join('') + '</tbody></table>';
+  }
+
+  function renderItens() {
+    const lista = estado.itens;
+    $('contItens').textContent = lista.length ? '· ' + lista.length : '';
+    $('boxItens').innerHTML = lista.length ? tabelaItens(lista, true) : '<div class="lista-vazia">Nenhum item lançado ainda.</div>';
+    const total = jaApontado() + somaQtd(lista);
+    const limite = limiteOP();
+    $('medTxt').textContent = total + ' de ' + limite;
+    $('medPeso').textContent = kg(somaPeso(lista)) + ' kg';
+    $('medBarra').style.width = (limite ? Math.min(total / limite, 1) * 100 : 0) + '%';
+    $('medidor').classList.toggle('cheio', limite > 0 && total >= limite);
+    const d = estado.op.dados || {};
+    $('medRegra').textContent = 'Limite = maior entre peças (' + (Number(d.qtdOrdem) || 0) + ') e moldes planejados (' + (Number(d.qtdMoldes) || 0) + ')';
+  }
+
+  /* ---------- ETAPA 4 · CONFIRMAR E REGISTRAR ---------- */
+  function renderResumo(manterAviso) {
+    const d = estado.op.dados;
+    $('resumoOP').textContent = 'OP ' + estado.op.numero + ' · ' + (d.cliente || '-') + ' · ' + (d.codigo || '-') + ' · ' + (d.descricao || '-');
+    $('boxResumo').innerHTML = tabelaItens(estado.itens, false);
+    $('totPecas').innerHTML = somaQtd(estado.itens) + ' <small>de ' + Math.max(saldoOP(), 0) + ' de saldo</small>';
+    $('totPeso').textContent = kg(somaPeso(estado.itens)) + ' kg';
+    if (temTipo()) {
+      const ref = estado.itens.filter(function (it) { return it.tipo !== 'RETRABALHO'; });
+      const ret = estado.itens.filter(function (it) { return it.tipo === 'RETRABALHO'; });
+      $('totItens').innerHTML = estado.itens.length + ' <small>· refugo ' + somaQtd(ref) + ' pç / ' + kg(somaPeso(ref)) + ' kg · retrabalho ' + somaQtd(ret) + ' pç / ' + kg(somaPeso(ret)) + ' kg</small>';
+    } else {
+      $('totItens').textContent = estado.itens.length;
+    }
+    if (!manterAviso) $('avisoRegistro').hidden = true;
+    $('btnRegistrar').disabled = estado.enviando || !ctx.podeEditar;
+    $('btnRegistrar').textContent = estado.enviando ? 'SALVANDO...' : (temTipo() ? 'REGISTRAR APONTAMENTO' : 'REGISTRAR REFUGO');
+  }
+
+  // Envia TODOS os itens de uma vez: o servidor grava tudo ou nada,
+  // e confere a trava da OP dentro do lock.
+  async function registrarRefugo() {
+    if (estado.enviando || estado.etapa !== 4 || !estado.itens.length || !ctx.podeEditar) return;
+    estado.enviando = true;
+    if (!estado.idReq) estado.idReq = Api.idReq();
+    renderResumo();
+    renderRodape();
+    const itens = estado.itens.slice();
+    const resumo = itens.length + ' item(ns) · ' + somaQtd(itens) + ' peça(s) · ' + kg(somaPeso(itens)) + ' kg · OP ' + estado.op.numero;
+    try {
+      const r = await Api.chamar('registrarRefugo', {
+        idReq: estado.idReq, op: estado.op.numero,
+        itens: itens.map(function (it) { return { processo: it.processo, motivo: it.motivo, tipo: it.tipo, lado: it.lado, qtd: it.qtd, peso: it.peso }; })
+      });
+      estado.idReq = null;
+      const agora = new Date();
+      itens.forEach(function (it) {
+        estado.gravadosSessao.push(Object.assign({}, it, { op: estado.op.numero, cliente: estado.op.dados.cliente || '', hora: agora }));
+      });
+      if (typeof r.jaApontado === 'number') estado.op.jaApontado = r.jaApontado;
+      mostrarResultado(true, 'Apontamento registrado!', resumo + (r.ids && r.ids.length ? ' · ' + r.ids[0] + (r.ids.length > 1 ? ' a ' + r.ids[r.ids.length - 1] : '') : ''));
+    } catch (e) {
+      estado.enviando = false;
+      // Sem conexão: pode ter gravado ou não → mantém o MESMO idReq (reenvio não duplica).
+      // Recusa do servidor: com certeza NÃO gravou.
+      if (e.codigo !== 'SEM_CONEXAO') estado.idReq = null;
+      renderResumo();
+      $('avisoRegistro').textContent = e.codigo === 'SEM_CONEXAO'
+        ? '⚠ Sem confirmação do servidor. Toque em REGISTRAR de novo: o mesmo envio não grava em dobro.'
+        : '✖ NÃO gravado: ' + e.message;
+      $('avisoRegistro').hidden = false;
+      renderRodape();
+      if (e.codigo === 'LIMITE_OP') reconsultarSaldo();
+    }
+  }
+
+  function mostrarResultado(sucesso, titulo, texto, aviso) {
+    estado.enviando = false;
+    $('resIcone').classList.toggle('aviso-ic', !sucesso);
+    $('resIcone').innerHTML = Ui.ic(sucesso ? 'i-check' : 'i-alerta');
+    $('resTitulo').textContent = titulo;
+    $('resTexto').textContent = texto;
+    $('resAviso').textContent = aviso || '';
+    $('resAviso').hidden = !aviso;
+    irPara(5);
+  }
+
+  /* ---------- NAVEGAÇÃO ---------- */
+  // O que está travando a etapa atual ('' = pode avançar)
+  function trava(etapa) {
+    if (etapa === 2) {
+      if (!estado.op.valida) return 'Busque e valide a OP';
+      if (!ctx.podeEditar) return 'Seu perfil só pode consultar';
+      if (limiteOP() <= 0) return 'OP sem quantidade cadastrada';
+      if (saldoOP() <= 0) return 'OP já atingiu o total de peças';
+    }
+    if (etapa === 3) {
+      if (estado.itens.length === 0 && !formValido()) return 'Adicione pelo menos 1 item';
+      if (!formVazio() && !formValido() && estado.itens.length) return 'Termine ou limpe o item em edição';
+    }
+    return '';
+  }
+
+  function avancar() {
+    if (estado.etapa === 3 && !formVazio()) {
+      // Item preenchido e válido vai junto; incompleto trava (não perde dado sem querer)
+      if (formValido()) adicionarItem();
+      else { estado.tocado = { motivo: true, lado: true, qtd: true, peso: true }; renderForm(); return; }
+    }
+    if (trava(estado.etapa)) return;
+    if (estado.etapa === 2 || estado.etapa === 3) irPara(estado.etapa + 1);
+  }
+  function voltar() {
+    if (estado.enviando) return;
+    if (estado.etapa >= 3 && estado.etapa <= 4) irPara(estado.etapa - 1);
+  }
+  function novoApontamento() {
+    estado.op = opVazia();
+    $('op').value = '';
+    setMsg('msgOP', '');
+    renderOP();
+    limparItens();
+    irPara(2);
+  }
+
+  /* ---------- CONFERÊNCIA DO DIA (ao sair) ----------
+     Mostra tudo o que o operador apontou hoje. OK sai do sistema;
+     sem OK, sai sozinho em 15 s e volta ao login do sistema. */
+  let confTimer = null;
+  function hojeBR() { return new Date().toLocaleDateString('pt-BR'); }
+
+  async function sair() {
+    if (estado.etapa === 6) return finalizarSaida();
+    if (estado.enviando) return;
+    if (estado.itens.length && estado.etapa !== 5) {
+      const ok = await Ui.confirmar({ titulo: 'Sair', texto: 'Existem itens lançados que ainda não foram registrados. Sair mesmo assim?', ok: 'Sair mesmo assim', perigo: true });
+      if (!ok) return;
+    }
+    abrirConferencia();
+  }
+
+  function abrirConferencia() {
+    const nome = ctx.usuario.nome || ctx.usuario.login;
+    $('confTitulo').textContent = 'Conferência do dia · ' + nome;
+    $('confSub').textContent = 'Apontamentos de hoje (' + hojeBR() + '). Confira se está tudo certo.';
+    const pad = function (n) { return String(n).padStart(2, '0'); };
+    // 1) Mostra na hora o que foi gravado nesta sessão
+    const daSessao = estado.gravadosSessao.map(function (x) {
+      return Object.assign({}, x, { horaTxt: pad(x.hora.getHours()) + ':' + pad(x.hora.getMinutes()) });
+    });
+    renderConferencia(daSessao, 'carregando');
+    irPara(6);
+    iniciarContagem();
+    // 2) Completa com o servidor (inclui o que ele apontou antes, em outro terminal etc.)
+    Api.chamar('conferenciaRefugo', {}).then(function (r) {
+      if (estado.etapa !== 6) return;
+      const lista = (r.itens || []).map(function (x) {
+        return {
+          horaTxt: String(x.dataHora || '').slice(11, 16), op: x.op, cliente: x.cliente,
+          tipo: x.tipo === 'RETRABALHO' ? 'RETRABALHO' : 'REFUGO', processo: x.processo, motivo: x.motivo, lado: x.lado,
+          qtd: Number(x.qtdRefugo) || 0, peso: Number(x.pesoLiquidoInformado) || 0, estornado: Number(x.qtdEstornada) || 0
+        };
+      }).sort(function (a, b) { return a.horaTxt.localeCompare(b.horaTxt); });
+      renderConferencia(lista, 'servidor');
+    }).catch(function () {
+      if (estado.etapa === 6) renderConferencia(daSessao, 'falhou');
+    });
+  }
+
+  function renderConferencia(lista, fonte) {
+    const ref = lista.filter(function (x) { return x.tipo !== 'RETRABALHO'; });
+    const ret = lista.filter(function (x) { return x.tipo === 'RETRABALHO'; });
+    const comTipo = temTipo() || ret.length > 0;
+    $('confTotais').innerHTML =
+      '<div class="dado"><span>APONTAMENTOS</span><b>' + lista.length + '</b></div>' +
+      '<div class="dado"><span>REFUGO</span><b>' + somaQtd(ref) + ' pç · ' + kg(somaPeso(ref)) + ' kg</b></div>' +
+      (comTipo ? '<div class="dado"><span>RETRABALHO</span><b>' + somaQtd(ret) + ' pç · ' + kg(somaPeso(ret)) + ' kg</b></div>' : '') +
+      '<div class="dado"><span>OPs</span><b>' + new Set(lista.map(function (x) { return String(x.op); })).size + '</b></div>';
+    $('confTotais').style.gridTemplateColumns = window.innerWidth <= 760 ? '' : 'repeat(' + (comTipo ? 4 : 3) + ', 1fr)';
+    setMsg('confFonte',
+      fonte === 'carregando' ? 'buscando o dia completo no servidor…'
+        : fonte === 'falhou' ? '⚠ servidor indisponível: mostrando só o que foi apontado neste terminal'
+          : '✓ dia completo, conferido no servidor',
+      fonte === 'servidor' ? 'ok' : fonte === 'falhou' ? 'erro' : '');
+    if (!lista.length) {
+      $('boxConf').innerHTML = '<div class="lista-vazia">' + (fonte === 'carregando' ? 'Buscando…' : 'Nenhum apontamento hoje.') + '</div>';
+      return;
+    }
+    $('boxConf').innerHTML = '<table class="it"><thead><tr><th>HORA</th><th>OP</th><th class="c-lado">CLIENTE</th>' + (comTipo ? '<th>TIPO</th>' : '') +
+      '<th>PROCESSO</th><th>MOTIVO</th><th class="c-lado">LADO</th><th class="n">QTD</th><th class="n">KG</th></tr></thead><tbody>' +
+      lista.map(function (x) {
+        return '<tr><td>' + esc(x.horaTxt) + '</td><td><b>' + esc(x.op) + '</b></td><td class="c-lado">' + esc(x.cliente) + '</td>' +
+          (comTipo ? '<td>' + tagTipo(x.tipo) + '</td>' : '') +
+          '<td>' + esc(x.processo) + '</td><td>' + esc(x.motivo) + (x.estornado ? ' <span class="tt est">estornado ' + x.estornado + '</span>' : '') + '</td>' +
+          '<td class="c-lado">' + esc(x.lado) + '</td><td class="n">' + x.qtd + '</td><td class="n">' + kg(x.peso) + '</td></tr>';
+      }).join('') + '</tbody></table>';
+  }
+
+  function iniciarContagem() {
+    clearInterval(confTimer);
+    let restante = CONFERENCIA_SEGUNDOS;
+    const barra = $('confBarra');
+    barra.style.transition = 'none';
+    barra.style.width = '100%';
+    void barra.offsetWidth;                  // aplica os 100% antes de animar
+    barra.style.transition = '';
+    $('confSeg').textContent = restante;
+    confTimer = setInterval(function () {
+      restante--;
+      $('confSeg').textContent = Math.max(restante, 0);
+      barra.style.width = (Math.max(restante, 0) / CONFERENCIA_SEGUNDOS * 100) + '%';
+      if (restante <= 0) finalizarSaida();
+    }, 1000);
+  }
+
+  // OK ou tempo esgotado: sai de verdade e volta ao login do sistema
+  function finalizarSaida() {
+    clearInterval(confTimer);
+    confTimer = null;
+    $('btnConfOk').disabled = true;
+    Sessao.sair();
+  }
+
+  function irPara(n) {
+    estado.etapa = n;
+    document.querySelectorAll('.etapa').forEach(function (s) { s.classList.toggle('ativa', s.id === 'etapa' + n); });
+    if (n === 3) { renderItens(); renderForm(); }
+    if (n === 4) renderResumo();
+    render();
+    // Foco automático no campo certo de cada etapa
+    if (n === 2) (estado.op.valida ? $('btnAvancar') : $('op')).focus();
+    if (n === 3) focarProcesso();
+    if (n === 4) $('btnRegistrar').focus();
+    if (n === 5) $('btnNovo').focus();
+    if (n === 6) $('btnConfOk').focus();
+    if (window.innerWidth <= 760) window.scrollTo(0, 0);
+  }
+
+  const DICAS = {
+    2: '<kbd>Enter</kbd> buscar / avançar',
+    3: function () {
+      return (temTipo() ? '<kbd>T</kbd> refugo/retrabalho · ' : '') + '<kbd>1</kbd>–<kbd>' + Math.min(listaProcessos().length, 9) + '</kbd> processo · <kbd>D</kbd>/<kbd>E</kbd>/<kbd>N</kbd> lado · <kbd>Enter</kbd> adicionar · <kbd>Ctrl</kbd>+<kbd>Enter</kbd> revisar · <kbd>Esc</kbd> voltar';
+    },
+    4: '<kbd>Ctrl</kbd>+<kbd>Enter</kbd> registrar · <kbd>Esc</kbd> voltar e editar itens'
+  };
+
+  function renderRodape() {
+    const e = estado.etapa;
+    const d = DICAS[e];
+    $('dicaTeclas').innerHTML = typeof d === 'function' ? d() : (d || '');
+    $('btnVoltar').disabled = estado.enviando;
+    $('btnVoltar').hidden = e === 2;
+    $('btnAvancar').hidden = e === 4;
+    $('btnAvancar').textContent = e === 3 ? 'REVISAR ▶' : 'PRÓXIMO ▶';
+    const t = trava(e);
+    $('btnAvancar').disabled = !!t;
+    $('trava').textContent = t && e !== 4 ? t : '';
+  }
+
+  function render() {
+    const e = estado.etapa;
+    document.body.classList.toggle('sem-step', e === 5 || e === 6);
+    document.querySelectorAll('.st').forEach(function (st) {
+      const n = Number(st.dataset.etapa);
+      st.classList.toggle('feito', n < e);
+      st.classList.toggle('atual', n === e);
+      st.querySelector('i').textContent = n < e ? '✓' : n - 1;
+    });
+    // Os passos concluídos mostram o que foi escolhido
+    document.querySelector('.st[data-etapa="2"] span').textContent = e > 2 && estado.op.valida ? 'OP ' + estado.op.numero : 'Ordem de Produção';
+    document.querySelector('.st[data-etapa="3"] span').textContent = e > 3 ? estado.itens.length + ' ' + (estado.itens.length === 1 ? 'item' : 'itens') : 'Lançar itens';
+    const d = estado.op.dados;
+    $('nomeOP').innerHTML = estado.op.valida && e >= 3 && e <= 4
+      ? 'OP <b>' + esc(estado.op.numero) + '</b> · ' + esc(d.cliente || '') + ' · ' + esc(d.codigo || '') : '';
+    renderRodape();
+  }
+
+  /* ---------- TECLADO — atalhos globais ---------- */
+  function emCampoDeTexto(el) { return el && (el.tagName === 'INPUT' || el.tagName === 'SELECT' || el.tagName === 'TEXTAREA'); }
+
+  function onTeclaGlobal(e) {
+    if (haModal()) return;                    // janela aberta: as teclas são dela
+    const alvo = e.target;
+    const etapa = estado.etapa;
+    // Ctrl+Enter: revisar (etapa 3) ou registrar (etapa 4)
+    if (e.key === 'Enter' && e.ctrlKey) {
+      e.preventDefault();
+      if (etapa === 3) avancar(); else if (etapa === 4) registrarRefugo();
+      return;
+    }
+    if (e.key === 'Escape') {
+      if (etapa >= 3 && etapa <= 4) { e.preventDefault(); voltar(); }
+      return;
+    }
+    if (etapa === 6 && e.key === 'Enter' && alvo.tagName !== 'BUTTON') { e.preventDefault(); finalizarSaida(); return; }
+    if (etapa === 5 && e.key === 'Enter' && alvo.tagName !== 'BUTTON') { e.preventDefault(); novoApontamento(); return; }
+    if (etapa === 2 && e.key === 'Enter' && alvo.tagName !== 'BUTTON') {
+      e.preventDefault();
+      if (estado.op.valida && $('op').value === estado.op.numero) avancar(); else buscarOP();
+      return;
+    }
+    if (etapa !== 3 || e.ctrlKey || e.altKey || e.metaKey) return;
+    // Enter nos campos da etapa 3
+    if (e.key === 'Enter') {
+      if (alvo.id === 'qtd') { e.preventDefault(); $('peso').focus(); return; }
+      if (alvo.id === 'peso') { e.preventDefault(); adicionarItem(); return; }
+      if (alvo.tagName !== 'BUTTON' && !emCampoDeTexto(alvo)) { e.preventDefault(); adicionarItem(); }
+      return;
+    }
+    // Atalhos de tecla única só quando o foco NÃO está num campo de digitação
+    if (emCampoDeTexto(alvo)) return;
+    const lista = listaProcessos();
+    const num = Number(e.key);
+    if (num >= 1 && num <= Math.min(lista.length, 9)) { e.preventDefault(); escolherProcesso(lista[num - 1]); return; }
+    const k = e.key.toLowerCase();
+    if (k === 't' && temTipo()) { e.preventDefault(); escolherTipo(estado.form.tipo === 'RETRABALHO' ? 'REFUGO' : 'RETRABALHO'); return; }
+    const lados = { d: 'LD', e: 'LE', n: 'N/A' };
+    if (lados[k]) { e.preventDefault(); escolherLado(lados[k]); }
+  }
+
+  /* ---------- EVENTOS ---------- */
+  function ligarEventos() {
+    $('op').addEventListener('input', onOpDigitada);
+    $('btnBuscar').addEventListener('click', buscarOP);
+
+    $('gradeProcessos').addEventListener('click', function (e) { const b = e.target.closest('[data-processo]'); if (b) escolherProcesso(b.dataset.processo); });
+    $('gradeTipos').addEventListener('click', function (e) { const b = e.target.closest('[data-tipo]'); if (b) escolherTipo(b.dataset.tipo); });
+    $('gradeLados').addEventListener('click', function (e) { const b = e.target.closest('[data-lado]'); if (b) escolherLado(b.dataset.lado); });
+    $('motivo').addEventListener('input', onMotivoInput);
+    $('motivo').addEventListener('keydown', onMotivoKeydown);
+    $('motivo').addEventListener('blur', function () { setTimeout(function () { fecharSugestoes(); renderForm(); }, 150); });
+    $('listaSugestoes').addEventListener('mousedown', function (e) {
+      const li = e.target.closest('[data-indice]');
+      if (li) { e.preventDefault(); escolherMotivo(estado.sugestoes[Number(li.dataset.indice)]); }
+    });
+    // A quantidade não aceita valor acima do saldo da OP:
+    // se o operador digitar mais, o campo volta ao último valor válido.
+    $('qtd').addEventListener('input', function () {
+      let v = $('qtd').value.replace(/\D/g, '');
+      if (v && Number(v) > saldo()) {
+        v = estado.qtdAnterior || '';
+        $('qtd').value = v;
+        estado.tocado.qtd = true;
+        renderForm();
+        setMsg('msgQtd', '✖ Saldo da OP: no máximo ' + Math.max(saldo(), 0) + ' peça(s)', 'erro');
+        return;
+      }
+      $('qtd').value = v;
+      estado.qtdAnterior = v;
+      estado.tocado.qtd = true;
+      renderForm();
+    });
+    $('peso').addEventListener('input', function () {
+      $('peso').value = $('peso').value.replace(/[^\d,.]/g, '');
+      estado.tocado.peso = true;
+      renderForm();
+    });
+    $('btnAdicionar').addEventListener('click', adicionarItem);
+    $('boxItens').addEventListener('click', function (e) { const b = e.target.closest('[data-remover]'); if (b) removerItem(Number(b.dataset.remover)); });
+
+    $('btnRegistrar').addEventListener('click', registrarRefugo);
+    $('btnNovo').addEventListener('click', novoApontamento);
+    $('btnSair').addEventListener('click', sair);
+    $('btnSairTopo').addEventListener('click', sair);
+    $('btnConfOk').addEventListener('click', finalizarSaida);
+    $('btnVoltar').addEventListener('click', voltar);
+    $('btnAvancar').addEventListener('click', avancar);
+    document.addEventListener('keydown', onTeclaGlobal);
+    // Antes de fechar a aba com itens não registrados, avisa
+    window.addEventListener('beforeunload', function (ev) {
+      if (estado.itens.length && estado.etapa >= 3 && estado.etapa <= 4 && !estado.enviando) { ev.preventDefault(); ev.returnValue = ''; }
+    });
+  }
+});
+</script>
+</body>
+</html>

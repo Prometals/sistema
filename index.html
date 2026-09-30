@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Entrar · Prometals</title>
+<link rel="stylesheet" href="css/tema.css">
+<link rel="stylesheet" href="css/sistema.css">
+<style>
+/* Instalar como aplicativo (PWA) */
+.instalar { margin-top: 14px; display: grid; gap: 8px; }
+.instalar button { height: 42px; border-radius: 10px; border: 1px solid var(--destaque); background: transparent; color: var(--destaque); font-weight: 700; font-size: 14px; cursor: pointer; }
+.instalar small { font-size: 12px; color: var(--texto-suave); line-height: 1.4; text-align: center; }
+</style>
+</head>
+<body>
+
+<!-- Login único do sistema (usuário + PIN). Depois de entrar,
+     vai para a página pedida, ou direto para a única página do
+     usuário, ou para a Visão geral. -->
+<section class="login">
+  <div class="login-marca">
+    <div class="logo-bloco"><div><b>PROMETALS</b><small>SISTEMA INTEGRADO</small></div></div>
+    <h1>Produção, qualidade, estoque e comercial <em>em um só lugar.</em></h1>
+    <p>Acompanhe cada OP do pedido à expedição, planeje a fusão, controle insumos e faturamento com a mesma base de dados.</p>
+    <div class="modulos-lista">
+      <span><svg class="i"><use href="#i-tabela"/></svg>PCP e Planejamento</span>
+      <span><svg class="i"><use href="#i-fogo"/></svg>Fusão e Corridas</span>
+      <span><svg class="i"><use href="#i-graf"/></svg>Qualidade e Refugo</span>
+      <span><svg class="i"><use href="#i-pacote"/></svg>Estoque e Compras</span>
+      <span><svg class="i"><use href="#i-moeda"/></svg>Comercial e Financeiro</span>
+      <span><svg class="i"><use href="#i-tv"/></svg>Indicadores</span>
+    </div>
+    <div class="rod">© 2026 Prometals · Nova Odessa/SP · <span id="versao"></span></div>
+  </div>
+  <div class="login-form">
+    <form class="form-caixa" id="form" autocomplete="on" novalidate>
+      <h2>Acessar o sistema</h2>
+      <p class="sub">Entre com seu usuário e PIN.</p>
+      <div class="msg-info" id="aviso" hidden></div>
+      <div class="msg-erro" id="erro"></div>
+      <label class="campo">Usuário
+        <div class="inp"><svg class="i"><use href="#i-user"/></svg>
+          <input id="login" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" required></div>
+      </label>
+      <label class="campo">PIN
+        <div class="inp"><svg class="i"><use href="#i-chave"/></svg>
+          <input id="pin" name="password" type="password" inputmode="numeric" maxlength="8" autocomplete="current-password" required></div>
+      </label>
+      <button class="btn-entrar" id="entrar" type="submit">Entrar</button>
+      <div class="ajuda"><svg class="i" style="width:15px;height:15px"><use href="#i-alerta"/></svg>Esqueceu o PIN? Solicite ao administrador.</div>
+      <div class="seg"><svg class="i" style="width:14px;height:14px"><use href="#i-escudo"/></svg>Acesso por perfil. A sessão encerra ao fechar o navegador.</div>
+      <div class="instalar">
+        <button type="button" id="instalar" hidden>Instalar aplicativo</button>
+        <small id="dica-ios" hidden>No iPhone: toque em <b>Compartilhar</b> e depois em <b>Adicionar à Tela de Início</b>.</small>
+      </div>
+    </form>
+  </div>
+</section>
+
+<script src="js/config.js"></script>
+<script src="js/icones.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/api.js"></script>
+<script src="js/sessao.js"></script>
+<script>
+(function () {
+  const $ = function (id) { return document.getElementById(id); };
+  const volta = new URLSearchParams(location.search).get('volta') || '';
+  $('versao').textContent = 'v' + CONFIG.VERSAO;
+
+  // ---------- Instalar como aplicativo (PWA) ----------
+  // Android/computador (Chrome): o navegador avisa que dá para instalar → mostra o botão.
+  let pedidoInstalar = null;
+  window.addEventListener('beforeinstallprompt', function (ev) {
+    ev.preventDefault();
+    pedidoInstalar = ev;
+    $('instalar').hidden = false;
+  });
+  $('instalar').addEventListener('click', async function () {
+    if (!pedidoInstalar) return;
+    pedidoInstalar.prompt();
+    await pedidoInstalar.userChoice;
+    pedidoInstalar = null;
+    $('instalar').hidden = true;
+  });
+  // iPhone (Safari) não tem botão: mostra a dica, se ainda não estiver instalado.
+  const ehIphone = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const jaInstalado = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
+  $('dica-ios').hidden = !(ehIphone && !jaInstalado && location.protocol === 'https:');
+
+  // Já está logado (ex.: voltou com o botão do navegador)? Segue direto.
+  const atual = Sessao.ler();
+  if (atual && atual.token) { location.replace(Sessao.destino(atual.paginas, volta)); return; }
+
+  // Aviso deixado por outra página (ex.: "Sua sessão expirou")
+  const aviso = Sessao.pegarAviso();
+  if (aviso) { $('aviso').textContent = aviso; $('aviso').hidden = false; }
+
+  // Lembra o último usuário neste aparelho (só o login, nunca o PIN)
+  try { $('login').value = localStorage.getItem('pm_ultimo_login') || ''; } catch (e) { /* ignora */ }
+  ($('login').value ? $('pin') : $('login')).focus();
+
+  $('form').addEventListener('submit', async function (ev) {
+    ev.preventDefault();
+    const login = $('login').value.trim().toLowerCase();
+    const pin = $('pin').value.trim();
+    if (!login || !pin) { Ui.msgErro($('erro'), 'Informe usuário e PIN.'); return; }
+    Ui.msgErro($('erro'), '');
+    $('aviso').hidden = true;
+    $('entrar').disabled = true;
+    $('entrar').textContent = 'Entrando…';
+    try {
+      const r = await Sessao.entrar(login, pin);
+      try { localStorage.setItem('pm_ultimo_login', login); } catch (e) { /* ignora */ }
+      location.replace(Sessao.destino(r.paginas, volta));
+    } catch (e) {
+      Ui.msgErro($('erro'), e.message);
+      $('pin').value = '';
+      $('pin').focus();
+      $('entrar').disabled = false;
+      $('entrar').textContent = 'Entrar';
+    }
+  });
+})();
+</script>
+</body>
+</html>

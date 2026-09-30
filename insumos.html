@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Insumos · Prometals</title>
+<link rel="stylesheet" href="css/tema.css">
+<link rel="stylesheet" href="css/sistema.css">
+<style>
+/* ---------- específico desta página ---------- */
+/* contadores-filtro */
+.kl { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 14px; }
+.kq { background: var(--painel); border: 1px solid var(--linha); border-radius: 12px; padding: 10px 14px; cursor: pointer; position: relative; overflow: hidden; text-align: left; display: flex; align-items: center; gap: 12px; min-width: 0; }
+.kq::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--c); }
+.kq.sel { border-color: var(--c); box-shadow: 0 0 0 1px var(--c) inset; }
+.kq b { font-size: 24px; }
+.kq span { font-size: 11px; font-weight: 800; color: var(--texto-suave); letter-spacing: .4px; text-transform: uppercase; min-width: 0; }
+.kq small { display: block; font-size: 11px; color: var(--texto-suave); font-weight: 600; text-transform: none; letter-spacing: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kq.piscando { animation: pisca 1.8s infinite; }
+.kpi-mini .km { cursor: pointer; }
+/* barra de filtros */
+.barra { display: flex; gap: 10px; align-items: center; background: var(--painel); border: 1px solid var(--linha); border-radius: 12px; padding: 10px 12px; margin-bottom: 14px; flex-wrap: wrap; }
+.barra select { height: 36px; font-size: 13px; padding: 0 10px; width: auto; }
+.barra .f-busca { flex: 1; min-width: 220px; position: relative; }
+.barra .f-busca input { width: 100%; padding-left: 34px; height: 36px; font-size: 13px; }
+.barra .f-busca svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--texto-suave); }
+.barra .info { font-size: 12px; color: var(--texto-suave); }
+/* tabela */
+.tab-wrap { overflow: auto; max-height: calc(100vh - 330px); }
+.tab-wrap table.tab th { position: sticky; top: 0; z-index: 1; }
+.cat { font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 5px; white-space: nowrap; }
+.cat.luva { background: rgba(59,130,246,.18); color: #93c5fd; }
+.cat.filtro { background: rgba(20,184,166,.18); color: #5eead4; }
+.cat.emb { background: rgba(240,122,31,.18); color: #fdba74; }
+.cat.out { background: var(--painel-2); color: var(--texto-suave); }
+html.tema-claro .cat.luva { color: #1d4ed8; }
+html.tema-claro .cat.filtro { color: #0f766e; }
+html.tema-claro .cat.emb { color: #9a3412; }
+.pol { font-size: 11px; font-weight: 800; }
+.pol.sd { color: var(--destaque); }
+.sal.baixo { color: #f87171; font-weight: 800; }
+.sal.ok { color: #34d399; font-weight: 800; }
+html.tema-claro .sal.baixo { color: #b91c1c; }
+html.tema-claro .sal.ok { color: #166534; }
+table.tab tbody tr { cursor: pointer; }
+tr.sel td { background: color-mix(in srgb, var(--destaque) 10%, transparent); }
+tr.sel td:first-child { box-shadow: inset 3px 0 0 var(--destaque); }
+tr.inat td { opacity: .45; }
+.bloco table.tab th, .bloco table.tab td { padding-left: 10px; padding-right: 10px; }
+.bloco table.tab td:first-child, .bloco table.tab th:first-child { padding-left: 16px; }
+.bloco table.tab td.desc { max-width: 320px; overflow: hidden; text-overflow: ellipsis; }
+
+/* gaveta de edição (painel lateral) */
+.gaveta { position: fixed; top: 0; right: 0; bottom: 0; width: 440px; max-width: 100%; background: var(--painel); border-left: 1px solid var(--linha); box-shadow: -20px 0 40px rgba(0,0,0,.35); z-index: 30; display: none; flex-direction: column; }
+.gv-veu { position: fixed; inset: 0; background: rgba(15,23,32,.45); z-index: 25; display: none; }
+body.gaveta-aberta .gaveta { display: flex; }
+body.gaveta-aberta .gv-veu { display: block; }
+.gv-cab { padding: 16px 18px; border-bottom: 1px solid var(--linha); display: flex; align-items: flex-start; gap: 10px; }
+.gv-cab h3 { margin: 0; font-size: 16px; }
+.gv-cab p { margin: 2px 0 0; font-size: 12px; color: var(--texto-suave); }
+.gv-cab .fx { margin-left: auto; width: 34px; height: 34px; flex: none; border-radius: 8px; border: 1px solid var(--borda); background: transparent; display: grid; place-items: center; cursor: pointer; color: var(--texto); }
+.gv-corpo { padding: 16px 18px; overflow: auto; display: grid; gap: 12px; grid-template-columns: 1fr 1fr; align-content: start; flex: 1; }
+.fc { display: grid; gap: 5px; font-size: 11px; font-weight: 800; color: var(--texto-suave); letter-spacing: .4px; align-content: start; min-width: 0; }
+.fc input, .fc select { height: 38px; font-size: 13.5px; padding: 0 10px; }
+.fc input:disabled, .fc select:disabled { opacity: .7; }
+.fc input.mud, .fc select.mud { border-color: var(--destaque); }
+.fc.l { grid-column: 1 / -1; }
+.fc small { font-weight: 600; letter-spacing: 0; font-size: 11px; }
+.seg { display: flex; border: 1px solid var(--borda); border-radius: 10px; overflow: hidden; height: 38px; }
+.seg button { flex: 1; border: 0; background: transparent; font-weight: 800; font-size: 12px; color: var(--texto-suave); cursor: pointer; }
+.seg button.on { background: var(--destaque); color: #fff; }
+.seg button:disabled { cursor: default; }
+.seg.mud { border-color: var(--destaque); }
+.usado { grid-column: 1 / -1; background: var(--painel-2); border-radius: 10px; padding: 10px 12px; font-size: 12px; display: grid; gap: 5px; }
+.usado b { font-size: 11px; color: var(--texto-suave); letter-spacing: .4px; }
+.estq { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.estq div { background: var(--painel-2); border-radius: 10px; padding: 8px 10px; font-size: 10.5px; font-weight: 800; color: var(--texto-suave); }
+.estq b { display: block; font-size: 18px; color: var(--texto); }
+.estq b.baixo { color: #f87171; } .estq b.ok { color: #34d399; } .estq b.at { color: #fbbf24; }
+html.tema-claro .estq b.baixo { color: #b91c1c; } html.tema-claro .estq b.ok { color: #166534; } html.tema-claro .estq b.at { color: #92400e; }
+.gv-rod { padding: 12px 18px; border-top: 1px solid var(--linha); display: flex; gap: 8px; justify-content: flex-end; }
+.gv-rod .esq { margin-right: auto; }
+.btn2.salvar { background: #16a34a; border-color: #16a34a; color: #fff; }
+.btn2 .n { background: rgba(255,255,255,.25); border-radius: 999px; padding: 0 7px; font-size: 11px; }
+.nota { grid-column: 1 / -1; font-size: 11.5px; color: var(--texto-suave); }
+.gv-corpo .msg-erro { grid-column: 1 / -1; margin: 0; }
+.cm { cursor: pointer; }
+.cm .lin2 { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--texto-suave); gap: 8px; }
+.cm.inat { opacity: .5; }
+.cm-top .op { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hist { display: grid; gap: 8px; font-size: 13px; }
+.hist div { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--linha); padding-bottom: 6px; }
+.hist span { color: var(--texto-suave); }
+.filtros-mob { display: grid; gap: 12px; }
+
+@media (max-width: 1100px) { .kl { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 760px) {
+  .gaveta { width: 100%; }
+  .gv-corpo { grid-template-columns: 1fr 1fr; }
+  .gv-rod { padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
+}
+</style>
+</head>
+<body>
+
+<!-- Cadastros · Insumos.
+     Contadores-filtro (Luva / Filtro / Embalagem / Outros / Abaixo do mínimo),
+     tabela e edição num painel lateral. Saldo, "vai sair" e projetado vêm do
+     Estoque (só leitura). Edita: quem tem EDITAR na página (PCP, Compras, Admin). -->
+<main class="conteudo">
+  <div class="tit-pagina">
+    <div><h1>Insumos</h1><p>Luva, filtro, embalagem e demais materiais · política de estoque e mínimos</p></div>
+    <div class="acoes-pagina so-desk"><button class="btn2 pri" data-acao="novo" data-editar hidden><svg class="i"><use href="#i-mais"/></svg>Novo insumo</button></div>
+  </div>
+
+  <div class="kl so-desk" id="cont"></div>
+  <div class="barra so-desk">
+    <div class="f-busca"><svg class="i"><use href="#i-busca"/></svg><input id="busca" autocomplete="off" placeholder="Código ou descrição…"></div>
+    <select id="f-pol"><option value="">Todas as políticas</option><option value="ESTOCADO">Estocado</option><option value="SOB_DEMANDA">Sob demanda</option></select>
+    <select id="f-sit"><option value="ATIVOS">Ativos</option><option value="INATIVOS">Inativos</option><option value="TODOS">Todos</option></select>
+    <span class="info" id="info"></span>
+  </div>
+  <div class="bloco so-desk"><div class="tab-wrap">
+    <table class="tab"><thead><tr><th>Código</th><th>Descrição</th><th>Categoria</th><th>Un.</th><th>Política</th><th>Consumido em</th><th class="num">Mínimo</th><th class="num">Lead time</th><th class="num">Usado em</th><th class="num">Saldo</th></tr></thead>
+    <tbody id="linhas"><tr><td colspan="10"><div class="carregando">Carregando…</div></td></tr></tbody></table>
+  </div></div>
+
+  <div class="kpi-mini so-mob" id="cont-mob"></div>
+  <div class="busca-mob so-mob"><div class="f"><svg class="i"><use href="#i-busca"/></svg><input id="busca-mob" autocomplete="off" placeholder="Código ou descrição…"></div>
+    <button class="bt" data-acao="filtros-mob" title="Filtros"><svg class="i"><use href="#i-filtro"/></svg><span class="pt" id="n-filtros" hidden></span></button></div>
+  <div class="info-mob so-mob" id="info-mob"></div>
+  <div class="lista-mob so-mob" id="cartoes"></div>
+  <div class="barra-mob so-mob" id="barra-mob" hidden><button class="pri" data-acao="novo" style="background:var(--destaque);border-color:var(--destaque)"><svg class="i"><use href="#i-mais"/></svg>Novo insumo</button></div>
+</main>
+
+<div class="gv-veu" data-acao="fechar"></div>
+<aside class="gaveta" id="gaveta" aria-label="Editar insumo"></aside>
+
+<script src="js/config.js"></script>
+<script src="js/icones.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/api.js"></script>
+<script src="js/sessao.js"></script>
+<script src="js/shell.js"></script>
+<script>
+Sessao.iniciarPagina('insumos').then(function (ctx) {
+  const $ = function (s) { return document.querySelector(s); };
+  const pode = ctx.podeEditar;
+  const CATS = [
+    { id: 'LUVA', nome: 'Luva', cls: 'luva', c: '#3b82f6', sub: 'por molde · estocado' },
+    { id: 'FILTRO', nome: 'Filtro', cls: 'filtro', c: '#14b8a6', sub: 'por molde · estocado' },
+    { id: 'EMBALAGEM', nome: 'Embalagem', cls: 'emb', c: '#f07a1f', sub: 'por peça · sob demanda' },
+    { id: 'OUTROS', nome: 'Outros', cls: 'out', c: '#64748b', sub: 'fora do controle da OP' }
+  ];
+  const CLS_CAT = { LUVA: 'luva', FILTRO: 'filtro', EMBALAGEM: 'emb', OUTROS: 'out' };
+  // Lista mestre de processos (a mesma da aba CAD_PROCESSO e do PCP)
+  const PROCESSOS = ['VALIDAÇÃO TÉCNICA', 'ENGENHARIA', 'PLANEJAMENTO', 'FILA DE PRODUÇÃO', 'MODELAÇÃO',
+    'MOLDAGEM', 'PINTURA', 'FUSÃO', 'REBARBAÇÃO', 'TRATAMENTO TÉRMICO', 'JATEAMENTO',
+    'USINAGEM', 'BALANCEAMENTO EXTERNO', 'INSPEÇÃO FINAL', 'EXPEDIÇÃO'];
+  const PADRAO_CATS = ['LUVA', 'FILTRO', 'EMBALAGEM'];
+  const MAX_LINHAS = 600;
+
+  let itens = [];                       // insumos + situação do estoque
+  let cats = PADRAO_CATS.slice();       // categorias marcadas nos contadores (vazio = todas)
+  let abaixo = false;                   // contador "Abaixo do mínimo" ligado
+  let busca = '';
+  let g = null;                         // insumo aberto na gaveta
+  let salvando = false;
+
+  if (pode) document.querySelectorAll('[data-editar]').forEach(function (b) { b.hidden = false; });
+  $('#barra-mob').hidden = !pode;
+
+  carregar();
+
+  // ---------- Dados ----------
+  // listarInsumos traz o cadastro (inclusive inativos); situacaoInsumos traz
+  // saldo / vai sair / projetado / usado em (só dos ativos) vindos do Estoque.
+  async function carregar() {
+    try {
+      const r = await Promise.all([
+        Api.chamar('listarInsumos', { incluirInativos: true }),
+        Api.chamar('situacaoInsumos', {}).catch(function (e) { Ui.erro(e); return []; })
+      ]);
+      const sit = {};
+      r[1].forEach(function (s) { sit[s.cod_insumo] = s; });
+      itens = r[0].map(function (i) {
+        const s = sit[String(i.COD_INSUMO)];
+        return {
+          cod: String(i.COD_INSUMO), descricao: String(i.DESCRICAO || ''), categoria: String(i.CATEGORIA || ''),
+          unidade: String(i.UNIDADE || ''), politica: String(i.POLITICA || ''), consumo: String(i.PROCESSO_CONSUMO || ''),
+          minimo: numero(i.ESTOQUE_MINIMO), lead: numero(i.LEAD_TIME_DIAS), ativo: i.ATIVO === 'SIM', reg: i,
+          sit: s || null, saldo: s ? s.saldo : null, vaiSair: s ? s.vai_sair : null, projetado: s ? s.projetado : null,
+          usadoEm: s ? s.usado_em : null
+        };
+      }).sort(function (a, b) {
+        // ordem da fábrica: luva, filtro, embalagem, outros; depois pelo código
+        return ordemCat(a.categoria) - ordemCat(b.categoria) || a.cod.localeCompare(b.cod);
+      });
+      desenhar();
+    } catch (e) {
+      Ui.erro(e);
+      $('#linhas').innerHTML = '<tr><td colspan="10"><div class="vazio">Não foi possível carregar. ' + Ui.esc(e.message) + '</div></td></tr>';
+    }
+  }
+
+  // Abaixo do mínimo: insumo ativo, estocado, com mínimo, fora de OUTROS, saldo < mínimo.
+  function ehAbaixo(x) {
+    return x.ativo && x.politica === 'ESTOCADO' && x.categoria !== 'OUTROS' && x.minimo > 0 && (x.saldo || 0) < x.minimo;
+  }
+
+  // ---------- Filtro ----------
+  function visiveis() {
+    const pol = $('#f-pol').value, st = $('#f-sit').value;
+    const palavras = busca.toUpperCase().split(/\s+/).filter(Boolean);
+    return itens.filter(function (x) {
+      if (st === 'ATIVOS' && !x.ativo) return false;
+      if (st === 'INATIVOS' && x.ativo) return false;
+      if (cats.length && cats.indexOf(x.categoria) === -1) return false;
+      if (abaixo && !ehAbaixo(x)) return false;
+      if (pol && x.politica !== pol) return false;
+      const txt = x.cod + ' ' + x.descricao + ' ' + x.categoria;
+      return palavras.every(function (w) { return txt.indexOf(w) !== -1; });
+    });
+  }
+
+  // ---------- Desenho ----------
+  function desenhar() {
+    desenharContadores();
+    const lista = visiveis();
+    desenharTabela(lista);
+    desenharCartoes(lista);
+    const nomes = cats.length ? cats.map(function (c) { return CATS.find(function (k) { return k.id === c; }).nome; }).join(', ') : 'todas as categorias';
+    const txt = 'Filtro: <b>' + Ui.esc(nomes) + (abaixo ? ' · abaixo do mínimo' : '') + '</b> · ' + lista.length + ' de ' + itens.length;
+    $('#info').innerHTML = txt;
+    $('#info-mob').innerHTML = txt;
+    const extras = ($('#f-pol').value ? 1 : 0) + ($('#f-sit').value !== 'ATIVOS' ? 1 : 0);
+    $('#n-filtros').hidden = !extras;
+    $('#n-filtros').textContent = extras;
+  }
+
+  function desenharContadores() {
+    const ativos = itens.filter(function (x) { return x.ativo; });
+    const n = function (id) { return ativos.filter(function (x) { return x.categoria === id; }).length; };
+    const nAbaixo = ativos.filter(ehAbaixo).length;
+    $('#cont').innerHTML = CATS.map(function (k) {
+      return '<button class="kq' + (cats.indexOf(k.id) !== -1 ? ' sel' : '') + '" style="--c:' + k.c + '" data-cat="' + k.id + '"><b>' + n(k.id) + '</b><span>' + k.nome + '<small>' + k.sub + '</small></span></button>';
+    }).join('') +
+      '<button class="kq' + (abaixo ? ' sel' : '') + (nAbaixo ? ' piscando' : '') + '" style="--c:#dc2626" data-cat="ABAIXO"><b>' + nAbaixo + '</b><span>Abaixo do mínimo<small>saldo &lt; estoque mínimo</small></span></button>';
+    $('#cont-mob').innerHTML = CATS.slice(0, 3).map(function (k) {
+      return '<span class="km' + (cats.indexOf(k.id) !== -1 ? ' sel' : '') + '" style="--c:' + k.c + '" data-cat="' + k.id + '"><b>' + n(k.id) + '</b>' + k.nome + '</span>';
+    }).join('') +
+      '<span class="km' + (abaixo ? ' sel' : '') + (nAbaixo ? ' piscando' : '') + '" style="--c:#dc2626" data-cat="ABAIXO"><b>' + nAbaixo + '</b>Abaixo mín.</span>' +
+      '<span class="km' + (cats.indexOf('OUTROS') !== -1 ? ' sel' : '') + '" style="--c:#64748b" data-cat="OUTROS"><b>' + n('OUTROS') + '</b>Outros</span>';
+  }
+
+  function htmlSaldo(x) {
+    if (!x.ativo || x.saldo === null) return { cls: '', txt: '—' };
+    if (x.politica === 'SOB_DEMANDA') return { cls: '', txt: x.saldo ? Fmt.num(x.saldo) : '—' };
+    if (x.categoria === 'OUTROS' || !(x.minimo > 0)) return { cls: '', txt: Fmt.num(x.saldo) };
+    return { cls: x.saldo < x.minimo ? ' baixo' : ' ok', txt: Fmt.num(x.saldo) };
+  }
+  function htmlPol(x) {
+    return x.politica === 'SOB_DEMANDA' ? '<span class="pol sd">SOB DEMANDA</span>' : '<span class="pol">Estocado</span>';
+  }
+
+  function desenharTabela(lista) {
+    const sel = g && !g.novo ? g.orig.cod : null;
+    $('#linhas').innerHTML = lista.slice(0, MAX_LINHAS).map(function (x) {
+      const s = htmlSaldo(x);
+      return '<tr class="' + (x.cod === sel ? 'sel' : '') + (x.ativo ? '' : ' inat') + '" data-cod="' + Ui.esc(x.cod) + '">' +
+        '<td><b>' + Ui.esc(x.cod) + '</b></td><td class="desc" title="' + Ui.esc(x.descricao) + '">' + Ui.esc(x.descricao) + '</td>' +
+        '<td><span class="cat ' + (CLS_CAT[x.categoria] || 'out') + '">' + Ui.esc(x.categoria) + '</span></td>' +
+        '<td>' + Ui.esc(x.unidade) + '</td><td>' + htmlPol(x) + '</td><td>' + Ui.esc(x.consumo || '—') + '</td>' +
+        '<td class="num">' + (x.minimo === null ? '—' : Fmt.num(x.minimo)) + '</td>' +
+        '<td class="num">' + (x.lead === null ? '—' : Fmt.num(x.lead) + ' d') + '</td>' +
+        '<td class="num">' + (x.usadoEm === null ? '—' : Fmt.num(x.usadoEm)) + '</td>' +
+        '<td class="num sal' + s.cls + '">' + s.txt + '</td></tr>';
+    }).join('') || '<tr><td colspan="10"><div class="vazio">Nenhum insumo com esse filtro.</div></td></tr>';
+    if (lista.length > MAX_LINHAS) {
+      $('#linhas').insertAdjacentHTML('beforeend', '<tr><td colspan="10" class="mut">Mostrando ' + MAX_LINHAS + ' de ' + lista.length + ' · refine a busca</td></tr>');
+    }
+  }
+
+  function desenharCartoes(lista) {
+    $('#cartoes').innerHTML = lista.slice(0, 150).map(function (x) {
+      const s = htmlSaldo(x);
+      const dir = x.politica === 'SOB_DEMANDA' ? '<span class="pol sd">SOB DEMANDA</span>'
+        : '<span>mín. ' + (x.minimo === null ? '—' : Fmt.num(x.minimo)) + ' · saldo <b class="sal' + s.cls + '">' + s.txt + '</b></span>';
+      return '<div class="cm' + (x.ativo ? '' : ' inat') + '" data-cod="' + Ui.esc(x.cod) + '">' +
+        '<div class="cm-top"><span class="op">' + Ui.esc(x.cod) + '</span><span class="cli">' + (x.ativo ? '' : 'inativo') + '</span><span class="cat ' + (CLS_CAT[x.categoria] || 'out') + '">' + Ui.esc(x.categoria) + '</span></div>' +
+        '<div class="cm-desc">' + Ui.esc(x.descricao) + '<small>' + Ui.esc([x.unidade, x.consumo || 'sem processo', 'usado em ' + (x.usadoEm || 0) + ' produtos'].join(' · ')) + '</small></div>' +
+        '<div class="lin2"><span>lead time ' + (x.lead === null ? '—' : Fmt.num(x.lead) + ' d') + '</span>' + dir + '</div></div>';
+    }).join('') || '<div class="vazio">Nenhum insumo com esse filtro.</div>';
+    if (lista.length > 150) $('#cartoes').insertAdjacentHTML('beforeend', '<div class="vazio">Mostrando 150 de ' + lista.length + ' · refine a busca</div>');
+  }
+
+  // ---------- Eventos da lista ----------
+  $('#busca').addEventListener('input', function () { busca = this.value.trim(); $('#busca-mob').value = this.value; desenhar(); });
+  $('#busca-mob').addEventListener('input', function () { busca = this.value.trim(); $('#busca').value = this.value; desenhar(); });
+  $('#f-pol').addEventListener('change', desenhar);
+  $('#f-sit').addEventListener('change', desenhar);
+
+  document.addEventListener('click', function (ev) {
+    const k = ev.target.closest('[data-cat]');
+    if (k) {
+      const id = k.dataset.cat;
+      if (id === 'ABAIXO') abaixo = !abaixo;
+      else if (cats.indexOf(id) !== -1) cats = cats.filter(function (c) { return c !== id; });
+      else cats.push(id);
+      desenhar();
+      return;
+    }
+    const linha = ev.target.closest('#linhas tr[data-cod], #cartoes .cm[data-cod]');
+    if (linha) { trocarPara(linha.dataset.cod); return; }
+    const bt = ev.target.closest('[data-acao]');
+    if (!bt || bt.disabled) return;
+    const acao = bt.dataset.acao;
+    if (acao === 'novo') trocarPara(null);
+    if (acao === 'filtros-mob') filtrosMob();
+    if (acao === 'fechar') fecharGaveta();
+    if (acao === 'historico') historico();
+    if (acao === 'salvar') salvar();
+    if (acao === 'ativo') alternarAtivo();
+  });
+  document.addEventListener('keydown', function (ev) {
+    if (ev.key === 'Escape' && g && !document.querySelector('.modal-fundo')) fecharGaveta();
+  });
+  window.addEventListener('beforeunload', function (ev) { if (g && contar()) { ev.preventDefault(); ev.returnValue = ''; } });
+
+  // Filtros do celular (política e situação) numa janela
+  function filtrosMob() {
+    const corpo = '<div class="filtros-mob">' +
+      '<label class="campo">Política<select data-f="pol">' + $('#f-pol').innerHTML + '</select></label>' +
+      '<label class="campo">Situação<select data-f="sit">' + $('#f-sit').innerHTML + '</select></label></div>';
+    Ui.janela({
+      titulo: 'Filtros', corpo: corpo,
+      botoes: [{ texto: 'Limpar', classe: 'esq', valor: 'limpar' }, { texto: 'Aplicar', classe: 'pri', valor: 'ok' }],
+      antesDeFechar: function (valor, caixa) {
+        const pol = caixa.querySelector('[data-f="pol"]').value, sit = caixa.querySelector('[data-f="sit"]').value;
+        $('#f-pol').value = valor === 'limpar' ? '' : pol;
+        $('#f-sit').value = valor === 'limpar' ? 'ATIVOS' : sit;
+        if (valor === 'limpar') { cats = PADRAO_CATS.slice(); abaixo = false; }
+        desenhar();
+        return true;
+      }
+    });
+    const caixa = document.querySelector('.modal-caixa');
+    caixa.querySelector('[data-f="pol"]').value = $('#f-pol').value;
+    caixa.querySelector('[data-f="sit"]').value = $('#f-sit').value;
+  }
+
+  // ---------- Gaveta: abrir / fechar ----------
+  async function trocarPara(cod) {
+    if (g && !g.novo && g.orig.cod === cod) return;
+    if (g && contar()) {
+      const ok = await Ui.confirmar({ titulo: 'Descartar alterações?', texto: 'Há ' + contar() + ' alteração(ões) não salva(s) em ' + (g.novo ? 'novo insumo' : g.orig.cod) + '.', ok: 'Descartar', perigo: true });
+      if (!ok) return;
+    }
+    abrirGaveta(cod);
+  }
+
+  function abrirGaveta(cod) {
+    const x = cod ? itens.find(function (i) { return i.cod === cod; }) : null;
+    if (cod && !x) return;
+    const orig = x ? {
+      cod: x.cod, descricao: x.descricao, unidade: x.unidade, categoria: x.categoria, consumo: x.consumo, politica: x.politica,
+      minimo: x.minimo === null ? '' : String(x.minimo), lead: x.lead === null ? '' : String(x.lead)
+    } : { cod: '', descricao: '', unidade: '', categoria: '', consumo: '', politica: 'ESTOCADO', minimo: '', lead: '' };
+    g = { novo: !x, x: x, orig: orig, campos: Object.assign({}, orig) };
+    document.body.classList.add('gaveta-aberta');
+    desenharGaveta();
+    desenharTabela(visiveis());
+    if (!x && pode) setTimeout(function () { const c = $('#gaveta [data-campo="cod"]'); if (c) c.focus(); }, 30);
+  }
+
+  async function fecharGaveta() {
+    if (!g) return;
+    if (contar()) {
+      const ok = await Ui.confirmar({ titulo: 'Descartar alterações?', texto: 'Há ' + contar() + ' alteração(ões) não salva(s). Fechar mesmo assim?', ok: 'Descartar', perigo: true });
+      if (!ok) return;
+    }
+    g = null;
+    document.body.classList.remove('gaveta-aberta');
+    $('#gaveta').innerHTML = '';
+    desenharTabela(visiveis());
+  }
+
+  function desenharGaveta() {
+    const x = g.x, c = g.campos;
+    const trava = pode && (g.novo || x.ativo) ? '' : ' disabled';
+    const unidades = Array.from(new Set(itens.map(function (i) { return i.unidade; }).filter(Boolean))).sort();
+    const sub = g.novo ? 'novo insumo · preencha e clique em Salvar'
+      : x.descricao + (x.reg.ATUALIZADO_EM ? ' · atualizado por ' + x.reg.ATUALIZADO_POR + ' em ' + Fmt.data(x.reg.ATUALIZADO_EM)
+        : x.reg.CRIADO_EM ? ' · criado por ' + nomeUsuario(x.reg.CRIADO_POR) + ' em ' + Fmt.data(x.reg.CRIADO_EM) : '') + (x.ativo ? '' : ' · INATIVO');
+    const sd = c.politica === 'SOB_DEMANDA';
+    let estq = '';
+    if (x && x.sit) {
+      const p = x.projetado;
+      const cls = sd ? '' : p < 0 ? 'baixo' : x.minimo > 0 && p < x.minimo ? 'at' : 'ok';
+      estq = '<div class="estq"><div>SALDO<b>' + Fmt.num(x.saldo) + '</b></div><div>VAI SAIR (OPs)<b>' + Fmt.num(x.vaiSair) + '</b></div>' +
+        '<div>PROJETADO<b class="' + cls + '">' + Fmt.num(p) + '</b></div></div>';
+    } else if (x) {
+      estq = '<div class="estq"><div>SALDO<b>—</b></div><div>VAI SAIR (OPs)<b>—</b></div><div>PROJETADO<b>—</b></div></div>';
+    }
+    const usado = x ? (x.usadoEm === null ? '—' : x.usadoEm) : 0;
+
+    $('#gaveta').innerHTML =
+      '<div class="gv-cab"><div><h3>' + Ui.esc(g.novo ? 'Novo insumo' : x.cod) + '</h3><p>' + Ui.esc(sub) + '</p></div>' +
+        '<button class="fx" data-acao="fechar" title="Fechar">' + Ui.ic('i-x') + '</button></div>' +
+      '<div class="gv-corpo">' +
+        '<div class="msg-erro"></div>' +
+        '<label class="fc">CÓDIGO<input data-campo="cod" autocomplete="off" spellcheck="false" value="' + Ui.esc(c.cod) + '"' + (g.novo && pode ? '' : ' disabled') + ' placeholder="como no NW"></label>' +
+        '<label class="fc">UNIDADE<input data-campo="unidade" list="unidades" autocomplete="off" value="' + Ui.esc(c.unidade) + '"' + trava + '></label>' +
+        '<datalist id="unidades">' + unidades.map(function (u) { return '<option value="' + Ui.esc(u) + '">'; }).join('') + '</datalist>' +
+        '<label class="fc l">DESCRIÇÃO<input data-campo="descricao" value="' + Ui.esc(c.descricao) + '"' + trava + '></label>' +
+        '<label class="fc">CATEGORIA<select data-campo="categoria"' + trava + '>' + (g.novo ? '<option value="">Escolha…</option>' : '') +
+          CATS.map(function (k) { return '<option value="' + k.id + '"' + (c.categoria === k.id ? ' selected' : '') + '>' + k.id + '</option>'; }).join('') + '</select></label>' +
+        '<label class="fc">CONSUMIDO EM<select data-campo="consumo"' + trava + '><option value="">— nenhum —</option>' +
+          PROCESSOS.concat(c.consumo && PROCESSOS.indexOf(c.consumo) === -1 ? [c.consumo] : []).map(function (p) {
+            return '<option' + (p === c.consumo ? ' selected' : '') + '>' + Ui.esc(p) + '</option>';
+          }).join('') + '</select></label>' +
+        '<div class="fc l">POLÍTICA<div class="seg" data-seg><button type="button" data-pol="ESTOCADO"' + trava + '>Estocado</button><button type="button" data-pol="SOB_DEMANDA"' + trava + '>Sob demanda</button></div>' +
+          '<small>Sob demanda: estoque mínimo fica 0 e Compras é avisado quando a OP abre.</small></div>' +
+        '<label class="fc">ESTOQUE MÍNIMO<input data-campo="minimo" inputmode="decimal" value="' + Ui.esc(c.minimo) + '"' + (sd ? ' disabled' : trava) + '></label>' +
+        '<label class="fc">LEAD TIME (dias)<input data-campo="lead" inputmode="numeric" value="' + Ui.esc(c.lead) + '"' + trava + '><small>prazo de compra</small></label>' +
+        estq +
+        (x ? '<div class="usado"><b>USADO EM ' + usado + ' PRODUTO' + (usado === 1 ? '' : 'S') + '</b><span class="mut">' +
+          (x.ativo ? (usado ? 'Estruturas (BOM) ativas que levam este insumo.' : 'Nenhuma estrutura ativa usa este insumo.') : 'Insumo inativo: não entra em novas estruturas.') + '</span></div>' : '') +
+        '<div class="nota">Saldo e projeção vêm do Estoque (só leitura aqui). Desativar não apaga: o insumo some das novas BOMs.</div>' +
+      '</div>' +
+      '<div class="gv-rod">' +
+        (pode && !g.novo ? '<button class="btn2 esq" data-acao="ativo">' + (x.ativo ? 'Inativar' : 'Reativar') + '</button>' : '') +
+        (g.novo ? '' : '<button class="btn2" data-acao="historico">' + Ui.ic('i-hist') + 'Histórico</button>') +
+        (pode && (g.novo || x.ativo) ? '<button class="btn2 salvar" data-acao="salvar" id="bt-salvar">' + Ui.ic('i-check') + 'Salvar <span class="n" id="n-salvar">0</span></button>'
+          : '<button class="btn2" data-acao="fechar">Fechar</button>') +
+      '</div>';
+    marcar();
+  }
+
+  // Atualiza a política (botões), o mínimo travado e as marcas de alteração.
+  function marcar() {
+    const mud = camposMudados();
+    document.querySelectorAll('#gaveta [data-pol]').forEach(function (b) { b.classList.toggle('on', b.dataset.pol === g.campos.politica); });
+    const seg = $('#gaveta [data-seg]');
+    if (seg) seg.classList.toggle('mud', !g.novo && mud.indexOf('politica') !== -1);
+    document.querySelectorAll('#gaveta [data-campo]').forEach(function (el) { el.classList.toggle('mud', !g.novo && mud.indexOf(el.dataset.campo) !== -1); });
+    const min = $('#gaveta [data-campo="minimo"]');
+    if (min) {
+      const sd = g.campos.politica === 'SOB_DEMANDA';
+      min.disabled = sd || !pode || (!g.novo && !g.x.ativo);
+      if (sd) min.value = g.campos.minimo;
+    }
+    contar();
+  }
+
+  // ---------- Mudanças (contador do Salvar) ----------
+  function camposMudados() {
+    if (!g) return [];
+    return ['descricao', 'unidade', 'categoria', 'consumo', 'politica', 'minimo', 'lead'].filter(function (k) { return norm(k, g.campos[k]) !== norm(k, g.orig[k]); });
+  }
+  function norm(k, v) {
+    v = String(v === null || v === undefined ? '' : v).trim();
+    if (k === 'minimo' || k === 'lead') { const n = numero(v); return n === null ? v : String(n); }
+    return k === 'descricao' ? v : v.toUpperCase();
+  }
+  function contar() {
+    if (!g) return 0;
+    const n = g.novo
+      ? ['cod', 'descricao', 'unidade', 'categoria', 'consumo', 'minimo', 'lead'].filter(function (k) { return String(g.campos[k]).trim(); }).length
+      : camposMudados().length;
+    const el = $('#n-salvar');
+    if (el) el.textContent = n;
+    const bt = $('#bt-salvar');
+    if (bt) bt.disabled = salvando || !n;
+    return n;
+  }
+
+  // ---------- Eventos da gaveta ----------
+  $('#gaveta').addEventListener('input', function (ev) {
+    const t = ev.target;
+    if (!t.dataset.campo) return;
+    g.campos[t.dataset.campo] = t.value;
+    marcar();
+  });
+  $('#gaveta').addEventListener('change', function (ev) {
+    const t = ev.target;
+    if (!t.dataset.campo) return;
+    g.campos[t.dataset.campo] = t.value;
+    if (t.dataset.campo === 'unidade') { t.value = t.value.trim().toUpperCase(); g.campos.unidade = t.value; }
+    // insumo novo: a categoria sugere política, processo e unidade
+    if (t.dataset.campo === 'categoria' && g.novo) {
+      const c = g.campos;
+      if (t.value === 'EMBALAGEM') { c.politica = 'SOB_DEMANDA'; c.minimo = '0'; c.consumo = 'INSPEÇÃO FINAL'; if (!c.unidade) c.unidade = 'CX'; }
+      if (t.value === 'LUVA' || t.value === 'FILTRO') { c.politica = 'ESTOCADO'; c.consumo = 'MOLDAGEM'; if (!c.unidade) c.unidade = 'UNID'; }
+      desenharGaveta();
+      return;
+    }
+    if (t.dataset.campo === 'cod' && g.novo) {
+      const ja = itens.find(function (i) { return i.cod === t.value.trim().toUpperCase(); });
+      if (ja) Ui.toast('O código ' + ja.cod + ' já está cadastrado (' + ja.descricao + ').', 'aviso');
+    }
+    marcar();
+  });
+  $('#gaveta').addEventListener('click', function (ev) {
+    const b = ev.target.closest('[data-pol]');
+    if (!b || b.disabled) return;
+    g.campos.politica = b.dataset.pol;
+    if (b.dataset.pol === 'SOB_DEMANDA') g.campos.minimo = '0';
+    marcar();
+  });
+
+  // ---------- Salvar ----------
+  async function salvar() {
+    if (!g || salvando) return;
+    const c = g.campos, erro = $('#gaveta .msg-erro');
+    const cod = (g.novo ? c.cod : g.orig.cod).trim().toUpperCase();
+    Ui.msgErro(erro, '');
+    if (!cod) return Ui.msgErro(erro, 'Informe o código.');
+    if (g.novo && itens.some(function (i) { return i.cod === cod; })) return Ui.msgErro(erro, 'O código ' + cod + ' já está cadastrado.');
+    if (!c.descricao.trim()) return Ui.msgErro(erro, 'Informe a descrição.');
+    if (!c.unidade.trim()) return Ui.msgErro(erro, 'Informe a unidade.');
+    if (!c.categoria) return Ui.msgErro(erro, 'Escolha a categoria.');
+    if (c.minimo.trim() && numero(c.minimo) === null) return Ui.msgErro(erro, 'Estoque mínimo deve ser um número.');
+    if (c.lead.trim() && numero(c.lead) === null) return Ui.msgErro(erro, 'Lead time deve ser um número de dias.');
+
+    const MAPA = { descricao: 'descricao', unidade: 'unidade', categoria: 'categoria', consumo: 'processo_consumo', politica: 'politica', minimo: 'estoque_minimo', lead: 'lead_time_dias' };
+    const campos = g.novo ? Object.keys(MAPA) : camposMudados();
+    const dados = { cod_insumo: cod };
+    campos.forEach(function (k) {
+      let v = String(c[k]).trim();
+      if (k !== 'descricao') v = v.toUpperCase();
+      if (k === 'minimo' || k === 'lead') v = v === '' ? '' : numero(v);
+      dados[MAPA[k]] = v;
+    });
+    salvando = true;
+    contar();
+    try {
+      const r = await Api.chamar('salvarInsumo', dados);
+      Ui.toast(r.criado ? 'Insumo ' + cod + ' criado.' : 'Insumo ' + cod + ' salvo · ' + (r.alterados || 0) + ' campo(s) alterado(s).');
+      salvando = false;
+      g = null;
+      await carregar();
+      abrirGaveta(cod);
+    } catch (e) {
+      salvando = false;
+      Ui.msgErro(erro, e.message);
+      contar();
+    }
+  }
+
+  // ---------- Inativar / reativar ----------
+  async function alternarAtivo() {
+    const x = g.x, inativar = x.ativo;
+    if (inativar && contar()) { Ui.toast('Salve ou descarte as alterações antes de inativar.', 'aviso'); return; }
+    const usado = x.usadoEm || 0;
+    const ok = await Ui.confirmar({
+      titulo: inativar ? 'Inativar insumo' : 'Reativar insumo',
+      texto: inativar
+        ? x.cod + ' deixa de aparecer para novas estruturas e retiradas. Nada é apagado.' +
+          (usado ? ' Ele ainda está na BOM de ' + usado + ' produto(s): lá ele aparece como "insumo inativo" e precisa ser trocado.' : '')
+        : x.cod + ' volta a poder ser usado nas estruturas e no estoque.',
+      ok: inativar ? 'Inativar' : 'Reativar', perigo: inativar
+    });
+    if (!ok) return;
+    try {
+      await Api.chamar('salvarInsumo', { cod_insumo: x.cod, ativo: inativar ? 'NAO' : 'SIM' });
+      Ui.toast(x.cod + (inativar ? ' inativado.' : ' reativado.'));
+      g = null;
+      await carregar();
+      abrirGaveta(x.cod);
+    } catch (e) {
+      Ui.erro(e);
+    }
+  }
+
+  // ---------- Histórico ----------
+  // Não há rota que leia MOV_AUDITORIA: mostra o que o cadastro devolve.
+  function historico() {
+    const r = g.x.reg;
+    const linha = function (rot, v) { return '<div><span>' + rot + '</span><b>' + Ui.esc(v || '—') + '</b></div>'; };
+    Ui.janela({
+      titulo: 'Histórico · ' + g.x.cod,
+      subtitulo: g.x.descricao,
+      corpo: '<div class="hist">' +
+        linha('Criado em', r.CRIADO_EM ? Fmt.dataHora(r.CRIADO_EM) : '') +
+        linha('Criado por', nomeUsuario(r.CRIADO_POR)) +
+        linha('Última alteração', r.ATUALIZADO_EM ? Fmt.dataHora(r.ATUALIZADO_EM) : 'nunca alterado') +
+        linha('Alterado por', r.ATUALIZADO_POR) +
+        linha('Situação', g.x.ativo ? 'Ativo' : 'Inativo') +
+        '</div><p class="mut" style="font-size:12px;margin:14px 0 0">Cada alteração (campo, de → para, quem e quando) fica gravada na aba MOV_AUDITORIA da planilha. ' +
+        'A consulta dessa lista aqui na tela ainda não está disponível.</p>',
+      botoes: [{ texto: 'Fechar', classe: 'pri', valor: null }]
+    });
+  }
+
+  // ---------- Apoio ----------
+  function numero(v) {
+    const s = String(v === null || v === undefined ? '' : v).trim().replace(',', '.');
+    if (!s || isNaN(Number(s))) return null;
+    return Number(s);
+  }
+  function ordemCat(c) { const i = ['LUVA', 'FILTRO', 'EMBALAGEM'].indexOf(c); return i === -1 ? 9 : i; }
+  function nomeUsuario(login) { return login === 'importacao_nw' ? 'importação NW' : (login || ''); }
+});
+</script>
+</body>
+</html>

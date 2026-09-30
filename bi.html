@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard BI · Prometals</title>
+<link rel="stylesheet" href="css/tema.css">
+<link rel="stylesheet" href="css/sistema.css">
+<style>
+/* ---------- TV: sem menu lateral, sem topo e sem barra de status do sistema ----------
+   O shell.js sempre monta a moldura; nesta página ela fica escondida e a tela
+   de 1920×1080 é ampliada/reduzida para caber inteira em qualquer TV. */
+.app > .lateral, .app > .topo, .app > .status, .app > .veu { display: none !important; }
+.app { display: block !important; height: 100vh; overflow: hidden; }
+html, body { height: 100%; overflow: hidden; }
+main.conteudo { padding: 0 !important; height: 100vh; overflow: hidden; position: relative; background: var(--bg); }
+
+:root { --serie: #3b82f6; --serie-forte: #f07a1f; }
+.tv { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; display: grid; grid-template-rows: 76px 4px 1fr 34px; background: var(--bg); transform-origin: 0 0; }
+.tv-cab { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 0 28px; background: var(--painel); border-bottom: 1px solid var(--linha); }
+.marca { display: flex; align-items: baseline; gap: 12px; }
+.marca b { font-size: 24px; letter-spacing: 2px; } .marca span { color: var(--destaque); font-weight: 800; font-size: 18px; letter-spacing: 1.5px; }
+.hk { display: flex; gap: 0; }
+.hk div { padding: 0 26px; text-align: center; border-left: 1px solid var(--linha); }
+.hk div:first-child { border-left: 0; }
+.hk b { display: block; font-size: 32px; line-height: 1; font-variant-numeric: tabular-nums; }
+.hk span { font-size: 11px; font-weight: 700; color: var(--texto-suave); letter-spacing: 1px; }
+.dir { display: flex; align-items: center; gap: 18px; justify-content: flex-end; }
+.dir .bts { display: flex; gap: 6px; opacity: .55; }
+.dir .bts:hover { opacity: 1; }
+.dir .bts button, .dir .bts a { width: 34px; height: 30px; border-radius: 8px; border: 1px solid var(--borda); background: transparent; display: grid; place-items: center; color: var(--texto); cursor: pointer; }
+.dir .bts svg { width: 16px; height: 16px; }
+.dir .bts .on { background: var(--destaque); border-color: var(--destaque); color: #fff; }
+.tela-n { text-align: right; } .tela-n b { font-size: 14px; letter-spacing: 1px; color: var(--destaque); }
+.dots { display: flex; gap: 6px; justify-content: flex-end; margin-top: 6px; }
+.dots i { width: 22px; height: 5px; border-radius: 3px; background: var(--painel-2); cursor: pointer; } .dots i.on { background: var(--destaque); }
+.rel b { font-size: 30px; font-variant-numeric: tabular-nums; display: block; line-height: 1; } .rel span { font-size: 11px; color: var(--texto-suave); }
+.prog { background: var(--painel-2); } .prog i { display: block; height: 100%; width: 0; background: var(--destaque); }
+
+.ws { padding: 18px 24px; display: none; gap: 16px; min-height: 0; }
+.ws.ativa { display: grid; }
+.t0 { grid-template-rows: 1.15fr 1fr; }
+.t-1 { grid-template-rows: 1fr; }
+.t-eng { grid-template-rows: auto 1fr; }
+.g2 { display: grid; grid-template-columns: 1.3fr 1fr; gap: 16px; min-height: 0; }
+.bx { background: var(--painel); border: 1px solid var(--linha); border-radius: 14px; padding: 14px 18px; display: flex; flex-direction: column; gap: 10px; min-height: 0; overflow: hidden; }
+.barras { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: space-around; }
+.bx.cheio .br { font-size: 20px; grid-template-columns: 270px 1fr 44px; } .bx.cheio .bt { height: 30px; } .bx.cheio .br b { font-size: 24px; }
+.bx.cheio.largo .br { grid-template-columns: 270px 1fr 150px; }
+.bx h4 { margin: 0; font-size: 14px; letter-spacing: 1px; color: var(--texto-suave); }
+.br { display: grid; grid-template-columns: 210px 1fr 40px; align-items: center; gap: 12px; font-size: 15px; }
+.bn { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .br b { text-align: right; font-size: 17px; white-space: nowrap; }
+.bt { height: 18px; background: color-mix(in srgb, var(--painel-2) 60%, transparent); border-radius: 0 4px 4px 0; }
+.bt i { display: block; height: 100%; background: var(--serie); border-radius: 0 4px 4px 0; min-width: 4px; }
+.saude { display: grid; gap: 34px; align-content: center; flex: 1; }
+.stack { display: flex; height: 96px; gap: 2px; border-radius: 6px; overflow: hidden; background: var(--painel-2); }
+.stack i { display: grid; place-items: center; color: #fff; font-weight: 800; font-size: 28px; font-style: normal; min-width: 0; overflow: hidden; }
+.leg { display: grid; grid-template-columns: repeat(2, 1fr); gap: 22px 36px; }
+.leg div { display: flex; align-items: center; gap: 12px; font-size: 21px; }
+.leg i { width: 20px; height: 20px; border-radius: 4px; flex: none; }
+.leg b { margin-left: auto; font-size: 34px; } .leg small { color: var(--texto-suave); font-size: 17px; width: 56px; text-align: right; }
+.nota { font-size: 14px; color: var(--texto-suave); }
+.rola { overflow: hidden; min-height: 0; flex: 1; }
+table.tv-t { width: 100%; border-collapse: collapse; font-size: 16px; table-layout: fixed; }
+table.tv-t th { text-align: left; font-size: 12px; letter-spacing: 1px; color: var(--texto-suave); padding: 8px 12px; border-bottom: 1px solid var(--linha); position: sticky; top: 0; background: var(--painel); }
+table.tv-t.alto td { padding: 16px 12px; font-size: 19px; }
+table.tv-t td { padding: 10px 12px; border-bottom: 1px solid var(--linha); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+table.tv-t .num { text-align: right; } .dias { color: #f87171; font-weight: 800; font-size: 18px; }
+.aviso-d { color: #fbbf24; font-weight: 800; }
+html.tema-claro .dias { color: #b91c1c; } html.tema-claro .aviso-d { color: #a16207; }
+.sem { text-align: center; color: var(--texto-suave); padding: 30px 0 !important; font-size: 18px !important; }
+.mut { color: var(--texto-suave); }
+.k4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.kc { background: var(--painel); border: 1px solid var(--linha); border-radius: 14px; padding: 14px 18px; border-top: 4px solid var(--c); }
+.kc .l { font-size: 13px; font-weight: 800; color: var(--texto-suave); letter-spacing: 1px; }
+.kc b { display: block; font-size: 54px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.kc .f { font-size: 13px; color: var(--texto-suave); }
+.kc.alerta b { color: var(--c); }
+@keyframes pisca-tv { 0%,100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--c) 0%, transparent); } 50% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--c) 50%, transparent); } }
+.kc.piscando { animation: pisca-tv 1.8s infinite; }
+.pct-bar { height: 14px; border-radius: 7px; background: var(--painel-2); overflow: hidden; margin-top: 8px; } .pct-bar i { display: block; height: 100%; background: #3b82f6; }
+.rodape { display: flex; align-items: center; gap: 22px; padding: 0 24px; font-size: 12px; color: var(--texto-suave); background: var(--painel); border-top: 1px solid var(--linha); }
+.rodape .on::before, .rodape .off::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #22c55e; margin-right: 7px; }
+.rodape .off { color: var(--erro); font-weight: 700; } .rodape .off::before { background: var(--erro); }
+.rodape .dir2 { margin-left: auto; }
+.carregando-tv { position: absolute; inset: 0; display: grid; place-items: center; font-size: 22px; color: var(--texto-suave); }
+</style>
+</head>
+<body>
+
+<!-- Dashboard BI — TV da fábrica (1920×1080, usuário tv-fabrica).
+     Portado do Dashboard_BI antigo. Mudanças aprovadas: sem menu lateral;
+     sai a tela "Prioridade gerencial" e os 6 cards da Saúde (repetiam o
+     cabeçalho); 4 telas em rotação (Saúde, Gargalos, Engenharia, Clientes);
+     saúde do cronograma numa barra única com %; top 3 processos em laranja.
+     Atrasada / parada = js/cronograma.js (mesmos números do PCP, Consulta,
+     Gerencial e Visão geral). Tempo de cada tela: ?seg=20 na URL. -->
+<main class="conteudo">
+  <div class="tv" id="tv">
+    <header class="tv-cab">
+      <div class="marca"><b>PROMETALS</b><span>BI DASHBOARD</span></div>
+      <div class="hk">
+        <div><b id="hTotal">—</b><span>CARTEIRA</span></div>
+        <div><b id="hProd" style="color:#14b8a6">—</b><span>EM PRODUÇÃO</span></div>
+        <div><b id="hAtr" style="color:#ef4444">—</b><span>ATRASADAS</span></div>
+        <div><b id="hPar" style="color:#eab308">—</b><span>PARADAS</span></div>
+      </div>
+      <div class="dir">
+        <div class="bts">
+          <a href="inicio.html" title="Voltar ao sistema"><svg class="i"><use href="#i-home"/></svg></a>
+          <button id="btTela" title="Tela cheia (F11)"><svg class="i"><use href="#i-tabela"/></svg></button>
+          <button id="btPausa" title="Pausar rotação (espaço)"><svg class="i"><use href="#i-relogio"/></svg></button>
+          <button id="btTema" title="Tema claro/escuro"><svg class="i"><use href="#i-lua"/></svg></button>
+        </div>
+        <div class="tela-n"><b id="telaNome">SAÚDE DA OPERAÇÃO</b><div class="dots" id="dots"></div></div>
+        <div class="rel"><b id="relHora">00:00:00</b><span id="relData">—</span></div>
+      </div>
+    </header>
+    <div class="prog"><i id="progFill"></i></div>
+
+    <!-- TELA 1 — SAÚDE DA OPERAÇÃO -->
+    <section class="ws t0 ativa" data-tela="0">
+      <div class="g2">
+        <div class="bx cheio"><h4>OPs POR PROCESSO</h4><div id="bProc" class="barras"></div></div>
+        <div class="bx"><h4>SAÚDE DO CRONOGRAMA</h4><div class="saude" id="saude"></div></div>
+      </div>
+      <div class="bx"><h4>TOP 10 — MAIS ATRASADAS · rolagem automática</h4>
+        <div class="rola"><table class="tv-t"><colgroup><col style="width:8%"><col style="width:8%"><col style="width:18%"><col style="width:12%"><col style="width:30%"><col style="width:14%"><col style="width:10%"></colgroup>
+          <thead><tr><th>OP</th><th>PEDIDO</th><th>CLIENTE</th><th>CÓDIGO</th><th>DESCRIÇÃO</th><th>PROCESSO</th><th class="num">DIAS ATRASO</th></tr></thead>
+          <tbody id="tbAtrasadas"></tbody></table></div>
+      </div>
+    </section>
+
+    <!-- TELA 2 — GARGALOS -->
+    <section class="ws t-1" data-tela="1">
+      <div class="g2">
+        <div class="bx cheio"><h4>RANKING DE PROCESSOS — QUANTIDADE DE OPs</h4><div id="bGarg" class="barras"></div></div>
+        <div class="bx"><h4>OPs NOS PROCESSOS GARGALADOS</h4>
+          <div class="rola"><table class="tv-t alto"><colgroup><col style="width:14%"><col style="width:32%"><col style="width:28%"><col style="width:14%"><col style="width:12%"></colgroup>
+            <thead><tr><th>OP</th><th>CLIENTE</th><th>PROCESSO</th><th class="num">PRAZO</th><th class="num">DIAS</th></tr></thead>
+            <tbody id="tbGargalos"></tbody></table></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TELA 3 — ENGENHARIA -->
+    <section class="ws t-eng" data-tela="2">
+      <div class="k4" id="kEng"></div>
+      <div class="g2">
+        <div class="bx cheio largo"><h4>RANKING — DIAS ATÉ VENCER (ou vencido) · prazo da engenharia = prazo do cliente − 30 dias</h4><div id="bEng" class="barras"></div></div>
+        <div class="bx"><h4>DETALHAMENTO — ENGENHARIA &amp; DESENVOLVIMENTO</h4>
+          <div class="rola"><table class="tv-t"><colgroup><col style="width:15%"><col style="width:19%"><col style="width:14%"><col style="width:20%"><col style="width:11%"><col style="width:21%"></colgroup>
+            <thead><tr><th>PEDIDO</th><th>CLIENTE</th><th>CÓDIGO</th><th>DESCRIÇÃO</th><th class="num">PRAZO</th><th class="num">DIAS</th></tr></thead>
+            <tbody id="tbEng"></tbody></table></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TELA 4 — CLIENTES EM ATRASO -->
+    <section class="ws t-1" data-tela="3">
+      <div class="g2">
+        <div class="bx cheio"><h4>CLIENTES — RANKING DE OPs ATRASADAS</h4><div id="bCli" class="barras"></div></div>
+        <div class="bx"><h4>OPs ATRASADAS POR CLIENTE</h4>
+          <div class="rola"><table class="tv-t alto"><colgroup><col style="width:12%"><col style="width:24%"><col style="width:36%"><col style="width:16%"><col style="width:12%"></colgroup>
+            <thead><tr><th>OP</th><th>CLIENTE</th><th>DESCRIÇÃO</th><th>PROCESSO</th><th class="num">DIAS</th></tr></thead>
+            <tbody id="tbClientes"></tbody></table></div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="rodape"><span class="on" id="stCon">Conectando…</span><span id="stTempo"></span><span class="dir2" id="stAtu"></span></footer>
+  </div>
+</main>
+
+<script src="js/config.js"></script>
+<script src="js/icones.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/api.js"></script>
+<script src="js/sessao.js"></script>
+<script src="js/shell.js"></script>
+<script src="js/cronograma.js"></script>
+<script>
+Sessao.iniciarPagina('bi').then(function (ctx) {
+  const $ = function (id) { return document.getElementById(id); };
+  const e = Ui.esc;
+  const NOMES = ['SAÚDE DA OPERAÇÃO', 'GARGALOS DA PRODUÇÃO', 'ENGENHARIA & DESENVOLVIMENTO', 'CLIENTES EM ATRASO'];
+  const N = NOMES.length;
+  const seg = Number(new URLSearchParams(location.search).get('seg'));
+  const DURACAO_TELA = (seg >= 1 ? seg : 20) * 1000;   // tempo de cada tela
+  const DURACAO_DADOS = 60000;                           // busca dados a cada 60 s
+  const OFFSET_ENGENHARIA = 30;   // engenharia entrega à produção 30 dias antes do prazo do cliente (igual ao antigo)
+
+  let dados = null;       // resposta do resumoBI já classificada
+  let tela = 0;
+  let pausado = false;
+  let proxTroca = Date.now() + DURACAO_TELA;
+
+  // ---------- Escala para a TV (igual ao antigo: cabe inteira, centralizada) ----------
+  function escala() {
+    const tv = $('tv');
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const s = Math.min(vw / 1920, vh / 1080);
+    tv.style.transform = 'scale(' + s + ')';
+    tv.style.left = Math.max(0, (vw - 1920 * s) / 2) + 'px';
+    tv.style.top = Math.max(0, (vh - 1080 * s) / 2) + 'px';
+  }
+  window.addEventListener('resize', escala);
+  escala();
+
+  // ---------- Relógio ----------
+  function tick() {
+    const n = new Date();
+    $('relHora').textContent = Fmt.hora(n);
+    $('relData').textContent = n.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
+  }
+  setInterval(tick, 1000); tick();
+
+  // ---------- Botões ----------
+  $('btTela').addEventListener('click', telaCheia);
+  $('btPausa').addEventListener('click', alternarPausa);
+  $('btTema').addEventListener('click', function () {
+    let atual = null;
+    try { atual = localStorage.getItem('pm_tema_bi'); } catch (err) { /* sem armazenamento */ }
+    const claro = atual ? atual === 'claro' : (CONFIG.TEMA_PADRAO.bi === 'claro');
+    try { localStorage.setItem('pm_tema_bi', claro ? 'escuro' : 'claro'); } catch (err) { /* ignora */ }
+    Shell.aplicarTema('bi');
+  });
+  document.addEventListener('keydown', function (ev) {
+    if (ev.key === 'F11') { ev.preventDefault(); telaCheia(); }
+    if (ev.key === ' ') { ev.preventDefault(); alternarPausa(); }
+    if (ev.key === 'ArrowRight') irPara((tela + 1) % N);
+    if (ev.key === 'ArrowLeft') irPara((tela + N - 1) % N);
+  });
+  function telaCheia() {
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(function () {});
+    else document.exitFullscreen();
+  }
+  function alternarPausa() {
+    pausado = !pausado;
+    $('btPausa').classList.toggle('on', pausado);
+    $('btPausa').title = pausado ? 'Retomar rotação (espaço)' : 'Pausar rotação (espaço)';
+    if (!pausado) proxTroca = Date.now() + DURACAO_TELA;
+    rodape();
+  }
+
+  // ---------- Rotação das telas ----------
+  $('dots').innerHTML = NOMES.map(function (n, i) { return '<i data-i="' + i + '" title="' + e(n) + '"></i>'; }).join('');
+  $('dots').addEventListener('click', function (ev) { const d = ev.target.closest('[data-i]'); if (d) irPara(Number(d.dataset.i)); });
+
+  function irPara(i) {
+    tela = i;
+    document.querySelectorAll('.ws').forEach(function (s) { s.classList.toggle('ativa', Number(s.dataset.tela) === i); });
+    document.querySelectorAll('#dots i').forEach(function (d, k) { d.classList.toggle('on', k === i); });
+    $('telaNome').textContent = NOMES[i];
+    document.querySelectorAll('.ws.ativa .rola').forEach(function (r) { r.scrollTop = 0; r._pausa = Date.now() + 3000; });
+    proxTroca = Date.now() + DURACAO_TELA;
+  }
+  // Pula telas sem dados (igual ao antigo)
+  function temDados(i) {
+    if (!dados) return true;
+    if (i === 1) return dados.gargalos.length > 0;
+    if (i === 2) return dados.engenharia.length > 0;
+    if (i === 3) return dados.atrasadas.length > 0;
+    return true;
+  }
+  function proxima() {
+    let p = (tela + 1) % N, t = 0;
+    while (!temDados(p) && t < N) { p = (p + 1) % N; t++; }
+    irPara(p);
+  }
+
+  // Um único relógio anima a barra de progresso, troca a tela e rola as tabelas
+  setInterval(function () {
+    const agora = Date.now();
+    if (!pausado) {
+      const falta = Math.max(0, proxTroca - agora);
+      $('progFill').style.width = (100 - falta / DURACAO_TELA * 100) + '%';
+      if (falta <= 0) proxima();
+    }
+    document.querySelectorAll('.ws.ativa .rola').forEach(rolar);
+  }, 50);
+
+  // Rolagem automática: pausa 3 s no topo, desce devagar, pausa 2 s no fim e volta
+  function rolar(r) {
+    const max = r.scrollHeight - r.clientHeight;
+    if (max <= 0) return;
+    const agora = Date.now();
+    if (r._pausa && agora < r._pausa) return;
+    if (r._voltar) { r.scrollTop = 0; r._voltar = false; r._pausa = agora + 3000; return; }
+    r.scrollTop = r.scrollTop + 1;
+    if (r.scrollTop >= max - 1) { r._voltar = true; r._pausa = agora + 2000; }
+  }
+
+  // ---------- Dados ----------
+  carregar();
+  setInterval(carregar, DURACAO_DADOS);
+
+  async function carregar() {
+    try {
+      const r = await Api.chamar('resumoBI', {});
+      dados = preparar(r);
+      desenhar();
+      if (!temDados(tela)) proxima();
+      $('stAtu').textContent = N + ' telas em rotação · dados de ' + Fmt.hora();
+    } catch (err) {
+      $('stAtu').textContent = 'Erro ao buscar dados: ' + err.message;
+      if (!dados) $('tbAtrasadas').innerHTML = '<tr><td colspan="7" class="sem">Não foi possível carregar os dados.</td></tr>';
+    }
+  }
+  window.addEventListener('api:status', function (ev) {
+    $('stCon').className = ev.detail.ok ? 'on' : 'off';
+    $('stCon').textContent = (ev.detail.ok ? 'Conectado · ' : 'Sem conexão · ') + ctx.usuario.login;
+  });
+  function rodape() {
+    $('stTempo').textContent = 'Dados atualizados a cada ' + (DURACAO_DADOS / 1000) + ' s · ' +
+      (pausado ? 'rotação PAUSADA' : 'tela troca a cada ' + (DURACAO_TELA / 1000) + ' s');
+  }
+  rodape();
+
+  // Classifica a carteira com as MESMAS regras do PCP · Monitor e da Visão geral:
+  // em produção = tem nº de OP · atrasada = cronograma · parada = 4+ dias sem movimentar.
+  function preparar(r) {
+    const cart = r.carteira.map(function (c) {
+      c._st = Cronograma.status(c);
+      c._atr = Cronograma.categoria(c) === 'ATRASADO';
+      c._par = Cronograma.parada(c);
+      // Para os gráficos: item sem OP conta como ENGENHARIA (igual ao BI antigo)
+      c._proc = !c.op ? 'ENGENHARIA' : String(c.processo || 'SEM MOVIMENTAÇÃO').replace(/ - INICIADO| - FINALIZADO/g, '').trim() || 'SEM MOVIMENTAÇÃO';
+      c._diasProc = diasDesde(c.ultima);
+      return c;
+    });
+    const porProc = {};
+    cart.forEach(function (c) { (porProc[c._proc] = porProc[c._proc] || []).push(c); });
+    const processos = Object.keys(porProc).map(function (k) { return { nome: k, n: porProc[k].length, ops: porProc[k] }; })
+      .sort(function (a, b) { return b.n - a.n; });
+    return {
+      bruto: r, carteira: cart,
+      processos: processos,
+      gargalos: processos.slice(0, 10),
+      atrasadas: cart.filter(function (c) { return c._atr; }).sort(function (a, b) { return (b._st.diasAtraso || 0) - (a._st.diasAtraso || 0); }),
+      paradas: cart.filter(function (c) { return c._par; }),
+      engenharia: r.engenharia || []
+    };
+  }
+  function diasDesde(txt) {
+    const d = Cronograma.parseBR(String(txt || '').split(' ')[0]);
+    if (!d) return 0;
+    const h = new Date(); h.setHours(0, 0, 0, 0);
+    return Math.max(0, Math.floor((h - d) / 86400000));
+  }
+
+  // ---------- Desenho ----------
+  function desenhar() {
+    const d = dados, cart = d.carteira;
+    $('hTotal').textContent = cart.length;
+    $('hProd').textContent = cart.filter(function (c) { return !!c.op; }).length;
+    $('hAtr').textContent = d.atrasadas.length;
+    $('hPar').textContent = d.paradas.length;
+    telaSaude(d); telaGargalos(d); telaEngenharia(d); telaClientes(d);
+  }
+
+  // Barras horizontais. Os 3 primeiros em laranja (destaque aprovado).
+  function barras(itens, destaque) {
+    if (!itens.length) return '<div class="nota">Sem dados.</div>';
+    const mx = Math.max.apply(null, itens.map(function (x) { return x.n; })) || 1;
+    return itens.map(function (x, i) {
+      const cor = x.cor || (i < (destaque || 0) ? 'var(--serie-forte)' : '');
+      return '<div class="br" title="' + e(x.nome) + ': ' + e(x.dica || x.n) + '"><span class="bn">' + e(x.nome) + '</span>' +
+        '<span class="bt"><i style="width:' + Math.round(x.n / mx * 100) + '%;' + (cor ? 'background:' + cor : '') + '"></i></span><b>' + e(x.rot !== undefined ? x.rot : x.n) + '</b></div>';
+    }).join('');
+  }
+  const semLinhas = function (col, txt) { return '<tr><td colspan="' + col + '" class="sem">' + e(txt) + '</td></tr>'; };
+  const curtoData = function (v) { return v ? String(v).slice(0, 5) : '—'; };
+
+  // TELA 1 — processos, saúde do cronograma (barra única com %) e top 10 atrasadas
+  function telaSaude(d) {
+    $('bProc').innerHTML = barras(d.processos.slice(0, 10).map(function (p) { return { nome: p.nome, n: p.n, dica: p.n + ' OPs' }; }), 3);
+    const grupos = [
+      { rot: 'No prazo', cor: '#16a34a', n: 0, t: ['NO PRAZO'] },
+      { rot: 'Atrasadas', cor: '#dc2626', n: 0, t: ['ATRASADO', 'PRAZO VENCIDO'] },
+      { rot: 'Sem movimentação', cor: '#ca8a04', n: 0, t: ['SEM MOVIMENTAÇÃO'] },
+      { rot: 'Adiantadas', cor: '#2563eb', n: 0, t: ['ADIANTADO'] }
+    ];
+    let fora = 0;
+    d.carteira.forEach(function (c) {
+      const g = grupos.find(function (x) { return x.t.indexOf(c._st.label) !== -1; });
+      if (g) g.n++; else fora++;
+    });
+    const tot = grupos.reduce(function (s, g) { return s + g.n; }, 0);
+    const pct = function (n) { return tot ? Math.round(n / tot * 100) + '%' : '0%'; };
+    $('saude').innerHTML =
+      '<div class="stack">' + grupos.filter(function (g) { return g.n; }).map(function (g) {
+        return '<i style="flex:' + g.n + ';background:' + g.cor + '" title="' + e(g.rot) + ': ' + g.n + ' (' + pct(g.n) + ')">' + g.n + '</i>';
+      }).join('') + '</div>' +
+      '<div class="leg">' + grupos.map(function (g) {
+        return '<div data-grupo="' + e(g.rot) + '"><i style="background:' + g.cor + '"></i>' + e(g.rot) + '<b>' + g.n + '</b><small>' + pct(g.n) + '</small></div>';
+      }).join('') + '</div>' +
+      (fora ? '<div class="nota">' + fora + ' OP' + (fora > 1 ? 's' : '') + ' aguardando início ou sem prazo (fora da barra)</div>' : '');
+    $('tbAtrasadas').innerHTML = d.atrasadas.slice(0, 10).map(function (x) {
+      return '<tr><td><b>' + e(x.op || '—') + '</b></td><td>' + e(x.pedido || '—') + '</td><td>' + e(x.cliente || '—') + '</td>' +
+        '<td class="mut">' + e(x.codigo || '—') + '</td><td>' + e(x.descricao || '—') + '</td><td>' + e(x._proc) + '</td>' +
+        '<td class="num dias">' + (x._st.diasAtraso || 0) + 'd</td></tr>';
+    }).join('') || semLinhas(7, 'Nenhuma OP atrasada.');
+  }
+
+  // TELA 2 — gargalos (ranking + OPs desses processos, mais tempo parado primeiro)
+  function telaGargalos(d) {
+    $('bGarg').innerHTML = barras(d.gargalos.map(function (p) { return { nome: p.nome, n: p.n, dica: p.n + ' OPs' }; }), 3);
+    const linhas = [];
+    d.gargalos.forEach(function (g) { g.ops.forEach(function (o) { linhas.push(o); }); });
+    linhas.sort(function (a, b) { return b._diasProc - a._diasProc; });
+    $('tbGargalos').innerHTML = linhas.map(function (x) {
+      const dp = x._diasProc;
+      return '<tr><td><b>' + e(x.op || '—') + '</b></td><td>' + e(x.cliente || '—') + '</td><td>' + e(x._proc) + '</td>' +
+        '<td class="num">' + e(curtoData(x.prazo)) + '</td><td class="num' + (dp >= 5 ? ' dias' : dp >= 3 ? ' aviso-d' : '') + '">' + (dp > 0 ? dp : '—') + '</td></tr>';
+    }).join('') || semLinhas(5, 'Sem dados.');
+  }
+
+  // TELA 3 — engenharia (prazo interno = prazo do cliente − 30 dias)
+  function telaEngenharia(d) {
+    const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+    const total = d.carteira.length || 1;
+    const eng = d.engenharia.map(function (x) {
+      const dt = Cronograma.parseBR(x.prazo);
+      return Object.assign({}, x, { dias: dt ? Math.floor((dt - hoje) / 86400000) - OFFSET_ENGENHARIA : null });
+    });
+    const urgente = eng.filter(function (x) { return x.dias !== null && x.dias >= 0 && x.dias <= 7; }).length;
+    const vencido = eng.filter(function (x) { return x.dias !== null && x.dias < 0; }).length;
+    const pct = Math.round(eng.length / total * 100);
+    $('kEng').innerHTML =
+      '<div class="kc" style="--c:#3b82f6"><div class="l">TOTAL EM DESENVOLVIMENTO</div><b>' + eng.length + '</b><div class="f">itens ativos</div></div>' +
+      '<div class="kc' + (urgente ? ' alerta piscando' : '') + '" style="--c:#eab308"><div class="l">VENCE EM ATÉ 7 DIAS</div><b>' + urgente + '</b><div class="f">atenção ao prazo</div></div>' +
+      '<div class="kc' + (vencido ? ' alerta piscando' : '') + '" style="--c:#ef4444"><div class="l">PRAZO VENCIDO</div><b>' + vencido + '</b><div class="f">ação imediata</div></div>' +
+      '<div class="kc" style="--c:#3b82f6"><div class="l">% DA CARTEIRA</div><b>' + pct + '%</b><div class="pct-bar"><i style="width:' + pct + '%"></i></div></div>';
+    const ord = eng.slice().sort(function (a, b) {
+      if (a.dias === null) return 1; if (b.dias === null) return -1; return a.dias - b.dias;
+    });
+    $('bEng').innerHTML = barras(ord.filter(function (x) { return x.dias !== null; }).slice(0, 12).map(function (x) {
+      const venc = x.dias < 0;
+      return {
+        nome: (x.pedido || x.cliente || '—') + ' · ' + (x.cliente || ''), n: Math.abs(x.dias) || 0.001,
+        cor: venc ? '#dc2626' : x.dias <= 7 ? '#d4a017' : 'var(--serie)',
+        rot: venc ? 'vencido ' + Math.abs(x.dias) + 'd' : x.dias + 'd',
+        dica: venc ? 'vencido há ' + Math.abs(x.dias) + ' dias' : 'vence em ' + x.dias + ' dias'
+      };
+    }), 0);
+    $('tbEng').innerHTML = ord.slice(0, 20).map(function (x) {
+      let txt = '—', cls = '';
+      if (x.dias !== null) {
+        if (x.dias < 0) { txt = Math.abs(x.dias) + ' (VENCIDO)'; cls = ' dias'; }
+        else { txt = x.dias; cls = x.dias <= 7 ? ' aviso-d' : ''; }
+      }
+      return '<tr><td><b>' + e(x.pedido || '—') + '</b></td><td>' + e(x.cliente || '—') + '</td><td class="mut">' + e(x.codigo || '—') + '</td>' +
+        '<td>' + e(x.descricao || x.produto || '—') + '</td><td class="num">' + e(curtoData(x.prazo)) + '</td><td class="num' + cls + '">' + e(txt) + '</td></tr>';
+    }).join('') || semLinhas(6, 'Sem itens em desenvolvimento.');
+  }
+
+  // TELA 4 — clientes em atraso (ranking top 7 + OPs atrasadas, mais grave primeiro)
+  function telaClientes(d) {
+    const por = {};
+    d.atrasadas.forEach(function (x) { const n = x.cliente || '—'; por[n] = (por[n] || 0) + 1; });
+    const rank = Object.keys(por).map(function (k) { return { nome: k, n: por[k] }; })
+      .sort(function (a, b) { return b.n - a.n; }).slice(0, 7);
+    $('bCli').innerHTML = barras(rank.map(function (c) { return { nome: c.nome, n: c.n, cor: '#dc2626', dica: c.n + ' OP(s) atrasada(s)' }; }), 0);
+    $('tbClientes').innerHTML = d.atrasadas.slice(0, 30).map(function (x) {
+      return '<tr><td><b>' + e(x.op || '—') + '</b></td><td>' + e(x.cliente || '—') + '</td><td>' + e(x.descricao || '—') + '</td>' +
+        '<td>' + e(x._proc) + '</td><td class="num dias">' + (x._st.diasAtraso || 0) + 'd</td></tr>';
+    }).join('') || semLinhas(5, 'Nenhuma OP atrasada.');
+  }
+
+  irPara(0);
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Comercial / Financeiro · Prometals</title>
+<link rel="stylesheet" href="css/tema.css">
+<link rel="stylesheet" href="css/sistema.css">
+<style>
+/* ---------- específico desta página ---------- */
+.cards-fat { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; }
+.cf { background: var(--painel); border: 1px solid var(--linha); border-radius: 12px; padding: 12px 14px; cursor: pointer; position: relative; overflow: hidden; text-align: left; font: inherit; color: inherit; }
+.cf::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--c); }
+.cf:hover { border-color: var(--c); }
+.cf.sel { border-color: var(--c); box-shadow: 0 0 0 1px var(--c) inset; }
+.cf .rot { font-size: 11px; font-weight: 700; color: var(--texto-suave); text-transform: uppercase; letter-spacing: .4px; display: flex; align-items: center; gap: 7px; }
+.cf .rot svg { width: 15px; height: 15px; color: var(--c); }
+.cf .val { font-size: 22px; font-weight: 700; margin-top: 6px; font-variant-numeric: tabular-nums; }
+.cf .qtd { font-size: 12px; color: var(--texto-suave); }
+.cf.alerta { background: color-mix(in srgb, var(--c) 10%, var(--painel)); }
+.cf.alerta .val { color: var(--c); }
+@keyframes pisca-c { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--c) 55%, transparent); } 50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--c) 0%, transparent); } }
+.cf.piscando { animation: pisca-c 1.8s infinite; }
+
+.filtros { display: flex; gap: 10px; align-items: center; background: var(--painel); border: 1px solid var(--linha); border-radius: 12px; padding: 10px 12px; margin-bottom: 14px; flex-wrap: wrap; }
+.filtros select, .filtros input { height: 36px; font-size: 13px; padding: 0 10px; width: auto; }
+.filtros .f-busca { flex: 1; min-width: 220px; position: relative; }
+.filtros .f-busca input { width: 100%; padding-left: 34px; }
+.filtros .f-busca svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--texto-suave); }
+.filtros .info { font-size: 12px; color: var(--texto-suave); margin-left: auto; white-space: nowrap; }
+
+.tab-wrap { overflow: auto; max-height: calc(100vh - 430px); min-height: 260px; }
+.acao { white-space: nowrap; }
+.acao > * { vertical-align: middle; }
+.bt-nf, .bt-nao { height: 28px; box-sizing: border-box; line-height: 1; vertical-align: middle; padding: 0 10px; border-radius: 7px; font-size: 12px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-family: inherit; }
+.bt-nf { background: #16a34a; border: 1px solid #16a34a; color: #fff; }
+.bt-nao { background: transparent; border: 1px solid var(--borda); color: var(--texto); margin-left: 6px; }
+.bt-nf svg, .bt-nao svg { width: 14px; height: 14px; }
+.bt-nf:disabled, .bt-nao:disabled { opacity: .6; cursor: wait; }
+tr.expedicao td { background: color-mix(in srgb, #16a34a 7%, transparent); }
+tr.aguardando td { background: color-mix(in srgb, #d97706 6%, transparent); }
+tr.expedicao td:first-child { box-shadow: inset 3px 0 0 #16a34a; }
+tr.aguardando td:first-child { box-shadow: inset 3px 0 0 #d97706; }
+tr.sel td { background: color-mix(in srgb, #3b82f6 9%, transparent); }
+.chk { width: 16px; height: 16px; accent-color: var(--destaque); cursor: pointer; }
+table.tab td.desc { max-width: 260px; overflow: hidden; text-overflow: ellipsis; }
+.in-valor { display: inline-flex; align-items: center; height: 30px; width: 140px; border: 1px solid var(--borda); border-radius: 7px; background: var(--painel); overflow: hidden; }
+.in-valor span { padding: 0 6px 0 9px; font-size: 12px; color: var(--texto-suave); font-weight: 600; }
+.in-valor .ok-valor { display: none; flex: none; width: 28px; height: 100%; border: 0; border-left: 1px solid var(--borda); background: #16a34a; color: #fff; cursor: pointer; place-items: center; padding: 0; }
+.in-valor .ok-valor svg { width: 15px; height: 15px; }
+.in-valor.mudou .ok-valor { display: grid; }
+.in-valor.mudou { border-color: var(--destaque); border-style: solid; }
+.in-valor input { border: 0; background: transparent; padding: 0 8px 0 0; height: 100%; width: 100%; text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; outline: none; border-radius: 0; color: var(--texto); }
+.in-valor:focus-within { border-color: var(--destaque); box-shadow: 0 0 0 2px rgba(240,122,31,.25); }
+.in-valor.sem-valor { border-color: #dc2626; border-style: dashed; background: rgba(220,38,38,.06); }
+.in-valor.sem-valor input::placeholder { color: #dc2626; font-weight: 600; }
+.in-valor.salvando { opacity: .6; }
+.in-valor.travado { background: transparent; }
+.chip-sv { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border: 1px dashed #dc2626; color: #dc2626; border-radius: 8px; font-size: 12px; font-weight: 700; background: transparent; cursor: pointer; white-space: nowrap; font-family: inherit; }
+.chip-sv.on { background: #dc2626; color: #fff; border-style: solid; }
+.chip-sv svg { width: 14px; height: 14px; }
+.atraso { color: var(--erro); font-weight: 700; }
+html.tema-claro .atraso { color: #b91c1c; }
+.t-verde { background: var(--card-verde); color: var(--card-verde-t); }
+html:not(.tema-claro) .t-verde { background: rgba(34,197,94,.14); color: #86efac; }
+.btn2 .n { background: var(--painel-2); border-radius: 999px; padding: 0 7px; font-size: 11px; margin-left: 2px; white-space: nowrap; }
+.btn2.pri .n { background: rgba(255,255,255,.25); }
+.rod-tab { display: flex; gap: 14px; flex-wrap: wrap; padding: 10px 14px; border-top: 1px solid var(--linha); font-size: 12px; color: var(--texto-suave); }
+.rod-tab i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; font-style: normal; }
+
+/* janela de confirmação da NF */
+.resumo-op { background: var(--bg); border: 1px solid var(--linha); border-radius: 10px; padding: 12px 14px; display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; font-size: 13px; }
+html.tema-claro .resumo-op { background: #f8fafc; }
+.resumo-op span { color: var(--texto-suave); }
+.modal-caixa .btn2.verde { background: #16a34a; border-color: #16a34a; color: #fff; }
+.hist-wrap { max-height: 60vh; overflow: auto; }
+
+/* celular */
+.km { cursor: pointer; border: 0; font: inherit; }
+.cm.c-exp { border-left: 3px solid #16a34a; }
+.cm.c-ag { border-left: 3px solid #d97706; }
+.cm-linha { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.cm-linha .in-valor { width: 100%; height: 38px; }
+.cm-acoes { display: flex; gap: 8px; align-items: center; width: 100%; }
+.cm-acoes button { flex: 1; justify-content: center; }
+.cm-acoes .bt-nf, .cm-acoes .bt-nao { height: 40px; margin: 0; font-size: 13px; }
+.cm-acoes .tag { flex: none; }
+.cm-est { font-size: 11.5px; color: var(--texto-suave); }
+.lista-mob { padding-bottom: 90px; }
+.filt-mob { display: grid; gap: 10px; }
+.filt-mob label { display: grid; gap: 4px; font-size: 12px; font-weight: 600; color: var(--texto-suave); }
+.filt-mob select, .filt-mob input { height: 42px; }
+.filt-mob .ck { display: flex; align-items: center; gap: 8px; }
+.filt-mob .ck input { width: 18px; height: 18px; }
+@media (max-width: 1100px) { .cards-fat { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 760px) { .cf .val { font-size: 17px; white-space: nowrap; } .cf .rot { font-size: 10px; } .tab-wrap { max-height: none; } .filtros .info { margin-left: 0; } }
+</style>
+</head>
+<body>
+
+<!-- Comercial / Financeiro — carteira liberada, previsão de faturamento e OPs
+     que chegaram da expedição. Lógica do painel Financeiro antigo (cards de
+     faturamento clicáveis, mês, dia, busca, ordenação, relatório executivo,
+     atualização a cada 1 min). Mudanças aprovadas: sai "Potencial estoque";
+     entram os cards Pronto p/ faturar e Aguardando faturamento (piscando), a
+     coluna de ação NF emitida / Não faturado e a coluna Valor da OP editável.
+     NF emitida exige valor (o servidor também bloqueia: SEM_VALOR). -->
+<main class="conteudo">
+  <div class="tit-pagina">
+    <div><h1>Comercial / Financeiro</h1><p>Carteira liberada, previsão de faturamento e OPs na expedição</p></div>
+    <div class="acoes-pagina so-desk">
+      <button class="btn2" data-historico><svg class="i"><use href="#i-hist"/></svg>Histórico de NF</button>
+      <button class="btn2 pri" data-imprimir><svg class="i"><use href="#i-imp"/></svg>Imprimir relatório <span class="n" data-qtd-imp>—</span></button>
+    </div>
+  </div>
+
+  <div class="cards-fat so-desk" id="cards"></div>
+
+  <div class="filtros so-desk">
+    <select id="fMes" title="Mês da previsão"><option value="TODOS">Todos os meses</option></select>
+    <input type="date" id="fDia" title="Dia da previsão">
+    <div class="f-busca"><svg class="i"><use href="#i-busca"/></svg><input id="busca" placeholder="Buscar OP, pedido, cliente, código ou descrição…" autocomplete="off"></div>
+    <select id="fOrdem" title="Ordenação">
+      <option value="NONE">Sem ordenação</option>
+      <option value="PRAZO_ASC">Prazo ↑</option>
+      <option value="PRAZO_DESC">Prazo ↓</option>
+      <option value="PREV_ASC">Previsão ↑</option>
+      <option value="PREV_DESC">Previsão ↓</option>
+      <option value="VALOR_DESC">Valor ↓</option>
+      <option value="VALOR_ASC">Valor ↑</option>
+    </select>
+    <button class="chip-sv" id="chip-sv" title="Mostrar só as OPs sem valor"><svg class="i"><use href="#i-alerta"/></svg><span>Sem valor · 0</span></button>
+    <span class="info" id="info"></span>
+  </div>
+
+  <div class="bloco so-desk" style="padding:0">
+    <div class="tab-wrap">
+      <table class="tab">
+        <thead><tr><th><input type="checkbox" class="chk" id="chk-todos" title="Selecionar as OPs visíveis"></th><th>Faturamento</th><th>Valor da OP</th><th>OP</th><th>Pedido</th><th>Cliente</th><th>Código</th><th>Descrição</th><th>Liga</th><th class="num">Prazo</th><th class="num">Previsão</th><th class="num">Atraso</th><th>Processo</th></tr></thead>
+        <tbody id="linhas"><tr><td colspan="13"><div class="carregando">Carregando…</div></td></tr></tbody>
+      </table>
+    </div>
+    <div class="rod-tab">
+      <span><i style="background:#16a34a"></i>Pronto p/ faturar (chegou da expedição)</span>
+      <span><i style="background:#d97706"></i>Aguardando faturamento (cliente não liberou)</span>
+      <span><i style="border:1px dashed #dc2626"></i>Sem valor</span>
+      <span><i style="background:#3b82f6"></i>Selecionada para impressão</span>
+      <span>Atualização automática a cada 1 min</span>
+    </div>
+  </div>
+
+  <!-- celular -->
+  <div class="kpi-mini so-mob" id="cards-mob"></div>
+  <div class="busca-mob so-mob">
+    <div class="f"><svg class="i"><use href="#i-busca"/></svg><input id="busca-mob" placeholder="OP, cliente, código…" autocomplete="off"></div>
+    <button class="bt" id="bt-filtro-mob" title="Filtros: mês, dia, ordenação, sem valor"><svg class="i"><use href="#i-filtro"/></svg><span class="pt" id="n-filtros-mob" hidden>0</span></button>
+  </div>
+  <div class="info-mob so-mob" id="info-mob"></div>
+  <div class="lista-mob so-mob" id="cartoes"></div>
+  <div class="barra-mob so-mob">
+    <button class="ic" data-historico title="Histórico de NF"><svg class="i"><use href="#i-hist"/></svg></button>
+    <button class="pri" data-imprimir style="background:var(--destaque);border-color:var(--destaque)"><svg class="i"><use href="#i-imp"/></svg>Imprimir relatório</button>
+  </div>
+</main>
+
+<script src="js/config.js"></script>
+<script src="js/icones.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/api.js"></script>
+<script src="js/sessao.js"></script>
+<script src="js/shell.js"></script>
+<script>
+Sessao.iniciarPagina('comercial').then(function (ctx) {
+  const $ = function (s) { return document.querySelector(s); };
+  const NOMES_MES = ['', 'JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
+
+  let base = [];                    // carteira do Comercial (vinda do servidor)
+  let modo = 'TODOS';               // card clicado
+  let semValor = false;             // chip "Sem valor"
+  let ocupado = false;              // uma ação (NF / não faturado) em andamento
+  const selecionadas = new Set();   // id_item marcados para impressão
+
+  carregar();
+  // Igual ao antigo: recarrega a cada 1 min (menos com janela aberta ou valor sendo digitado)
+  setInterval(function () {
+    if (document.hidden || ocupado || document.querySelector('.modal-fundo')) return;
+    const foco = document.activeElement;
+    if (foco && foco.matches && foco.matches('[data-valor]')) return;
+    carregar(true);
+  }, 60000);
+
+  async function carregar(silencioso) {
+    try {
+      const r = await Api.chamar('listarCarteira', { visao: 'COMERCIAL' }, { rapido: function () {
+        const foco = document.activeElement;
+        if (!ocupado && !document.querySelector('.modal-fundo') && !(foco && foco.matches && foco.matches('[data-valor]'))) carregar(true);
+      } });
+      base = r.itens;
+      const ids = new Set(base.map(function (x) { return x.id_item; }));
+      selecionadas.forEach(function (id) { if (!ids.has(id)) selecionadas.delete(id); });
+      montarMeses();
+      desenhar();
+    } catch (e) {
+      if (!silencioso) Ui.erro(e);
+    }
+  }
+
+  // ---------- Apoio (mesmas contas do painel antigo) ----------
+  function dt(v) { if (!v) return new Date(2099, 11, 31); const p = String(v).split('/'); return new Date(+p[2], p[1] - 1, +p[0]); }
+  function atrasoPrazo(v) { if (!v) return 0; const h = new Date(); h.setHours(0, 0, 0, 0); const d = Math.floor((h - dt(v)) / 86400000); return d > 0 ? d : 0; }
+  function valorNum(v) { const n = Number(v); return v === '' || v === null || v === undefined || isNaN(n) ? 0 : n; }
+  function temValor(x) { return valorNum(x.valorop) > 0; }
+  const temOP = function (x) { return !!(x.op && x.op !== '-'); };
+  const temPedido = function (x) { return !!(x.pedido && x.pedido !== '-'); };
+  const ehEng = function (x) { return !temOP(x) && temPedido(x); };
+  const ehCarteira = function (x) { return temOP(x) && temPedido(x); };
+  const pronto = function (x) { return x.status === 'EXPEDICAO'; };
+  const aguardando = function (x) { return x.status === 'AGUARDANDO_FATURAMENTO'; };
+  function hojeZero() { const h = new Date(); h.setHours(0, 0, 0, 0); return h; }
+  function hojeBR() { const h = new Date(); return String(h.getDate()).padStart(2, '0') + '/' + String(h.getMonth() + 1).padStart(2, '0') + '/' + h.getFullYear(); }
+  function fimSemana() { const f = hojeZero(); f.setDate(f.getDate() + 6); return f; }
+  const naSemana = function (x) { if (!x.previsao || !ehCarteira(x)) return false; const d = dt(x.previsao); return d >= hojeZero() && d <= fimSemana(); };
+  const noDia = function (x) { return x.previsao === hojeBR() && ehCarteira(x); };
+  const noMes = function (x, mes) { return !!x.previsao && ehCarteira(x) && (mes === 'TODOS' || x.previsao.substring(3, 10) === mes); };
+  const atrasado = function (x) { return atrasoPrazo(x.prazo) > 0 && temPedido(x); };
+  function moeda(n) { return 'R$ ' + Number(n || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  function valorCampo(x) { return temValor(x) || x.valorop === 0 ? Number(x.valorop).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : ''; }
+  // Número curto para as pílulas do celular: 41,2 mil · 486 mil · 1,2 mi
+  function curto(n) {
+    if (n >= 1e6) return (n / 1e6).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' mi';
+    if (n >= 1000) return (n / 1000).toLocaleString('pt-BR', { maximumFractionDigits: n >= 100000 ? 0 : 1 }) + ' mil';
+    return Math.round(n).toLocaleString('pt-BR');
+  }
+  // "9.850,00" / "9850" / "9.850" / "9850.5" → número (ou null se inválido)
+  function lerValor(t) {
+    t = String(t || '').replace(/R\$|\s/g, '');
+    if (!t) return '';
+    if (t.indexOf(',') !== -1) t = t.replace(/\./g, '').replace(',', '.');
+    else if (/^\d{1,3}(\.\d{3})+$/.test(t)) t = t.replace(/\./g, '');
+    const n = Number(t);
+    return isNaN(n) || n < 0 ? null : n;
+  }
+  function paraBR(iso) { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || ''); return m ? m[3] + '/' + m[2] + '/' + m[1] : ''; }
+  const processoLimpo = function (x) { return String(x.processo || '-').replace(' - INICIADO', '').replace(' - FINALIZADO', ''); };
+  const soma = function (lista) { return lista.reduce(function (s, x) { return s + valorNum(x.valorop); }, 0); };
+  const plural = function (n, s, p) { return n + ' ' + (n === 1 ? s : p); };
+
+  // Meses da previsão (o antigo montava uma vez; aqui refaz mantendo a escolha)
+  function montarMeses() {
+    const sel = $('#fMes').value;
+    const meses = Array.from(new Set(base.map(function (x) { return x.previsao; }).filter(Boolean).map(function (p) { return p.substring(3, 10); })))
+      .sort(function (a, b) { return (a.slice(3) + a.slice(0, 2)).localeCompare(b.slice(3) + b.slice(0, 2)); });
+    if (sel !== 'TODOS' && meses.indexOf(sel) === -1) meses.push(sel);
+    $('#fMes').innerHTML = '<option value="TODOS">Todos os meses</option>' + meses.map(function (m) { return '<option' + (m === sel ? ' selected' : '') + '>' + Ui.esc(m) + '</option>'; }).join('');
+  }
+
+  // ---------- Filtro (card + mês + dia + busca + sem valor) ----------
+  function busca() { return (window.innerWidth <= 760 ? $('#busca-mob') : $('#busca')).value.toUpperCase().trim(); }
+  function aplicarFiltro() {
+    const mes = $('#fMes').value, dia = paraBR($('#fDia').value), b = busca();
+    const lista = base.filter(function (x) {
+      let ok = true;
+      if (mes !== 'TODOS') ok = ok && !!x.previsao && x.previsao.indexOf(mes) !== -1;
+      if (dia) ok = ok && x.previsao === dia;
+      if (b) ok = ok && (String(x.op) + String(x.pedido) + String(x.cliente) + String(x.codigo) + String(x.descricao)).toUpperCase().indexOf(b) !== -1;
+      if (modo === 'PRONTO') ok = ok && pronto(x);
+      if (modo === 'AGUARDANDO') ok = ok && aguardando(x);
+      if (modo === 'ATRASADAS') ok = ok && atrasado(x);
+      if (modo === 'ENGENHARIA') ok = ok && ehEng(x);
+      if (modo === 'FAT_MES') ok = ok && !!x.previsao && ehCarteira(x);
+      if (modo === 'FAT_SEMANA') ok = ok && naSemana(x);
+      if (modo === 'FAT_DIA') ok = ok && noDia(x);
+      if (semValor) ok = ok && !temValor(x);
+      return ok;
+    });
+    return ordenar(lista);
+  }
+
+  // Ordenação escolhida (a mesma do antigo). "Sem ordenação": quem chegou da
+  // expedição primeiro, depois aguardando faturamento, depois o resto da carteira.
+  function ordenar(lista) {
+    const ord = $('#fOrdem').value;
+    const grupo = function (x) { return pronto(x) ? 0 : aguardando(x) ? 1 : 2; };
+    return lista.sort(function (a, b) {
+      if (ord === 'PRAZO_ASC') return dt(a.prazo) - dt(b.prazo);
+      if (ord === 'PRAZO_DESC') return dt(b.prazo) - dt(a.prazo);
+      if (ord === 'PREV_ASC') return dt(a.previsao) - dt(b.previsao);
+      if (ord === 'PREV_DESC') return dt(b.previsao) - dt(a.previsao);
+      if (ord === 'VALOR_ASC') return valorNum(a.valorop) - valorNum(b.valorop);
+      if (ord === 'VALOR_DESC') return valorNum(b.valorop) - valorNum(a.valorop);
+      return grupo(a) - grupo(b);
+    });
+    return lista;
+  }
+  function temFiltro() {
+    return modo !== 'TODOS' || semValor || $('#fMes').value !== 'TODOS' || !!$('#fDia').value || !!($('#busca').value.trim() || $('#busca-mob').value.trim());
+  }
+
+  // ---------- Cards (somas sempre sobre a base toda, como no antigo) ----------
+  function calcularCards() {
+    const mes = $('#fMes').value;
+    const l = {
+      pronto: base.filter(pronto), aguard: base.filter(aguardando), atras: base.filter(atrasado),
+      mes: base.filter(function (x) { return noMes(x, mes); }), semana: base.filter(naSemana), dia: base.filter(noDia),
+      eng: base.filter(ehEng)
+    };
+    let tituloMes = 'Faturável total', detMes = 'com previsão';
+    if (mes !== 'TODOS') { const p = mes.split('/'); tituloMes = 'Faturável ' + NOMES_MES[parseInt(p[0], 10)] + '/' + p[1]; detMes = 'previsão ' + mes; }
+    const ini = hojeZero(), fim = fimSemana();
+    const dm = function (d) { return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0'); };
+    return [
+      { m: 'PRONTO', c: '#16a34a', ic: 'i-pacote', rot: 'Pronto p/ faturar', val: plural(l.pronto.length, 'OP', 'OPs'), qtd: moeda(soma(l.pronto)) + ' · chegou da expedição', alerta: l.pronto.length > 0, mob: l.pronto.length, mobRot: 'Pronto p/ faturar' },
+      { m: 'AGUARDANDO', c: '#d97706', ic: 'i-relogio', rot: 'Aguardando faturamento', val: plural(l.aguard.length, 'OP', 'OPs'), qtd: moeda(soma(l.aguard)) + ' · cliente não liberou', alerta: l.aguard.length > 0, pisca: l.aguard.length > 0, mob: l.aguard.length, mobRot: 'Aguardando fat.' },
+      { m: 'ATRASADAS', c: '#dc2626', ic: 'i-alerta', rot: 'Faturamento atrasado', val: moeda(soma(l.atras)), qtd: plural(l.atras.length, 'OP com prazo vencido', 'OPs com prazo vencido'), mob: curto(soma(l.atras)), mobRot: 'Atrasado' },
+      { m: 'TODOS', c: '#3b82f6', ic: 'i-tabela', rot: 'Carteira liberada', val: moeda(soma(base)), qtd: plural(base.filter(temPedido).length, 'OP com pedido', 'OPs com pedido'), mob: curto(soma(base)), mobRot: 'Carteira' },
+      { m: 'FAT_MES', c: '#16a34a', ic: 'i-cal', rot: tituloMes, val: moeda(soma(l.mes)), qtd: plural(l.mes.length, 'OP', 'OPs') + ' · ' + detMes, mob: curto(soma(l.mes)), mobRot: 'Mês' },
+      { m: 'FAT_SEMANA', c: '#16a34a', ic: 'i-cal', rot: 'Faturáveis na semana', val: moeda(soma(l.semana)), qtd: plural(l.semana.length, 'OP', 'OPs') + ' · ' + dm(ini) + ' a ' + dm(fim), pisca: soma(l.semana) > 0, mob: curto(soma(l.semana)), mobRot: 'Semana' },
+      { m: 'FAT_DIA', c: '#16a34a', ic: 'i-cal', rot: 'Faturáveis no dia', val: moeda(soma(l.dia)), qtd: plural(l.dia.length, 'OP', 'OPs') + ' · hoje', pisca: soma(l.dia) > 0, mob: curto(soma(l.dia)), mobRot: 'Dia' },
+      { m: 'ENGENHARIA', c: '#9333ea', ic: 'i-clip', rot: 'Faturamento engenharia', val: moeda(soma(l.eng)), qtd: plural(l.eng.length, 'item sem OP', 'itens sem OP'), mob: curto(soma(l.eng)), mobRot: 'Engenharia' }
+    ];
+  }
+  const ROTULO = { TODOS: 'Carteira liberada', PRONTO: 'Pronto p/ faturar', AGUARDANDO: 'Aguardando faturamento', ATRASADAS: 'Faturamento atrasado', FAT_MES: 'Faturáveis no mês', FAT_SEMANA: 'Faturáveis na semana', FAT_DIA: 'Faturáveis no dia', ENGENHARIA: 'Faturamento engenharia' };
+
+  function desenharCards() {
+    const k = calcularCards();
+    $('#cards').innerHTML = k.map(function (x) {
+      return '<button class="cf' + (modo === x.m ? ' sel' : '') + (x.alerta ? ' alerta' : '') + (x.pisca ? ' piscando' : '') + '" data-modo="' + x.m + '" style="--c:' + x.c + '">' +
+        '<div class="rot">' + Ui.ic(x.ic) + Ui.esc(x.rot) + '</div><div class="val">' + Ui.esc(x.val) + '</div><div class="qtd">' + Ui.esc(x.qtd) + '</div></button>';
+    }).join('');
+    $('#cards-mob').innerHTML = k.map(function (x) {
+      return '<button class="km' + (modo === x.m ? ' sel' : '') + (x.pisca ? ' piscando' : '') + '" data-modo="' + x.m + '" style="--c:' + x.c + '"><b>' + Ui.esc(x.mob) + '</b>' + Ui.esc(x.mobRot) + '</button>';
+    }).join('');
+    const nSv = base.filter(function (x) { return !temValor(x); }).length;
+    $('#chip-sv span').textContent = 'Sem valor · ' + nSv;
+    $('#chip-sv').classList.toggle('on', semValor);
+  }
+
+  function desenhar() { desenharCards(); desenharLista(); }
+
+  // ---------- Célula de ação e campo de valor ----------
+  function htmlAcao(x, mob) {
+    if (pronto(x)) {
+      if (!ctx.podeEditar) return '<span class="tag t-verde">Pronto p/ faturar</span>';
+      return '<button class="bt-nf" data-nf>' + Ui.ic('i-check') + 'NF emitida</button><button class="bt-nao" data-nao>Não faturado</button>';
+    }
+    if (aguardando(x)) {
+      const tag = '<span class="tag t-amar">Cliente não liberou</span>';
+      if (!ctx.podeEditar) return tag;
+      return tag + ' <button class="bt-nf" data-nf' + (mob ? '' : ' style="margin-left:6px"') + '>' + Ui.ic('i-check') + 'NF emitida</button>';
+    }
+    return mob ? '' : '<span class="mut">' + (ehEng(x) ? 'Engenharia' : 'Em produção') + '</span>';
+  }
+  function htmlValor(x) {
+    const v = valorCampo(x);
+    const trava = ctx.podeEditar ? '' : ' disabled';
+    return '<label class="in-valor' + (temValor(x) ? '' : ' sem-valor') + (ctx.podeEditar ? '' : ' travado') + '"><span>R$</span>' +
+      '<input data-valor value="' + Ui.esc(v) + '" placeholder="' + (ctx.podeEditar ? 'Definir valor' : 'Sem valor') + '" inputmode="decimal" autocomplete="off"' + trava + '>' +
+      (ctx.podeEditar ? '<button type="button" class="ok-valor" data-salvar-valor title="Salvar valor (ou Enter)">' + Ui.ic('i-check') + '</button>' : '') + '</label>';
+  }
+
+  function desenharLista() {
+    const lista = aplicarFiltro();
+    $('#linhas').innerHTML = lista.map(function (x) {
+      const atr = atrasoPrazo(x.prazo);
+      const cls = (pronto(x) ? 'expedicao ' : aguardando(x) ? 'aguardando ' : '') + (selecionadas.has(x.id_item) ? 'sel' : '');
+      return '<tr data-id="' + Ui.esc(x.id_item) + '" class="' + cls + '">' +
+        '<td><input type="checkbox" class="chk" data-sel' + (selecionadas.has(x.id_item) ? ' checked' : '') + '></td>' +
+        '<td class="acao">' + htmlAcao(x, false) + '</td>' +
+        '<td>' + htmlValor(x) + '</td>' +
+        '<td><b>' + Ui.esc(x.op || '—') + '</b></td><td>' + Ui.esc(x.pedido || '—') + '</td><td>' + Ui.esc(x.cliente || '—') + '</td>' +
+        '<td class="mut">' + Ui.esc(x.codigo || '—') + '</td><td class="desc" title="' + Ui.esc(x.descricao) + '">' + Ui.esc(x.descricao || '—') + '</td>' +
+        '<td>' + Ui.esc(x.liga || '—') + '</td>' +
+        '<td class="num">' + Ui.esc(x.prazo ? x.prazo.slice(0, 5) : '—') + '</td>' +
+        '<td class="num' + (x.previsao ? '' : ' mut') + '">' + Ui.esc(x.previsao ? x.previsao.slice(0, 5) : '—') + '</td>' +
+        '<td class="num' + (atr ? ' atraso' : ' mut') + '">' + (atr ? atr + ' d' : '—') + '</td>' +
+        '<td>' + Ui.esc(processoLimpo(x)) + '</td></tr>';
+    }).join('') || '<tr><td colspan="13"><div class="vazio">Nenhuma OP encontrada.</div></td></tr>';
+
+    $('#cartoes').innerHTML = lista.map(function (x) {
+      const atr = atrasoPrazo(x.prazo);
+      const acao = htmlAcao(x, true);
+      return '<div class="cm' + (pronto(x) ? ' c-exp' : aguardando(x) ? ' c-ag' : '') + '" data-id="' + Ui.esc(x.id_item) + '">' +
+        '<div class="cm-top"><span class="op">' + Ui.esc(x.op || '—') + '</span><span class="cli">' + Ui.esc(x.cliente) + ' · ped. ' + Ui.esc(x.pedido || '—') + '</span>' +
+        '<span class="prazo' + (atr ? ' atraso' : '') + '">' + Ui.esc(x.prazo ? x.prazo.slice(0, 5) : '—') + '</span></div>' +
+        '<div class="cm-desc">' + Ui.esc(x.descricao) + '<small>' + Ui.esc(x.codigo) + (pronto(x) || aguardando(x) ? '' : ' · ' + Ui.esc(processoLimpo(x)) + (x.previsao ? ' · previsão ' + Ui.esc(x.previsao.slice(0, 5)) : '')) + '</small></div>' +
+        '<div class="cm-linha">' + htmlValor(x) + (acao ? '<div class="cm-acoes">' + acao + '</div>' : '') + '</div></div>';
+    }).join('') || '<div class="vazio">Nenhuma OP encontrada.</div>';
+
+    const visiveis = lista.map(function (x) { return x.id_item; });
+    $('#chk-todos').checked = visiveis.length > 0 && visiveis.every(function (id) { return selecionadas.has(id); });
+    atualizarContadores(lista);
+  }
+
+  function atualizarContadores(lista) {
+    lista = lista || aplicarFiltro();
+    const nSel = selecionadas.size;
+    $('#info').innerHTML = 'Filtro: <b>' + Ui.esc(ROTULO[modo]) + (semValor ? ' · sem valor' : '') + '</b> · ' + lista.length + ' de ' + base.length + ' OPs' +
+      (nSel ? ' · ' + nSel + ' selecionada' + (nSel > 1 ? 's' : '') : '');
+    $('#info-mob').textContent = ROTULO[modo] + (semValor ? ' · sem valor' : '') + ' · ' + plural(lista.length, 'OP', 'OPs') + ' · ' + moeda(soma(lista));
+    const imp = listaImpressao(true);
+    const txt = nSel ? nSel + ' selecionada' + (nSel > 1 ? 's' : '') : (temFiltro() ? 'filtradas · ' : 'todas · ') + imp.length;
+    document.querySelectorAll('[data-qtd-imp]').forEach(function (el) { el.textContent = txt; });
+    const nf = ($('#fMes').value !== 'TODOS' ? 1 : 0) + ($('#fDia').value ? 1 : 0) + ($('#fOrdem').value !== 'NONE' ? 1 : 0) + (semValor ? 1 : 0);
+    $('#n-filtros-mob').hidden = !nf;
+    $('#n-filtros-mob').textContent = nf;
+  }
+
+  // ---------- Eventos ----------
+  document.addEventListener('click', function (ev) {
+    const m = ev.target.closest('[data-modo]');
+    if (m) { modo = m.dataset.modo === modo ? 'TODOS' : m.dataset.modo; desenhar(); return; }
+    if (ev.target.closest('#chip-sv')) { semValor = !semValor; desenhar(); return; }
+    if (ev.target.closest('[data-imprimir]')) { imprimirRelatorio(); return; }
+    if (ev.target.closest('[data-historico]')) { historicoNF(); return; }
+    const linha = ev.target.closest('[data-id]');
+    if (!linha) return;
+    const x = base.find(function (b) { return b.id_item === linha.dataset.id; });
+    if (!x) return;
+    if (ev.target.closest('[data-nf]')) nfEmitida(x);
+    else if (ev.target.closest('[data-nao]')) naoFaturado(x);
+  });
+
+  document.addEventListener('change', function (ev) {
+    const el = ev.target;
+    const linha = el.closest('[data-id]');
+    if (!linha) return;
+    const id = linha.dataset.id;
+    const x = base.find(function (b) { return b.id_item === id; });
+    if (!x) return;
+    if (el.matches('[data-sel]')) {
+      if (el.checked) selecionadas.add(id); else selecionadas.delete(id);
+      document.querySelectorAll('[data-id="' + CSS.escape(id) + '"]').forEach(function (n) {
+        n.classList.toggle('sel', el.checked);
+        const c = n.querySelector('[data-sel]'); if (c) c.checked = el.checked;
+      });
+      atualizarContadores();
+      return;
+    }
+    if (el.matches('[data-valor]') && !el.dataset.salvando) salvarValor(x, el);
+  });
+  document.addEventListener('keydown', function (ev) {
+    if (ev.key === 'Enter' && ev.target.matches && ev.target.matches('[data-valor]')) ev.target.blur();
+  });
+  // Digitou: aparece o botão ✓ (salva no ✓, no Enter ou ao sair do campo)
+  document.addEventListener('input', function (ev) {
+    if (ev.target.matches && ev.target.matches('[data-valor]')) ev.target.closest('.in-valor').classList.add('mudou');
+  });
+  document.addEventListener('mousedown', function (ev) {
+    const b = ev.target.closest && ev.target.closest('[data-salvar-valor]');
+    if (!b) return;
+    ev.preventDefault();   // não tira o foco antes da hora
+    const inp = b.closest('.in-valor').querySelector('[data-valor]');
+    const x = base.find(function (o) { return o.id_item === b.closest('[data-id]').dataset.id; });
+    if (x) { inp.dataset.salvando = '1'; salvarValor(x, inp).finally(function () { delete inp.dataset.salvando; inp.blur(); }); }
+  });
+
+  $('#chk-todos').addEventListener('change', function () {
+    const marcar = $('#chk-todos').checked;
+    aplicarFiltro().forEach(function (x) { if (marcar) selecionadas.add(x.id_item); else selecionadas.delete(x.id_item); });
+    desenharLista();
+  });
+  $('#busca').addEventListener('input', desenharLista);
+  $('#busca-mob').addEventListener('input', desenharLista);
+  $('#fDia').addEventListener('change', desenharLista);
+  $('#fOrdem').addEventListener('change', desenharLista);
+  $('#fMes').addEventListener('change', desenhar);   // o card "Faturável" muda de nome com o mês
+
+  // Filtros do celular numa janela
+  $('#bt-filtro-mob').addEventListener('click', function () {
+    Ui.janela({
+      titulo: 'Filtros',
+      corpo: '<div class="filt-mob">' +
+        '<label>Mês da previsão<select name="mes">' + $('#fMes').innerHTML + '</select></label>' +
+        '<label>Dia da previsão<input type="date" name="dia" value="' + Ui.esc($('#fDia').value) + '"></label>' +
+        '<label>Ordenar<select name="ord">' + $('#fOrdem').innerHTML + '</select></label>' +
+        '<label class="ck"><input type="checkbox" name="sv"' + (semValor ? ' checked' : '') + '> Só OPs sem valor</label></div>',
+      botoes: [{ texto: 'Limpar', valor: 'limpar' }, { texto: 'Aplicar', classe: 'pri', valor: 'ok' }],
+      antesDeFechar: function (v, cx) {
+        if (v === 'limpar') { $('#fMes').value = 'TODOS'; $('#fDia').value = ''; $('#fOrdem').value = 'NONE'; semValor = false; }
+        else {
+          $('#fMes').value = cx.querySelector('[name="mes"]').value; $('#fDia').value = cx.querySelector('[name="dia"]').value;
+          $('#fOrdem').value = cx.querySelector('[name="ord"]').value; semValor = cx.querySelector('[name="sv"]').checked;
+        }
+        desenhar();
+        return true;
+      }
+    }).then(function () { /* nada */ });
+    const cx = document.querySelector('.modal-fundo');
+    if (cx) { cx.querySelector('[name="mes"]').value = $('#fMes').value; cx.querySelector('[name="ord"]').value = $('#fOrdem').value; }
+  });
+
+  // ---------- Valor da OP (grava ao sair do campo) ----------
+  async function salvarValor(x, el) {
+    const caixa = el.closest('.in-valor');
+    const n = lerValor(el.value);
+    const antes = valorCampo(x);
+    if (n === '') { Ui.toast('O valor da OP não pode ficar vazio.', 'aviso'); el.value = antes; return; }
+    if (n === null) { Ui.toast('Valor inválido: ' + el.value, 'erro'); el.value = antes; return; }
+    if (temValor(x) && Math.abs(n - valorNum(x.valorop)) < 0.005) { el.value = antes; return; }
+    caixa.classList.add('salvando');
+    try {
+      await Api.chamar('definirValor', { id_item: x.id_item, valor_op: n, idReq: Api.idReq() });
+      x.valorop = n;
+      Ui.toast('OP ' + (x.op || x.pedido) + ': ' + moeda(n), 'ok', 'Valor salvo');
+    } catch (e) {
+      Ui.erro(e);
+    } finally {
+      caixa.classList.remove('salvando');
+      caixa.classList.remove('mudou');
+      // atualiza o campo gêmeo (tabela/cartão) sem redesenhar a lista (não perde o foco)
+      document.querySelectorAll('[data-id="' + CSS.escape(x.id_item) + '"] [data-valor]').forEach(function (i) {
+        if (i !== document.activeElement || i === el) i.value = valorCampo(x);
+        i.closest('.in-valor').classList.toggle('sem-valor', !temValor(x));
+      });
+      desenharCards();
+      atualizarContadores();
+    }
+  }
+
+  // Pede o valor antes da NF, quando a OP está sem valor (regra 3.1)
+  function pedirValor(x) {
+    return Ui.janela({
+      titulo: 'Informe o valor da OP',
+      subtitulo: 'A NF só pode ser marcada com o valor da OP preenchido.',
+      corpo: '<div class="msg-erro"></div><div class="resumo-op" style="margin-bottom:12px"><span>OP</span><b>' + Ui.esc(x.op) + '</b><span>Cliente</span><b>' + Ui.esc(x.cliente) + '</b></div>' +
+        '<label class="campo">Valor da OP (R$)<input name="valor" inputmode="decimal" placeholder="Ex.: 9.850,00" autocomplete="off"></label>',
+      botoes: [{ texto: 'Cancelar', valor: null }, { texto: 'Salvar valor e continuar', classe: 'pri', valor: 'ok' }],
+      antesDeFechar: async function (v, cx) {
+        const erro = cx.querySelector('.msg-erro');
+        const n = lerValor(cx.querySelector('[name="valor"]').value);
+        if (!(n > 0)) { Ui.msgErro(erro, 'Informe um valor maior que zero.'); return false; }
+        try {
+          await Api.chamar('definirValor', { id_item: x.id_item, valor_op: n, idReq: Api.idReq() });
+          x.valorop = n;
+          return true;
+        } catch (e) { Ui.msgErro(erro, e.message); return false; }
+      }
+    }).then(function (v) { return v === 'ok'; });
+  }
+
+  async function nfEmitida(x) {
+    if (ocupado) return;
+    if (!temValor(x)) {
+      Ui.toast('A OP ' + x.op + ' está sem valor. Informe o valor antes de marcar NF emitida.', 'aviso', 'NF bloqueada');
+      const ok = await pedirValor(x);
+      desenhar();
+      if (!ok) return;
+    }
+    const idReq = Api.idReq();   // um por clique: se repetir, o servidor não grava em dobro
+    const confirmado = await Ui.janela({
+      titulo: 'Confirmar NF emitida',
+      subtitulo: 'A OP sai do painel Comercial/Financeiro e vai para o histórico.',
+      corpo: '<div class="msg-erro"></div><div class="resumo-op"><span>OP</span><b>' + Ui.esc(x.op) + '</b><span>Cliente</span><b>' + Ui.esc(x.cliente) + '</b>' +
+        '<span>Item</span><b>' + Ui.esc(x.codigo) + ' · ' + Ui.esc(x.descricao) + '</b><span>Valor</span><b>' + moeda(x.valorop) + '</b></div>',
+      botoes: [{ texto: 'Cancelar', valor: null }, { texto: 'Confirmar NF emitida', classe: 'pri verde', valor: 'ok' }],
+      antesDeFechar: async function (v, cx) {
+        try {
+          ocupado = true;
+          await Api.chamar('marcarNFGerada', { idReq: idReq, id_item: x.id_item });
+          return true;
+        } catch (e) { Ui.msgErro(cx.querySelector('.msg-erro'), e.message); return false; }
+        finally { ocupado = false; }
+      }
+    });
+    if (confirmado !== 'ok') return;
+    Ui.toast('OP ' + x.op + ' finalizada e enviada ao histórico.', 'ok', 'NF emitida');
+    selecionadas.delete(x.id_item);
+    await carregar(true);
+  }
+
+  async function naoFaturado(x) {
+    if (ocupado) return;
+    const ok = await Ui.confirmar({
+      titulo: 'Não faturado',
+      texto: 'O cliente não liberou a OP ' + x.op + ' (' + x.cliente + ')? Ela vai para "Aguardando faturamento" e fica piscando até a NF ser emitida.',
+      ok: 'Marcar como não faturado'
+    });
+    if (!ok) return;
+    ocupado = true;
+    try {
+      await Api.chamar('marcarAguardandoFaturamento', { idReq: Api.idReq(), id_item: x.id_item });
+      Ui.toast('OP ' + x.op + ' aguardando faturamento.', 'ok', 'Não faturado');
+      await carregar(true);
+    } catch (e) {
+      Ui.erro(e);
+    } finally {
+      ocupado = false;
+    }
+  }
+
+  // ---------- Histórico de NF (OPs finalizadas) ----------
+  async function historicoNF() {
+    let itens;
+    try {
+      const r = await Api.chamar('listarCarteira', { visao: 'HISTORICO' });
+      itens = r.itens.filter(function (x) { return x.status === 'FINALIZADA'; });
+    } catch (e) { Ui.erro(e); return; }
+    const corpo = itens.length
+      ? '<div class="hist-wrap"><table class="tab"><thead><tr><th>OP</th><th>Pedido</th><th>Cliente</th><th>Código</th><th class="num">Prazo</th><th class="num">Valor</th></tr></thead><tbody>' +
+        itens.map(function (x) {
+          return '<tr><td><b>' + Ui.esc(x.op) + '</b></td><td>' + Ui.esc(x.pedido) + '</td><td>' + Ui.esc(x.cliente) + '</td><td class="mut">' + Ui.esc(x.codigo) + '</td>' +
+            '<td class="num">' + Ui.esc(x.prazo) + '</td><td class="num">' + moeda(x.valorop) + '</td></tr>';
+        }).join('') + '</tbody></table></div><p class="mut" style="font-size:12px;margin:10px 0 0">' + plural(itens.length, 'OP finalizada', 'OPs finalizadas') + ' · ' + moeda(soma(itens)) + '</p>'
+      : '<div class="vazio">Nenhuma NF emitida ainda.</div>';
+    Ui.janela({ titulo: 'Histórico de NF', subtitulo: 'OPs finalizadas (NF emitida)', largura: 760, corpo: corpo, botoes: [{ texto: 'Fechar', valor: null }] });
+  }
+
+  // ---------- Impressão (regra 3.5: selecionadas › filtro › tudo) ----------
+  // Relatório igual ao antigo: só linhas com pedido.
+  function listaImpressao(semAviso) {
+    const lista = (selecionadas.size ? ordenar(base.filter(function (x) { return selecionadas.has(x.id_item); })) : aplicarFiltro())
+      .filter(function (x) { return temPedido(x); });
+    if (!lista.length && !semAviso) Ui.toast('Nenhuma OP para imprimir com o filtro atual.', 'aviso');
+    return lista;
+  }
+
+  function imprimirRelatorio() {
+    const lista = listaImpressao(); if (!lista.length) return;
+    const e = Ui.esc;
+    const br2 = function (v) { return valorNum(v).toLocaleString('pt-BR', { minimumFractionDigits: 2 }); };
+    const totalValor = br2(lista.reduce(function (s, x) { return s + valorNum(x.valorop); }, 0));
+    let h = `<html><head><title>Relatório Executivo</title><style>
+body{font-family:Arial;padding:30px;color:#111}h1{font-size:20px;margin-bottom:25px}
+table{width:100%;border-collapse:collapse;font-size:11px}th,td{border:1px solid #ccc;padding:7px;text-align:left} .valorop{white-space:nowrap;width:120px;}
+th{background:#f2f2f2}.top{font-size:12px;margin-bottom:20px}
+</style></head><body>
+<h1>RELATÓRIO EXECUTIVO DE FATURAMENTO</h1>
+<div class='top'>Emitido em: ${new Date().toLocaleString('pt-BR')}<br><br>Total de Ordens: ${lista.length}<br>Valor Total Previsto: R$ ${totalValor}</div>
+<table><tr><th>OP</th><th>PEDIDO</th><th>CLIENTE</th><th>CÓDIGO</th><th>DESCRIÇÃO</th><th>LIGA</th><th>PRAZO</th><th>PREVISÃO</th><th>DIAS ATRASO</th><th class="valorop">VALOR OP</th></tr>`;
+    lista.forEach(function (x) {
+      h += `<tr><td>${e(x.op)}</td><td>${e(x.pedido)}</td><td>${e(x.cliente)}</td><td>${e(x.codigo)}</td><td>${e(x.descricao)}</td><td>${e(x.liga || '-')}</td><td>${e(x.prazo)}</td><td>${e(x.previsao || '-')}</td><td>${atrasoPrazo(x.prazo)}</td><td class="valorop">R$ ${br2(x.valorop)}</td></tr>`;
+    });
+    h += `</table><script>window.onload=()=>window.print();<\/script></body></html>`;
+    const w = window.open('');
+    if (!w) { Ui.toast('O navegador bloqueou a janela de impressão. Libere pop-ups para este site.', 'erro'); return; }
+    w.document.write(h);
+    w.document.close();
+  }
+});
+</script>
+</body>
+</html>

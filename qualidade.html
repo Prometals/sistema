@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Qualidade · Refugo · Prometals</title>
+<link rel="stylesheet" href="css/tema.css">
+<link rel="stylesheet" href="css/sistema.css">
+<style>
+/* ---------- específico desta página ---------- */
+.kl { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 14px; }
+.kq { background: var(--painel); border: 1px solid var(--linha); border-radius: 12px; padding: 10px 14px; cursor: pointer; position: relative; overflow: hidden; text-align: left; font: inherit; color: inherit; }
+.kq::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--c); }
+.kq.sel { border-color: var(--c); box-shadow: 0 0 0 1px var(--c) inset; }
+.kq .l { display: block; font-size: 11px; font-weight: 700; color: var(--texto-suave); letter-spacing: .4px; text-transform: uppercase; }
+.kq b { display: block; font-size: 24px; font-variant-numeric: tabular-nums; margin-top: 2px; } .kq b small { font-size: 13px; color: var(--texto-suave); font-weight: 600; }
+.kq .s { display: block; font-size: 12px; color: var(--texto-suave); }
+.barra { display: flex; gap: 10px; align-items: center; background: var(--painel); border: 1px solid var(--linha); border-radius: 12px; padding: 10px 12px; margin-bottom: 14px; flex-wrap: wrap; }
+.barra input, .barra select { height: 36px; font-size: 13px; padding: 0 10px; width: auto; }
+.barra .f-busca { flex: 1; min-width: 130px; position: relative; }
+.barra input[type=date] { width: 134px; }
+.barra select { width: 130px; }
+.barra { gap: 8px; }
+.barra .f-busca input { width: 100%; padding-left: 34px; }
+.barra .f-busca svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--texto-suave); }
+.seg { display: flex; border: 1px solid var(--borda); border-radius: 10px; overflow: hidden; height: 36px; }
+.seg button { border: 0; background: transparent; padding: 0 12px; font-size: 12px; font-weight: 800; color: var(--texto-suave); cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--borda); }
+.seg button.on { background: var(--destaque); color: #fff; }
+.cx-l { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 800; color: var(--texto-suave); }
+.barra .btn2 { height: 36px; }
+.btn2.xls { background: #166534; border-color: #166534; color: #fff; }
+.faixa { display: grid; grid-template-columns: 300px 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+.cd { background: var(--painel); border: 1px solid var(--linha); border-radius: 12px; padding: 12px 14px; display: grid; gap: 7px; align-content: start; position: relative; min-width: 0; }
+.cd h4 { margin: 0; font-size: 11px; letter-spacing: .5px; color: var(--texto-suave); }
+.cd.hoje { border-left: 4px solid var(--destaque); cursor: pointer; text-align: left; font: inherit; color: inherit; --c: var(--destaque); }
+.cd.hoje.pulsando { animation: pisca 2.2s infinite; }
+.cd.hoje.ativo { background: color-mix(in srgb, var(--destaque) 10%, var(--painel)); border-color: var(--destaque); }
+.cd.hoje .n { font-size: 34px; font-weight: 800; line-height: 1; } .cd.hoje .n small { font-size: 13px; color: var(--texto-suave); font-weight: 600; margin-left: 6px; }
+.cd.hoje .d { font-size: 12.5px; } .cd.hoje .u { font-size: 11.5px; color: var(--texto-suave); border-top: 1px solid var(--linha); padding-top: 7px; }
+.novo { position: absolute; top: 10px; right: 12px; font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 5px; background: #16a34a; color: #fff; animation: pisca 1.6s infinite; --c: #16a34a; }
+.bb { display: grid; grid-template-columns: 110px 1fr 70px; gap: 8px; align-items: center; font-size: 12px; }
+.bb > span:first-child { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bb .t { height: 10px; background: color-mix(in srgb, var(--painel-2) 70%, transparent); border-radius: 0 4px 4px 0; }
+.bb .t i { display: block; height: 100%; border-radius: 0 4px 4px 0; }
+.bb em { font-style: normal; text-align: right; color: var(--texto-suave); font-size: 11.5px; white-space: nowrap; } .bb em b { color: var(--texto); }
+.cd.mot .bb { grid-template-columns: minmax(0, 190px) 1fr 100px; }
+.duas { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.duas > div { display: grid; gap: 7px; align-content: start; min-width: 0; }
+.duas .bb { grid-template-columns: minmax(0, 96px) minmax(30px, 1fr) auto; }
+.sem-dados { font-size: 12px; color: var(--texto-suave); }
+.bloco table.tab th, .bloco table.tab td { padding-left: 9px; padding-right: 9px; }
+.bloco table.tab th:first-child, .bloco table.tab td:first-child { padding-left: 14px; }
+.tab-wrap { overflow: auto; max-height: calc(100vh - 470px); min-height: 220px; }
+th[data-col] { cursor: pointer; user-select: none; }
+th.ord-desc::after { content: " ↓"; color: var(--destaque); } th.ord-asc::after { content: " ↑"; color: var(--destaque); }
+.tt { font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 5px; white-space: nowrap; } .tt.ref { background: rgba(220,38,38,.18); color: #f87171; } .tt.ret { background: rgba(59,130,246,.18); color: #93c5fd; }
+html.tema-claro .tt.ref { color: #b91c1c; } html.tema-claro .tt.ret { color: #1d4ed8; }
+.est { font-size: 10.5px; color: var(--texto-suave); font-weight: 700; margin-left: 4px; }
+table.tab tr.recente td { background: color-mix(in srgb, var(--destaque) 10%, transparent); }
+table.tab tr.recente td:first-child { box-shadow: inset 3px 0 0 var(--destaque); }
+table.tab td.motivo { max-width: 260px; overflow: hidden; text-overflow: ellipsis; }
+.bt-est { height: 30px; padding: 0 8px; border-radius: 7px; border: 1px solid var(--borda); background: transparent; font-size: 11.5px; font-weight: 700; display: inline-flex; align-items: center; gap: 5px; cursor: pointer; color: var(--texto-suave); }
+.bt-est:hover { border-color: #dc2626; color: #f87171; }
+.bt-est svg { width: 14px; height: 14px; }
+.rod-tab { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 10px 14px; border-top: 1px solid var(--linha); font-size: 12px; color: var(--texto-suave); } .rod-tab b { color: var(--texto); }
+.per-mob { display: flex; gap: 6px; overflow-x: auto; margin-bottom: 10px; scrollbar-width: none; }
+.per-mob button { flex: none; height: 36px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--borda); background: var(--painel); font-weight: 800; font-size: 12px; color: var(--texto-suave); cursor: pointer; }
+.per-mob button.on { background: var(--destaque); border-color: var(--destaque); color: #fff; }
+.km { cursor: pointer; font: inherit; }
+.cm .lin2 { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 12px; color: var(--texto-suave); }
+.cm .lin2 b { color: var(--texto); font-size: 14px; }
+.cm.recente { border-left: 3px solid var(--destaque); }
+.cm .bt-est { height: 32px; }
+.info-mob { font-size: 12px; color: var(--texto-suave); margin: 0 2px 8px; }
+.jan-grade { display: grid; gap: 10px; }
+.jan-grade label { display: grid; gap: 5px; font-size: 12px; font-weight: 700; color: var(--texto-suave); }
+.jan-grade input, .jan-grade select { height: 42px; }
+.jan-resumo { background: var(--painel-2); border-radius: 10px; padding: 10px 12px; font-size: 12.5px; line-height: 1.5; }
+.jan-resumo b { font-size: 13.5px; }
+.jan-bts { display: grid; gap: 10px; }
+.jan-bts .btn2 { height: 46px; justify-content: center; font-size: 14px; }
+@media (max-width: 1200px) { .faixa { grid-template-columns: 1fr 1fr; } .faixa .cd.hoje { grid-column: 1 / -1; } }
+@media (max-width: 760px) {
+  .per-mob.so-mob { display: flex !important; }
+  .cd.hoje.so-mob { display: grid !important; margin-bottom: 10px; width: 100%; }
+  .lista-mob { padding-bottom: 16px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Qualidade · Refugo — análise dos apontamentos de refugo/retrabalho.
+     Lógica igual ao painel antigo qualidade_refugo.html: indicadores que
+     filtram (setor/tipo), período Hoje/Ontem/7 dias/Mês, De/Até, operador,
+     busca por várias palavras, card "Hoje" (sempre o dia, clique filtra,
+     selo NOVO até 10 min), quem apontou / por processo / motivos, tabela
+     ordenável, Excel e PDF do que está na tela, atualização a cada 1 min.
+     Novo: estorno (total ou parcial, com motivo) para quem tem EDITAR. -->
+<main class="conteudo">
+  <div class="tit-pagina">
+    <div><h1>Qualidade · Refugo</h1><p>Apontamentos de refugo e retrabalho da Fundição e Usinagem</p></div>
+  </div>
+
+  <div class="kl so-desk" id="kpis"></div>
+
+  <div class="barra so-desk">
+    <div class="f-busca"><svg class="i"><use href="#i-busca"/></svg><input id="busca" autocomplete="off" placeholder="Buscar OP, cliente, código, motivo, operador, processo…"></div>
+    <div class="seg" id="grupoPeriodo">
+      <button type="button" data-periodo="HOJE">Hoje</button><button type="button" data-periodo="ONTEM">Ontem</button><button type="button" data-periodo="7D">7 dias</button><button type="button" data-periodo="MES">Mês</button>
+    </div>
+    <label class="cx-l" title="De"><input type="date" id="dataDe"></label>
+    <label class="cx-l" title="Até">a <input type="date" id="dataAte"></label>
+    <label class="cx-l">OPERADOR <select id="operador"><option value="TODOS">Todos</option></select></label>
+    <button type="button" class="btn2" id="btnLimpar" title="Limpar filtros"><svg class="i"><use href="#i-x"/></svg></button>
+    <button type="button" class="btn2 xls" data-excel title="Exportar o que está na tela para Excel"><svg class="i"><use href="#i-xls"/></svg>Excel</button>
+    <button type="button" class="btn2" data-pdf title="Imprimir / salvar PDF do que está na tela"><svg class="i"><use href="#i-imp"/></svg>PDF</button>
+  </div>
+
+  <div class="faixa so-desk">
+    <button type="button" class="cd hoje" data-hoje></button>
+    <div class="cd"><div class="duas">
+      <div><h4 id="tituloOps">QUEM APONTOU</h4><div id="barOps"></div></div>
+      <div><h4>POR PROCESSO</h4><div id="barProc"></div></div>
+    </div></div>
+    <div class="cd mot"><h4>PRINCIPAIS MOTIVOS NO PERÍODO</h4><div id="barMot" style="display:grid;gap:7px"></div></div>
+  </div>
+
+  <div class="bloco so-desk">
+    <div class="tab-wrap">
+      <table class="tab">
+        <thead><tr id="cabecalho">
+          <th data-col="ts">Data / hora</th><th data-col="operador">Operador</th><th data-col="setor">Setor</th><th data-col="tipo">Tipo</th>
+          <th data-col="op">OP</th><th data-col="cliente">Cliente</th><th data-col="codigo">Código</th><th data-col="processo">Processo</th>
+          <th data-col="motivo">Motivo</th><th data-col="lado">Lado</th><th data-col="qtd" class="num">Qtd</th><th data-col="peso" class="num">Peso (kg)</th>
+          <th class="col-est" data-editar></th>
+        </tr></thead>
+        <tbody id="tbody"><tr><td colspan="13"><div class="carregando">Carregando…</div></td></tr></tbody>
+      </table>
+    </div>
+    <div class="rod-tab"><span id="rodResumo"></span><span id="rodTotal"></span></div>
+  </div>
+
+  <!-- celular -->
+  <div class="kpi-mini so-mob" id="kpisMob"></div>
+  <div class="per-mob so-mob" id="periodoMob">
+    <button type="button" data-periodo="HOJE">Hoje</button><button type="button" data-periodo="ONTEM">Ontem</button><button type="button" data-periodo="7D">7 dias</button><button type="button" data-periodo="MES">Mês</button>
+  </div>
+  <div class="busca-mob so-mob">
+    <div class="f"><svg class="i"><use href="#i-busca"/></svg><input id="buscaMob" autocomplete="off" placeholder="OP, motivo, operador…"></div>
+    <button type="button" class="bt" id="btFiltroMob" title="Datas, operador"><svg class="i"><use href="#i-filtro"/></svg><span class="pt" id="ptFiltro" hidden></span></button>
+    <button type="button" class="bt" id="btExportMob" title="Excel / PDF"><svg class="i"><use href="#i-imp"/></svg></button>
+  </div>
+  <button type="button" class="cd hoje so-mob" data-hoje></button>
+  <div class="info-mob so-mob" id="infoMob"></div>
+  <div class="lista-mob so-mob" id="cartoes"></div>
+</main>
+
+<script src="js/config.js"></script>
+<script src="js/icones.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/api.js"></script>
+<script src="js/sessao.js"></script>
+<script src="js/shell.js"></script>
+<script>
+Sessao.iniciarPagina('qualidade').then(function (ctx) {
+  const $ = function (id) { return document.getElementById(id); };
+  const esc = Ui.esc;
+
+  /* ---------- CONFIGURAÇÃO (igual ao painel antigo) ---------- */
+  const ATUALIZAR_A_CADA_MS = 60000;     // intervalo entre atualizações (1 min)
+  const MINUTOS_NOVO = 10;               // selo NOVO e linha destacada por 10 min
+  const MAX_CARTOES = 200;               // celular: cartões desenhados de uma vez
+  const SHEETJS_URL = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+  // Setor de cada processo quando a aba CAD_PROCESSO_REFUGO não responde
+  // (inclui os nomes antigos, para o histórico)
+  const PROCESSOS_FUNDICAO = ['ENGENHARIA', 'MODELAÇÃO', 'MOLDAGEM', 'PINTURA', 'FUSÃO', 'DESMOLDAGEM',
+    'AGUARDANDO FUSÃO', 'AGUARDANDO MOLDAGEM', 'AGUARDANDO PINTURA', 'INSPEÇÃO FUSÃO', 'PINTURA MOLDE'];
+  const NOME_SETOR = { FUNDICAO: 'FUNDIÇÃO', USINAGEM: 'USINAGEM' };
+  const NOME_TIPO = { REFUGO: 'REFUGO', RETRABALHO: 'RETRABALHO' };
+  const COR_SETOR = { FUNDICAO: '#f07a1f', USINAGEM: '#14b8a6' };
+
+  /* ---------- ESTADO ---------- */
+  const estado = {
+    dados: [],
+    filtros: { periodo: 'HOJE', de: '', ate: '', setor: 'TODOS', tipo: 'TODOS', operador: 'TODOS', busca: '' },
+    cardHojeAtivo: false,
+    filtrosAntesDoCard: null,
+    ordem: { col: 'ts', dir: -1 }        // -1 = mais recente primeiro
+  };
+  let setorPorProcesso = {};             // vem da CAD_PROCESSO_REFUGO (inicioRefugo)
+  let carregando = false, jaCarregou = false;
+
+  if (!ctx.podeEditar) document.querySelectorAll('[data-editar]').forEach(function (el) { el.hidden = true; });
+
+  /* ---------- UTILITÁRIOS ---------- */
+  const pad = function (v) { return String(v).padStart(2, '0'); };
+  function normalizar(txt) { return String(txt || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase(); }
+  function kg(n, casas) { casas = casas === undefined ? 3 : casas; return (Number(n) || 0).toLocaleString('pt-BR', { minimumFractionDigits: casas, maximumFractionDigits: casas }); }
+  // "23/09/2026 10:08:00" → Date
+  function parseDataHora(s) {
+    const m = String(s || '').match(/(\d{1,2})\/(\d{1,2})\/(\d{4})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
+    return m ? new Date(m[3], m[2] - 1, m[1], m[4] || 0, m[5] || 0, m[6] || 0) : null;
+  }
+  function iso(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  function isoParaBR(s) { const p = String(s || '').split('-'); return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : ''; }
+  function inicioDoDia(d) { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; }
+  function setorDoProcesso(proc) {
+    const p = String(proc || '').toUpperCase().trim();
+    if (setorPorProcesso[p]) return setorPorProcesso[p];
+    return PROCESSOS_FUNDICAO.indexOf(p) !== -1 ? 'FUNDICAO' : 'USINAGEM';
+  }
+  function soma(lista, campo) { return lista.reduce(function (s, x) { return s + x[campo]; }, 0); }
+  function tagTipo(t) { return t === 'RETRABALHO' ? '<span class="tt ret">RETRAB.</span>' : '<span class="tt ref">REFUGO</span>'; }
+  function haModal() { return !!document.querySelector('.modal-fundo'); }
+  function ehCelular() { return window.innerWidth <= 760; }
+
+  /* ---------- CARGA DOS DADOS ---------- */
+  iniciar();
+  async function iniciar() {
+    aplicarPeriodo('HOJE');
+    ligarEventos();
+    render();
+    // Setor de cada processo pela aba nova (quem não vê o Refugo usa a lista antiga)
+    if (ctx.nivelDe('refugo') !== 'NENHUM') {
+      try {
+        const cfg = await Api.chamar('inicioRefugo', {});
+        (cfg.processos || []).forEach(function (p) { setorPorProcesso[p.processo] = p.setor; });
+      } catch (e) { /* segue com a lista antiga */ }
+    }
+    await carregar();
+    setInterval(function () {
+      if (document.hidden || haModal()) return;
+      carregar(true);
+    }, ATUALIZAR_A_CADA_MS);
+  }
+
+  // Traz tudo (o filtro é feito aqui na tela, igual ao antigo: o card
+  // "Hoje", os contadores e a lista de operadores precisam do todo).
+  async function carregar(silencioso) {
+    if (carregando) return;
+    carregando = true;
+    try {
+      const r = await Api.chamar('listarRefugo', {}, { rapido: function () { if (!haModal()) carregar(true); } });
+      estado.dados = (r.itens || []).map(function (x) {
+        const data = parseDataHora(x.dataHora);
+        const qtd = Number(x.qtdRefugo) || 0;
+        const orig = Number(x.qtdOriginal) || qtd;
+        const pesoOrig = Number(x.pesoLiquidoInformado) || 0;
+        return {
+          id: x.id, dataHora: x.dataHora || '', data: data, ts: data ? data.getTime() : 0,
+          operador: String(x.operador || x.login || '').toUpperCase(), login: String(x.login || ''),
+          op: String(x.op || ''), pedido: x.pedido || '', cliente: x.cliente || '', codigo: x.codigo || '',
+          descricao: x.descricao || '', liga: x.liga || '', lote: x.lote || '', lado: x.lado || '',
+          processo: String(x.processo || '').toUpperCase(), setor: setorDoProcesso(x.processo),
+          qtdOrdem: Number(x.qtdOrdem) || 0, qtdMoldes: Number(x.qtdMoldes) || 0, qtdPrevalece: Number(x.qtdPrevalece) || 0,
+          pesoBrutoUnitario: Number(x.pesoBrutoUnitario) || 0,
+          qtd: qtd, qtdOriginal: orig, qtdEstornada: Number(x.qtdEstornada) || 0,
+          // peso líquido proporcional ao que sobrou depois do estorno parcial
+          peso: orig > 0 && qtd !== orig ? Math.round(pesoOrig / orig * qtd * 1000) / 1000 : pesoOrig,
+          motivo: x.motivo || '', tipo: String(x.tipo || '').toUpperCase() === 'RETRABALHO' ? 'RETRABALHO' : 'REFUGO'
+        };
+      }).filter(function (x) { return x.data; });
+      jaCarregou = true;
+      atualizarListaOperadores();
+      render();
+    } catch (e) {
+      if (!silencioso || !jaCarregou) Ui.erro(e);
+      if (!jaCarregou) $('tbody').innerHTML = '<tr><td colspan="13"><div class="vazio">Não foi possível carregar os apontamentos.</div></td></tr>';
+    } finally {
+      carregando = false;
+    }
+  }
+
+  function atualizarListaOperadores() {
+    const sel = $('operador');
+    const atual = estado.filtros.operador;
+    const mapa = {};
+    estado.dados.forEach(function (x) { if (x.login) mapa[x.login] = x.operador; });
+    const logins = Object.keys(mapa).sort(function (a, b) { return mapa[a].localeCompare(mapa[b]); });
+    sel.innerHTML = '<option value="TODOS">Todos</option>' + logins.map(function (l) { return '<option value="' + esc(l) + '">' + esc(mapa[l]) + '</option>'; }).join('');
+    estado.operadores = logins.map(function (l) { return { login: l, nome: mapa[l] }; });
+    if (atual !== 'TODOS' && !mapa[atual]) estado.filtros.operador = 'TODOS';
+  }
+  function nomeOperador(login) {
+    const o = (estado.operadores || []).find(function (x) { return x.login === login; });
+    return o ? o.nome : login;
+  }
+
+  /* ---------- FILTROS ---------- */
+  // Converte o botão de período em datas De / Até
+  function datasDoPeriodo(periodo) {
+    const hoje = inicioDoDia(new Date());
+    if (periodo === 'HOJE') return [hoje, hoje];
+    if (periodo === 'ONTEM') { const o = new Date(hoje); o.setDate(o.getDate() - 1); return [o, o]; }
+    if (periodo === '7D') { const i = new Date(hoje); i.setDate(i.getDate() - 6); return [i, hoje]; }
+    if (periodo === 'MES') return [new Date(hoje.getFullYear(), hoje.getMonth(), 1), hoje];
+    return null;
+  }
+  function aplicarPeriodo(periodo) {
+    const f = estado.filtros;
+    f.periodo = periodo;
+    const d = datasDoPeriodo(periodo);
+    if (d) { f.de = iso(d[0]); f.ate = iso(d[1]); }
+  }
+  // Qualquer mudança de filtro feita pelo usuário "desliga" o card de hoje
+  function mudarFiltro(fn) {
+    fn(estado.filtros);
+    estado.cardHojeAtivo = false;
+    estado.filtrosAntesDoCard = null;
+    render();
+  }
+  // ignorar.setor / ignorar.tipo: usados pelos contadores, que mostram os
+  // dois setores (e os dois tipos) mesmo com um deles filtrado.
+  function filtrar(lista, ignorar) {
+    ignorar = ignorar || {};
+    const f = estado.filtros;
+    const ini = f.de ? new Date(f.de + 'T00:00:00').getTime() : -Infinity;
+    const fim = f.ate ? new Date(f.ate + 'T23:59:59.999').getTime() : Infinity;
+    const termos = normalizar(f.busca).split(/\s+/).filter(Boolean);
+    return lista.filter(function (x) {
+      if (x.ts < ini || x.ts > fim) return false;
+      if (!ignorar.setor && f.setor !== 'TODOS' && x.setor !== f.setor) return false;
+      if (!ignorar.tipo && f.tipo !== 'TODOS' && x.tipo !== f.tipo) return false;
+      if (f.operador !== 'TODOS' && x.login !== f.operador) return false;
+      if (termos.length) {
+        const txt = normalizar([x.op, x.pedido, x.cliente, x.codigo, x.descricao, x.motivo, x.operador, x.processo, x.lado, x.liga, x.tipo, x.dataHora].join(' '));
+        // Todas as palavras digitadas precisam aparecer (ex.: "rechupe moldagem")
+        if (!termos.every(function (t) { return txt.indexOf(t) !== -1; })) return false;
+      }
+      return true;
+    });
+  }
+  function ordenar(lista) {
+    const col = estado.ordem.col, dir = estado.ordem.dir;
+    return lista.slice().sort(function (a, b) {
+      const va = a[col], vb = b[col];
+      if (typeof va === 'number') return (va - vb) * dir || (b.ts - a.ts);
+      return String(va).localeCompare(String(vb), 'pt-BR', { numeric: true }) * dir || (b.ts - a.ts);
+    });
+  }
+  function listaAtual() { return ordenar(filtrar(estado.dados)); }
+
+  // Card de hoje: liga/desliga o filtro do dia
+  function clicarCardHoje() {
+    if (estado.cardHojeAtivo) {
+      // Segundo clique: volta aos filtros que estavam antes
+      estado.filtros = estado.filtrosAntesDoCard || estado.filtros;
+      estado.cardHojeAtivo = false;
+      estado.filtrosAntesDoCard = null;
+    } else {
+      estado.filtrosAntesDoCard = Object.assign({}, estado.filtros);
+      estado.filtros = { periodo: 'HOJE', de: '', ate: '', setor: 'TODOS', tipo: 'TODOS', operador: 'TODOS', busca: '' };
+      aplicarPeriodo('HOJE');
+      estado.cardHojeAtivo = true;
+    }
+    render();
+  }
+
+  /* ---------- DESENHO DA TELA ---------- */
+  function agrupar(lista, campo) {
+    const m = new Map();
+    lista.forEach(function (x) {
+      const g = m.get(x[campo]) || { nome: x[campo], apont: 0, qtd: 0, peso: 0 };
+      g.apont++; g.qtd += x.qtd; g.peso += x.peso;
+      m.set(x[campo], g);
+    });
+    return Array.from(m.values()).sort(function (a, b) { return b.qtd - a.qtd || b.apont - a.apont; });
+  }
+  function barras(id, grupos, max, cor, rotulo, texto) {
+    if (!grupos.length) { $(id).innerHTML = '<div class="sem-dados">Sem apontamentos no filtro.</div>'; return; }
+    const topo = grupos[0].qtd || 1;
+    $(id).innerHTML = grupos.slice(0, max).map(function (g) {
+      return '<div class="bb" title="' + esc(rotulo(g)) + '"><span>' + esc(rotulo(g)) + '</span><span class="t"><i style="width:' + (g.qtd / topo * 100).toFixed(1) + '%;background:' + cor(g) + '"></i></span><em>' + texto(g) + '</em></div>';
+    }).join('');
+    $(id).style.display = 'grid';
+    $(id).style.gap = '7px';
+  }
+
+  function render() {
+    const f = estado.filtros;
+    const agora = Date.now();
+    const hojeIni = inicioDoDia(new Date()).getTime();
+    const limiteNovo = agora - MINUTOS_NOVO * 60000;
+
+    // Controles refletem o estado
+    if (document.activeElement !== $('busca')) $('busca').value = f.busca;
+    if (document.activeElement !== $('buscaMob')) $('buscaMob').value = f.busca;
+    $('dataDe').value = f.de;
+    $('dataAte').value = f.ate;
+    $('operador').value = f.operador;
+    document.querySelectorAll('[data-periodo]').forEach(function (b) { b.classList.toggle('on', b.dataset.periodo === f.periodo); });
+    const nFiltro = (f.operador !== 'TODOS' ? 1 : 0) + (f.periodo === 'CUSTOM' ? 1 : 0);
+    $('ptFiltro').hidden = !nFiltro;
+    $('ptFiltro').textContent = nFiltro;
+
+    const lista = listaAtual();
+
+    // Indicadores: números do que está filtrado
+    const semSetor = filtrar(estado.dados, { setor: true });
+    const semTipo = filtrar(estado.dados, { tipo: true });
+    const ref = semTipo.filter(function (x) { return x.tipo === 'REFUGO'; });
+    const ret = semTipo.filter(function (x) { return x.tipo === 'RETRABALHO'; });
+    const k = [
+      { a: 'TODOS', c: '#3b82f6', l: 'Apontamentos', v: lista.length, s: 'no período', mob: 'Apont.', sel: f.setor === 'TODOS' && f.tipo === 'TODOS' },
+      { a: 'T:REFUGO', c: '#ef4444', l: 'Refugo', v: soma(ref, 'qtd') + ' <small>pç</small>', s: kg(soma(ref, 'peso'), 1) + ' kg', mob: 'Refugo', vm: soma(ref, 'qtd') + ' pç', sel: f.tipo === 'REFUGO' },
+      { a: 'T:RETRABALHO', c: '#3b82f6', l: 'Retrabalho', v: soma(ret, 'qtd') + ' <small>pç</small>', s: kg(soma(ret, 'peso'), 1) + ' kg', mob: 'Retrab.', vm: soma(ret, 'qtd') + ' pç', sel: f.tipo === 'RETRABALHO' },
+      { a: 'S:FUNDICAO', c: '#f07a1f', l: 'Fundição', v: semSetor.filter(function (x) { return x.setor === 'FUNDICAO'; }).length, s: 'apontamentos', mob: 'Fundição', sel: f.setor === 'FUNDICAO' },
+      { a: 'S:USINAGEM', c: '#14b8a6', l: 'Usinagem', v: semSetor.filter(function (x) { return x.setor === 'USINAGEM'; }).length, s: 'apontamentos', mob: 'Usinagem', sel: f.setor === 'USINAGEM' }
+    ];
+    $('kpis').innerHTML = k.map(function (x) {
+      return '<button type="button" class="kq' + (x.sel ? ' sel' : '') + '" data-kpi="' + x.a + '" style="--c:' + x.c + '"><span class="l">' + x.l + '</span><b>' + x.v + '</b><span class="s">' + x.s + '</span></button>';
+    }).join('');
+    $('kpisMob').innerHTML = k.map(function (x) {
+      return '<button type="button" class="km' + (x.sel ? ' sel' : '') + '" data-kpi="' + x.a + '" style="--c:' + x.c + '"><b>' + (x.vm || x.v) + '</b>' + x.mob + '</button>';
+    }).join('');
+
+    // Card de HOJE (sempre o dia, independente do filtro)
+    const hoje = estado.dados.filter(function (x) { return x.ts >= hojeIni; }).sort(function (a, b) { return b.ts - a.ts; });
+    const hRef = hoje.filter(function (x) { return x.tipo === 'REFUGO'; });
+    const hRet = hoje.filter(function (x) { return x.tipo === 'RETRABALHO'; });
+    const ult = hoje[0];
+    const minutos = ult ? Math.max(0, Math.round((agora - ult.ts) / 60000)) : 0;
+    const htmlHoje =
+      (ult && ult.ts >= limiteNovo ? '<span class="novo">NOVO</span>' : '') +
+      '<h4>APONTAMENTOS HOJE</h4><div class="n">' + hoje.length + '<small>apontamentos</small></div>' +
+      '<div class="d">Refugo: <b>' + soma(hRef, 'qtd') + ' pç · ' + kg(soma(hRef, 'peso')) + ' kg</b></div>' +
+      '<div class="d">Retrabalho: <b>' + soma(hRet, 'qtd') + ' pç · ' + kg(soma(hRet, 'peso')) + ' kg</b> · ' + new Set(hoje.map(function (x) { return x.op; })).size + ' OPs</div>' +
+      '<div class="u">' + (ult
+        ? 'Último: <b>' + pad(ult.data.getHours()) + ':' + pad(ult.data.getMinutes()) + '</b> · ' + esc(ult.operador) + ' · ' + (ult.tipo === 'RETRABALHO' ? 'RETRAB. · ' : '') + 'OP ' + esc(ult.op) + ' · ' + esc(ult.processo) + ' · ' + (minutos < 1 ? 'agora' : minutos < 60 ? 'há ' + minutos + ' min' : 'há ' + Math.floor(minutos / 60) + ' h')
+        : 'Nenhum apontamento hoje.') + '</div>';
+    document.querySelectorAll('[data-hoje]').forEach(function (c) {
+      c.innerHTML = htmlHoje;
+      c.classList.toggle('pulsando', hoje.length > 0 && !estado.cardHojeAtivo);
+      c.classList.toggle('ativo', estado.cardHojeAtivo);
+      c.title = estado.cardHojeAtivo ? 'Clique para voltar ao filtro anterior' : 'Clique para ver só os apontamentos de hoje';
+    });
+
+    // Rankings do período filtrado
+    $('tituloOps').textContent = f.periodo === 'HOJE' ? 'QUEM APONTOU HOJE' : 'QUEM APONTOU NO PERÍODO';
+    barras('barOps', agrupar(lista, 'operador'), 3,
+      function (g) { return COR_SETOR[(lista.find(function (x) { return x.operador === g.nome; }) || {}).setor] || '#3b82f6'; },
+      function (g) { return g.nome; },
+      function (g) { return '<b>' + g.apont + '</b> · ' + g.qtd + ' pç'; });
+    barras('barProc', agrupar(lista, 'processo'), 5,
+      function (g) { return COR_SETOR[setorDoProcesso(g.nome)]; },
+      function (g) { return g.nome; },
+      function (g) { return '<b>' + g.qtd + '</b> pç'; });
+    const motivos = agrupar(lista, 'motivo');
+    const tipoMot = function (g) { return (lista.find(function (x) { return x.motivo === g.nome; }) || {}).tipo; };
+    barras('barMot', motivos, 6,
+      function (g) { return tipoMot(g) === 'RETRABALHO' ? '#eab308' : '#ef4444'; },
+      function (g) { return g.nome + (tipoMot(g) === 'RETRABALHO' ? ' (retrab.)' : ''); },
+      function (g) { return '<b>' + g.qtd + ' pç</b> · ' + kg(g.peso, 1); });
+
+    // Tabela
+    document.querySelectorAll('#cabecalho th[data-col]').forEach(function (th) {
+      th.classList.toggle('ord-desc', th.dataset.col === estado.ordem.col && estado.ordem.dir === -1);
+      th.classList.toggle('ord-asc', th.dataset.col === estado.ordem.col && estado.ordem.dir === 1);
+    });
+    const botaoEst = function (x, curto) {
+      return ctx.podeEditar ? '<button type="button" class="bt-est" data-estornar="' + esc(x.id) + '" title="Estornar este apontamento">' + Ui.ic('i-volta') + (curto ? '' : 'Estornar') + '</button>' : '';
+    };
+    const marcaEst = function (x) { return x.qtdEstornada ? '<span class="est" title="Original ' + x.qtdOriginal + ', estornado ' + x.qtdEstornada + '">(−' + x.qtdEstornada + ')</span>' : ''; };
+    if (jaCarregou) {
+      $('tbody').innerHTML = lista.length ? lista.map(function (x) {
+        const cls = x.ts >= limiteNovo ? 'recente' : '';
+        return '<tr class="' + cls + '" data-id="' + esc(x.id) + '">' +
+          '<td title="' + esc(x.dataHora) + '">' + pad(x.data.getDate()) + '/' + pad(x.data.getMonth() + 1) + ' ' + pad(x.data.getHours()) + ':' + pad(x.data.getMinutes()) + '</td>' +
+          '<td>' + esc(x.operador) + '</td><td>' + esc(NOME_SETOR[x.setor]) + '</td><td>' + tagTipo(x.tipo) + '</td>' +
+          '<td><b>' + esc(x.op) + '</b></td><td>' + esc(x.cliente) + '</td><td class="mut">' + esc(x.codigo) + '</td>' +
+          '<td>' + esc(x.processo) + '</td><td class="motivo" title="' + esc(x.motivo) + '">' + esc(x.motivo) + '</td><td>' + esc(x.lado) + '</td>' +
+          '<td class="num">' + x.qtd + marcaEst(x) + '</td><td class="num">' + kg(x.peso) + '</td>' +
+          (ctx.podeEditar ? '<td>' + botaoEst(x, true) + '</td>' : '') + '</tr>';
+      }).join('') : '<tr><td colspan="13"><div class="vazio">Nenhum apontamento encontrado com esses filtros.</div></td></tr>';
+    }
+
+    // Celular: cartões
+    const cartoes = lista.slice(0, MAX_CARTOES);
+    $('cartoes').innerHTML = !jaCarregou ? '<div class="carregando">Carregando…</div>' : lista.length ? cartoes.map(function (x) {
+      return '<div class="cm' + (x.ts >= limiteNovo ? ' recente' : '') + '" data-id="' + esc(x.id) + '">' +
+        '<div class="cm-top"><span class="op">' + esc(x.op) + '</span><span class="cli">' + esc(x.cliente) + '</span>' + tagTipo(x.tipo) + '</div>' +
+        '<div class="cm-desc">' + esc(x.motivo) + '<small>' + esc(x.processo) + ' · lado ' + esc(x.lado || '—') + ' · ' + esc(x.operador) + ' · ' +
+          pad(x.data.getDate()) + '/' + pad(x.data.getMonth() + 1) + ' ' + pad(x.data.getHours()) + ':' + pad(x.data.getMinutes()) + '</small></div>' +
+        '<div class="lin2"><span>' + esc(x.codigo) + '</span><span><b>' + x.qtd + ' pç</b>' + marcaEst(x) + ' · ' + kg(x.peso) + ' kg</span></div>' +
+        (ctx.podeEditar ? '<div class="lin2"><span></span>' + botaoEst(x) + '</div>' : '') + '</div>';
+    }).join('') + (lista.length > MAX_CARTOES ? '<div class="vazio">Mostrando ' + MAX_CARTOES + ' de ' + lista.length + '. Use a busca ou o período para ver os outros.</div>' : '')
+      : '<div class="vazio">Nenhum apontamento encontrado com esses filtros.</div>';
+
+    // Rodapé
+    const lRef = lista.filter(function (x) { return x.tipo === 'REFUGO'; });
+    const lRet = lista.filter(function (x) { return x.tipo === 'RETRABALHO'; });
+    $('rodResumo').innerHTML = 'Mostrando <b>' + lista.length + '</b> apontamento(s) · ' + esc(descreverFiltros());
+    $('rodTotal').innerHTML = 'Refugo <b>' + soma(lRef, 'qtd') + ' pç · ' + kg(soma(lRef, 'peso')) + ' kg</b> · Retrabalho <b>' + soma(lRet, 'qtd') + ' pç · ' + kg(soma(lRet, 'peso')) + ' kg</b>';
+    $('infoMob').textContent = lista.length + ' apontamento(s) · ' + descreverFiltros();
+  }
+
+  // Texto do filtro atual (rodapé, PDF e Excel)
+  function descreverFiltros() {
+    const f = estado.filtros;
+    const partes = [];
+    if (estado.cardHojeAtivo) partes.push('APONTAMENTOS DO DIA');
+    const de = isoParaBR(f.de), ate = isoParaBR(f.ate);
+    partes.push(de && ate ? (de === ate ? de : de + ' a ' + ate) : de ? 'a partir de ' + de : ate ? 'até ' + ate : 'todo o período');
+    partes.push(f.setor === 'TODOS' ? 'todos os setores' : NOME_SETOR[f.setor]);
+    partes.push(f.tipo === 'TODOS' ? 'refugo e retrabalho' : 'só ' + NOME_TIPO[f.tipo].toLowerCase());
+    partes.push(f.operador === 'TODOS' ? 'todos os operadores' : 'operador ' + nomeOperador(f.operador));
+    if (f.busca.trim()) partes.push('busca "' + f.busca.trim() + '"');
+    return partes.join(' · ');
+  }
+
+  /* ---------- EXPORTAR EXCEL (SheetJS; sem internet → CSV) ---------- */
+  const COLUNAS_EXPORT = [
+    ['ID', function (x) { return x.id; }], ['DATA_HORA', function (x) { return x.dataHora; }], ['OPERADOR', function (x) { return x.operador; }],
+    ['SETOR', function (x) { return NOME_SETOR[x.setor]; }], ['OP', function (x) { return x.op; }], ['PEDIDO', function (x) { return x.pedido; }],
+    ['CLIENTE', function (x) { return x.cliente; }], ['CODIGO', function (x) { return x.codigo; }], ['DESCRICAO', function (x) { return x.descricao; }],
+    ['LIGA', function (x) { return x.liga; }], ['LADO', function (x) { return x.lado; }], ['PROCESSO', function (x) { return x.processo; }],
+    ['MOTIVO', function (x) { return x.motivo; }], ['QTD_REFUGO', function (x) { return x.qtd; }], ['PESO_LIQUIDO_KG', function (x) { return x.peso; }],
+    ['TIPO', function (x) { return x.tipo; }]
+  ];
+  function nomeArquivo(ext) {
+    const f = estado.filtros;
+    const per = f.de && f.ate ? (f.de === f.ate ? f.de : f.de + '_a_' + f.ate) : iso(new Date());
+    return 'refugo_' + per + '.' + ext;
+  }
+  function carregarSheetJS() {
+    if (window.XLSX) return Promise.resolve(true);
+    return new Promise(function (res) {
+      const s = document.createElement('script');
+      s.src = SHEETJS_URL;
+      s.onload = function () { res(!!window.XLSX); };
+      s.onerror = function () { res(false); };
+      document.head.appendChild(s);
+      setTimeout(function () { res(!!window.XLSX); }, 8000);
+    });
+  }
+  async function exportarExcel() {
+    const lista = listaAtual();
+    if (!lista.length) { Ui.toast('Nenhum apontamento no filtro atual: nada para exportar.', 'aviso'); return; }
+    const cabec = COLUNAS_EXPORT.map(function (c) { return c[0]; });
+    const linhas = lista.map(function (x) { return COLUNAS_EXPORT.map(function (c) { return c[1](x); }); });
+    const bts = document.querySelectorAll('[data-excel]');
+    bts.forEach(function (b) { b.disabled = true; });
+    const temLib = await carregarSheetJS();
+    bts.forEach(function (b) { b.disabled = false; });
+    if (temLib) {
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet([cabec].concat(linhas));
+      ws['!cols'] = cabec.map(function (h, i) { return { wch: Math.min(40, Math.max.apply(null, [h.length].concat(linhas.slice(0, 200).map(function (l) { return String(l[i] === undefined || l[i] === null ? '' : l[i]).length; }))) + 2) }; });
+      ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: linhas.length, c: cabec.length - 1 } }) };
+      XLSX.utils.book_append_sheet(wb, ws, 'REFUGO');
+      const soRef = lista.filter(function (x) { return x.tipo === 'REFUGO'; });
+      const soRet = lista.filter(function (x) { return x.tipo === 'RETRABALHO'; });
+      const resumo = [
+        ['RELATÓRIO DE REFUGO · QUALIDADE PROMETALS'],
+        ['Filtro', descreverFiltros()],
+        ['Emitido em', new Date().toLocaleString('pt-BR')],
+        [],
+        ['Apontamentos', lista.length],
+        ['Refugo · peças', soma(soRef, 'qtd')],
+        ['Refugo · peso (kg)', Number(soma(soRef, 'peso').toFixed(3))],
+        ['Retrabalho · peças', soma(soRet, 'qtd')],
+        ['Retrabalho · peso (kg)', Number(soma(soRet, 'peso').toFixed(3))],
+        ['OPs envolvidas', new Set(lista.map(function (x) { return x.op; })).size],
+        [],
+        ['MOTIVO', 'APONTAMENTOS', 'PEÇAS', 'PESO (kg)']
+      ].concat(agrupar(lista, 'motivo').map(function (g) { return [g.nome, g.apont, g.qtd, Number(g.peso.toFixed(3))]; }))
+        .concat([[], ['OPERADOR', 'APONTAMENTOS', 'PEÇAS', 'PESO (kg)']])
+        .concat(agrupar(lista, 'operador').map(function (g) { return [g.nome, g.apont, g.qtd, Number(g.peso.toFixed(3))]; }));
+      const wr = XLSX.utils.aoa_to_sheet(resumo);
+      wr['!cols'] = [{ wch: 34 }, { wch: 50 }, { wch: 10 }, { wch: 12 }];
+      XLSX.utils.book_append_sheet(wb, wr, 'RESUMO');
+      XLSX.writeFile(wb, nomeArquivo('xlsx'));
+    } else {
+      // Sem internet para baixar a biblioteca: gera CSV (abre no Excel)
+      const csv = [cabec].concat(linhas).map(function (l) {
+        return l.map(function (v) {
+          const s = typeof v === 'number' ? String(v).replace('.', ',') : String(v === undefined || v === null ? '' : v);
+          return /[";\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+        }).join(';');
+      }).join('\r\n');
+      baixar(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }), nomeArquivo('csv'));
+      Ui.toast('Não foi possível carregar o gerador de Excel (sem internet?). O arquivo foi salvo em CSV, que também abre no Excel.', 'aviso');
+    }
+  }
+  function baixar(blob, nome) {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = nome;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  }
+
+  /* ---------- IMPRIMIR / PDF (HTML do painel antigo) ---------- */
+  function imprimir() {
+    const lista = listaAtual();
+    if (!lista.length) { Ui.toast('Nenhum apontamento no filtro atual: nada para imprimir.', 'aviso'); return; }
+    const e = esc;
+    const soRef = lista.filter(function (x) { return x.tipo === 'REFUGO'; });
+    const soRet = lista.filter(function (x) { return x.tipo === 'RETRABALHO'; });
+    const linhas = lista.map(function (x) {
+      return `<tr>
+        <td>${e(x.dataHora.slice(0, 16))}</td><td>${e(x.operador)}</td><td>${e(NOME_SETOR[x.setor])}</td>
+        <td>${e(x.tipo)}</td><td>${e(x.op)}</td><td>${e(x.cliente)}</td><td>${e(x.codigo)}</td><td>${e(x.liga)}</td>
+        <td>${e(x.processo)}</td><td>${e(x.motivo)}</td><td>${e(x.lado)}</td><td class="n">${x.qtd}</td><td class="n">${kg(x.peso)}</td>
+      </tr>`;
+    }).join('');
+    const motivos = agrupar(lista, 'motivo').slice(0, 5).map(function (g) {
+      return `<tr><td>${e(g.nome)}</td><td class="n">${g.apont}</td><td class="n">${g.qtd}</td><td class="n">${kg(g.peso)}</td></tr>`;
+    }).join('');
+    const w = window.open('', '_blank');
+    if (!w) { Ui.toast('O navegador bloqueou a janela de impressão. Libere pop-ups para este site.', 'erro'); return; }
+    w.document.write(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
+<title>Relatório de Refugo · ${e(descreverFiltros())}</title>
+<style>
+  @page { size: A4 landscape; margin: 12mm; }
+  body { font-family: Arial, sans-serif; color: #111; margin: 0; }
+  h2 { font-size: 16px; margin: 0 0 3px; }
+  .sub { font-size: 10px; color: #555; margin-bottom: 12px; }
+  .res { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; }
+  .res div { border: 1px solid #ccc; border-radius: 4px; padding: 6px 8px; font-size: 9px; color: #555; }
+  .res b { display: block; font-size: 15px; color: #111; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+  th, td { border: 1px solid #ccc; padding: 4px 6px; font-size: 9.5px; text-align: left; }
+  th { background: #efefef; }
+  thead { display: table-header-group; }
+  tr { page-break-inside: avoid; }
+  .n { text-align: right; }
+  h3 { font-size: 11px; margin: 8px 0 4px; }
+  .mot { width: 50%; }
+  .ass { display: flex; justify-content: space-between; margin-top: 30px; font-size: 10px; }
+  .ass span { border-top: 1px solid #333; padding-top: 3px; width: 40%; text-align: center; }
+</style></head><body>
+  <h2>RELATÓRIO DE REFUGO E RETRABALHO · QUALIDADE PROMETALS</h2>
+  <div class="sub">Filtro: ${e(descreverFiltros())} · Emitido em ${new Date().toLocaleString('pt-BR')}</div>
+  <div class="res">
+    <div>APONTAMENTOS<b>${lista.length}</b></div>
+    <div>REFUGO<b>${soma(soRef, 'qtd')} pç · ${kg(soma(soRef, 'peso'))} kg</b></div>
+    <div>RETRABALHO<b>${soma(soRet, 'qtd')} pç · ${kg(soma(soRet, 'peso'))} kg</b></div>
+    <div>OPs ENVOLVIDAS<b>${new Set(lista.map(function (x) { return x.op; })).size}</b></div>
+  </div>
+  <table>
+    <thead><tr><th>DATA/HORA</th><th>OPERADOR</th><th>SETOR</th><th>TIPO</th><th>OP</th><th>CLIENTE</th><th>CÓDIGO</th>
+    <th>LIGA</th><th>PROCESSO</th><th>MOTIVO</th><th>LADO</th><th class="n">QTD</th><th class="n">PESO (kg)</th></tr></thead>
+    <tbody>${linhas}</tbody>
+  </table>
+  <h3>PRINCIPAIS MOTIVOS</h3>
+  <table class="mot">
+    <thead><tr><th>MOTIVO</th><th class="n">APONT.</th><th class="n">PEÇAS</th><th class="n">PESO (kg)</th></tr></thead>
+    <tbody>${motivos}</tbody>
+  </table>
+  <div class="ass"><span>Responsável Qualidade</span><span>Data</span></div>
+  <script>window.onload = () => window.print();<\/script>
+</body></html>`);
+    w.document.close();
+  }
+
+  /* ---------- ESTORNO (Qualidade, nível EDITAR) ----------
+     Total ou parcial. Nada é apagado: o servidor grava uma linha
+     negativa e guarda o motivo na auditoria. */
+  function estornar(id) {
+    const x = estado.dados.find(function (d) { return d.id === id; });
+    if (!x || !ctx.podeEditar) return;
+    const idReq = Api.idReq();          // o mesmo ID em cada nova tentativa desta janela
+    Ui.janela({
+      titulo: 'Estornar apontamento',
+      subtitulo: x.id + ' · ' + x.dataHora.slice(0, 16),
+      corpo:
+        '<div class="msg-erro"></div>' +
+        '<div class="jan-grade">' +
+        '<div class="jan-resumo"><b>OP ' + esc(x.op) + '</b> · ' + esc(x.cliente) + '<br>' + tagTipo(x.tipo) + ' ' + esc(x.processo) + ' · ' + esc(x.motivo) + ' · lado ' + esc(x.lado || '—') +
+        '<br>Apontado por ' + esc(x.operador) + ' · <b>' + x.qtd + ' pç</b> restam' + (x.qtdEstornada ? ' (de ' + x.qtdOriginal + ')' : '') + '</div>' +
+        '<label>Quantidade a estornar (máx. ' + x.qtd + ')<input type="number" name="qtd" min="1" max="' + x.qtd + '" step="1" value="' + x.qtd + '" inputmode="numeric"></label>' +
+        '<label>Motivo do estorno<input name="motivo" maxlength="200" placeholder="Ex.: apontado na OP errada" autocomplete="off"></label>' +
+        '</div>',
+      botoes: [{ texto: 'Cancelar', valor: null }, { texto: 'Estornar', classe: 'perigo', valor: 'ok' }],
+      antesDeFechar: async function (v, caixa) {
+        const erro = caixa.querySelector('.msg-erro');
+        const qtdTxt = caixa.querySelector('[name="qtd"]').value.trim();
+        const qtd = Number(qtdTxt);
+        const motivo = caixa.querySelector('[name="motivo"]').value.trim();
+        if (!/^\d+$/.test(qtdTxt) || qtd < 1 || qtd > x.qtd) { Ui.msgErro(erro, 'Quantidade deve ser um número inteiro de 1 a ' + x.qtd + '.'); return false; }
+        if (!motivo) { Ui.msgErro(erro, 'Informe o motivo do estorno.'); caixa.querySelector('[name="motivo"]').focus(); return false; }
+        try {
+          const r = await Api.chamar('estornarRefugo', { idReq: idReq, id: x.id, qtd: qtd, motivo: motivo });
+          Ui.toast(r.duplicado ? 'Este estorno já tinha sido registrado.' : qtd + ' pç estornada(s) de ' + x.id + (r.resta ? ' · restam ' + r.resta : ''), 'ok', 'Estorno registrado');
+          return true;
+        } catch (e) {
+          Ui.msgErro(erro, e.message);
+          return false;
+        }
+      }
+    }).then(function (v) { if (v === 'ok') carregar(true); });
+  }
+
+  /* ---------- CELULAR: janelas de filtro e de exportação ---------- */
+  function janelaFiltroMob() {
+    const f = estado.filtros;
+    Ui.janela({
+      titulo: 'Filtros',
+      corpo: '<div class="jan-grade">' +
+        '<label>De<input type="date" name="de" value="' + esc(f.de) + '"></label>' +
+        '<label>Até<input type="date" name="ate" value="' + esc(f.ate) + '"></label>' +
+        '<label>Operador<select name="op"><option value="TODOS">Todos</option>' + (estado.operadores || []).map(function (o) {
+          return '<option value="' + esc(o.login) + '"' + (o.login === f.operador ? ' selected' : '') + '>' + esc(o.nome) + '</option>';
+        }).join('') + '</select></label></div>',
+      botoes: [{ texto: 'Limpar', valor: 'limpar', classe: 'esq' }, { texto: 'Cancelar', valor: null }, { texto: 'Aplicar', classe: 'pri', valor: 'ok' }],
+      antesDeFechar: function (v, cx) {
+        if (v === 'limpar') {
+          mudarFiltro(function (ff) { Object.assign(ff, { setor: 'TODOS', tipo: 'TODOS', operador: 'TODOS', busca: '' }); aplicarPeriodo('HOJE'); });
+          return true;
+        }
+        const de = cx.querySelector('[name="de"]').value, ate = cx.querySelector('[name="ate"]').value, op = cx.querySelector('[name="op"]').value;
+        mudarFiltro(function (ff) {
+          if (de !== ff.de || ate !== ff.ate) { ff.de = de; ff.ate = ate; if (ff.de && ff.ate && ff.ate < ff.de) ff.ate = ff.de; ff.periodo = 'CUSTOM'; }
+          ff.operador = op;
+        });
+        return true;
+      }
+    });
+  }
+  function janelaExportMob() {
+    Ui.janela({
+      titulo: 'Exportar o que está na tela',
+      subtitulo: listaAtual().length + ' apontamento(s)',
+      corpo: '<div class="jan-bts"><button type="button" class="btn2 xls" data-exp="xls">' + Ui.ic('i-xls') + 'Excel</button><button type="button" class="btn2" data-exp="pdf">' + Ui.ic('i-imp') + 'PDF</button></div>',
+      botoes: [{ texto: 'Fechar', valor: null }]
+    });
+    // os botões de dentro da janela fecham a janela e exportam
+    setTimeout(function () {
+      document.querySelectorAll('.modal-fundo [data-exp]').forEach(function (b) {
+        b.addEventListener('click', function () {
+          const fundo = document.querySelector('.modal-fundo');
+          const fechar = fundo && fundo.querySelector('.rodape button');
+          if (fechar) fechar.click();
+          if (b.dataset.exp === 'xls') exportarExcel(); else imprimir();
+        });
+      });
+    }, 0);
+  }
+
+  /* ---------- EVENTOS ---------- */
+  function ligarEventos() {
+    let esperaBusca;
+    ['busca', 'buscaMob'].forEach(function (id) {
+      $(id).addEventListener('input', function () {
+        clearTimeout(esperaBusca);
+        const v = $(id).value;
+        esperaBusca = setTimeout(function () { mudarFiltro(function (f) { f.busca = v; }); }, 150);
+      });
+      $(id).addEventListener('keydown', function (e) { if (e.key === 'Escape') { $(id).value = ''; mudarFiltro(function (f) { f.busca = ''; }); } });
+    });
+    $('dataDe').addEventListener('change', function () {
+      mudarFiltro(function (f) { f.de = $('dataDe').value; if (f.de && f.ate && f.de > f.ate) f.ate = f.de; f.periodo = 'CUSTOM'; });
+    });
+    $('dataAte').addEventListener('change', function () {
+      mudarFiltro(function (f) { f.ate = $('dataAte').value; if (f.de && f.ate && f.ate < f.de) f.de = f.ate; f.periodo = 'CUSTOM'; });
+    });
+    $('operador').addEventListener('change', function () { mudarFiltro(function (f) { f.operador = $('operador').value; }); });
+    $('btnLimpar').addEventListener('click', function () {
+      mudarFiltro(function (f) { Object.assign(f, { setor: 'TODOS', tipo: 'TODOS', operador: 'TODOS', busca: '' }); aplicarPeriodo('HOJE'); });
+    });
+    $('cabecalho').addEventListener('click', function (e) {
+      const th = e.target.closest('th[data-col]');
+      if (!th) return;
+      const o = estado.ordem;
+      if (o.col === th.dataset.col) o.dir *= -1;
+      else { o.col = th.dataset.col; o.dir = th.dataset.col === 'ts' ? -1 : 1; }
+      render();
+    });
+    $('btFiltroMob').addEventListener('click', janelaFiltroMob);
+    $('btExportMob').addEventListener('click', janelaExportMob);
+
+    document.addEventListener('click', function (e) {
+      const p = e.target.closest('[data-periodo]');
+      if (p) { mudarFiltro(function () { aplicarPeriodo(p.dataset.periodo); }); return; }
+      const k = e.target.closest('[data-kpi]');
+      if (k) {
+        const a = k.dataset.kpi;
+        mudarFiltro(function (f) {
+          if (a === 'TODOS') { f.setor = 'TODOS'; f.tipo = 'TODOS'; return; }
+          const v = a.slice(2);
+          if (a.charAt(0) === 'T') f.tipo = f.tipo === v ? 'TODOS' : v;
+          else f.setor = f.setor === v ? 'TODOS' : v;
+        });
+        return;
+      }
+      if (e.target.closest('[data-hoje]')) { clicarCardHoje(); return; }
+      const est = e.target.closest('[data-estornar]');
+      if (est) { estornar(est.dataset.estornar); return; }
+      if (e.target.closest('[data-excel]')) { exportarExcel(); return; }
+      if (e.target.closest('[data-pdf]')) imprimir();
+    });
+  }
+});
+</script>
+</body>
+</html>

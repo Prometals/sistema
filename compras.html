@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Compras · Prometals</title>
+<link rel="stylesheet" href="css/tema.css">
+<link rel="stylesheet" href="css/sistema.css">
+<style>
+/* ---------- específico desta página (mockup-compras aprovado) ---------- */
+.kl { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; }
+.kq { background: var(--painel); border: 1px solid var(--linha); border-radius: 12px; padding: 10px 14px; cursor: pointer; position: relative; overflow: hidden; text-align: left; font: inherit; color: inherit; }
+.kq::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--c); }
+.kq.sel { border-color: var(--c); box-shadow: 0 0 0 1px var(--c) inset; }
+.kq .l { font-size: 11px; font-weight: 800; color: var(--texto-suave); letter-spacing: .4px; text-transform: uppercase; }
+.kq b { display: block; font-size: 26px; font-variant-numeric: tabular-nums; } .kq .s { font-size: 12px; color: var(--texto-suave); }
+.kq.alerta b { color: var(--c); }
+.kq.piscando { animation: pisca 1.8s infinite; }
+.km { cursor: pointer; border: 0; font: inherit; color: inherit; }
+.cp { display: grid; grid-template-columns: 1fr 350px; gap: 14px; align-items: start; }
+.cp > * { min-width: 0; }
+.bx { background: var(--painel); border: 1px solid var(--linha); border-radius: 14px; overflow: hidden; }
+.bx-cab { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--linha); flex-wrap: wrap; }
+.bx-cab h3 { margin: 0; font-size: 15px; } .bx-cab .s { font-size: 12px; color: var(--texto-suave); } .bx-cab .dir { margin-left: auto; display: flex; gap: 8px; }
+.bx-cab select { height: 32px; font-size: 12.5px; padding: 0 8px; width: auto; }
+.bx-cab .filtro-on { font-size: 12px; font-weight: 700; color: var(--destaque); }
+.bx-cab .filtro-on button { background: none; border: 0; color: inherit; font: inherit; text-decoration: underline; cursor: pointer; padding: 0; margin-left: 4px; }
+.tab-wrap { overflow: auto; }
+.cat { font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 5px; background: var(--painel-2); color: var(--texto-suave); }
+.cat.luva { background: rgba(59,130,246,.18); color: #93c5fd; } .cat.filtro { background: rgba(20,184,166,.18); color: #5eead4; } .cat.emb { background: rgba(240,122,31,.18); color: #fdba74; }
+html.tema-claro .cat.luva { color: #1d4ed8; } html.tema-claro .cat.filtro { color: #0f766e; } html.tema-claro .cat.emb { color: #9a3412; }
+.stt { font-size: 10.5px; font-weight: 800; padding: 3px 8px; border-radius: 6px; white-space: nowrap; }
+.stt.ok { background: rgba(34,197,94,.15); color: #34d399; } .stt.comprar { background: rgba(234,179,8,.18); color: #eab308; } .stt.rup { background: rgba(220,38,38,.18); color: #f87171; }
+html.tema-claro .stt.ok { color: #166534; } html.tema-claro .stt.comprar { color: #92400e; } html.tema-claro .stt.rup { color: #b91c1c; }
+.neg { color: #f87171; font-weight: 800; } html.tema-claro .neg { color: #b91c1c; }
+.sug b { color: var(--destaque); }
+.cp table.tab th, .cp table.tab td { padding-left: 9px; padding-right: 9px; } .cp table.tab td:first-child, .cp table.tab th:first-child { padding-left: 16px; }
+.cp table.tab td.d { max-width: 175px; overflow: hidden; text-overflow: ellipsis; }
+.cp table.tab td.d small { display: block; color: var(--texto-suave); font-size: 11px; overflow: hidden; text-overflow: ellipsis; }
+.cp table.tab tbody tr { cursor: pointer; }
+tr.rup td:first-child { box-shadow: inset 3px 0 0 #dc2626; } tr.comprar td:first-child { box-shadow: inset 3px 0 0 #eab308; }
+.sc { display: grid; grid-template-columns: 1fr auto; gap: 3px 10px; padding: 10px 16px; border-bottom: 1px solid var(--linha); font-size: 12.5px; }
+.sc:last-child { border-bottom: 0; }
+.sc b { font-size: 13px; } .sc small { color: var(--texto-suave); font-size: 11.5px; grid-column: 1; }
+.sc .stt { grid-column: 2; grid-row: 1 / span 2; align-self: center; }
+.sc .acs { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-top: 4px; }
+.sc .acs input, .sc .acs select { height: 30px; font-size: 12px; padding: 0 8px; min-width: 0; }
+.sc.urg { box-shadow: inset 3px 0 0 #dc2626; }
+.stt.pend { background: rgba(240,122,31,.18); color: #fdba74; } .stt.compr { background: rgba(59,130,246,.18); color: #93c5fd; } .stt.cheg { background: rgba(34,197,94,.15); color: #34d399; }
+html.tema-claro .stt.pend { color: #9a3412; } html.tema-claro .stt.compr { color: #1d4ed8; } html.tema-claro .stt.cheg { color: #166534; }
+.btn2.verde { background: #16a34a; border-color: #16a34a; color: #fff; }
+/* janelas (entrada, inventário, OPs) */
+.mf { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.fc { display: grid; gap: 5px; font-size: 11px; font-weight: 800; color: var(--texto-suave); letter-spacing: .4px; align-content: start; }
+.fc input, .fc select { height: 38px; font-size: 13.5px; padding: 0 10px; }
+.fc.l { grid-column: 1 / -1; } .fc small { font-weight: 600; font-size: 11px; letter-spacing: 0; }
+.vinc { grid-column: 1 / -1; background: var(--painel-2); border-radius: 10px; padding: 10px 12px; font-size: 12.5px; display: grid; gap: 8px; }
+.vinc label { display: flex; gap: 8px; align-items: center; }
+.vinc select { height: 36px; font-size: 13px; padding: 0 8px; }
+.chk { width: 16px; height: 16px; accent-color: var(--destaque); flex: none; padding: 0; }
+.inv-wrap { max-height: 52vh; overflow: auto; margin: -16px -18px 0; }
+.inv-wrap table.tab td, .inv-wrap table.tab th { padding: 8px 12px; }
+.inv-wrap input.in { width: 90px; height: 32px; text-align: right; font-weight: 800; padding: 0 8px; margin-left: auto; display: block; }
+.dif.neg2 { color: #f87171; font-weight: 800; } .dif.pos { color: #34d399; font-weight: 800; } .dif.zero { color: var(--texto-suave); }
+html.tema-claro .dif.neg2 { color: #b91c1c; } html.tema-claro .dif.pos { color: #166534; }
+.rodape .t-inv { margin-right: auto; font-size: 12px; color: var(--texto-suave); align-self: center; }
+.ops-lista table.tab td, .ops-lista table.tab th { padding: 8px 10px; }
+.lista-mob { padding-bottom: 90px; }
+.cm { cursor: pointer; text-align: left; }
+.cm.urg { border-left: 3px solid #dc2626; }
+.cm .stt { margin-left: auto; }
+
+@media (max-width: 1250px) { .cp { grid-template-columns: 1fr; } }
+@media (max-width: 760px) {
+  .mf { grid-template-columns: 1fr; }
+  .inv-wrap .col-desc { display: none; }
+  .inv-wrap input.in { width: 76px; }
+  .inv-wrap table.tab td, .inv-wrap table.tab th { padding: 8px 8px; }
+  .rodape { flex-wrap: wrap; }
+  .rodape .t-inv { width: 100%; }
+}
+</style>
+</head>
+<body>
+
+<!-- Compras — saldo, o que as OPs abertas vão consumir ("vai sair"),
+     projetado e o que comprar; solicitações de embalagem (Pendente →
+     Comprada → Chegou); Entrada de material (vincula à solicitação e
+     avisa o almoxarifado); Inventário (contado × sistema, rascunho,
+     diferença vira ajuste registrado). Tudo calculado no 30_Estoque.gs. -->
+<main class="conteudo">
+  <div class="tit-pagina">
+    <div><h1>Compras</h1><p>Saldo, o que as OPs abertas vão consumir e o que precisa ser comprado</p></div>
+    <div class="acoes-pagina so-desk">
+      <button class="btn2" data-imprimir-compras title="Imprimir a lista do que está na tela"><svg class="i"><use href="#i-imp"/></svg>Imprimir</button>
+      <button class="btn2" data-excel-compras title="Baixar a lista em Excel (.xlsx)"><svg class="i"><use href="#i-xls"/></svg>Excel</button>
+      <button class="btn2" data-inventario data-editar><svg class="i"><use href="#i-lista"/></svg>Inventário</button>
+      <button class="btn2 verde" data-entrada data-editar><svg class="i"><use href="#i-mais"/></svg>Entrada de material</button>
+    </div>
+  </div>
+
+  <div class="kl so-desk" id="cards"></div>
+
+  <div class="cp">
+    <section class="bx so-desk">
+      <div class="bx-cab"><h3>Situação dos insumos</h3><span class="s">projetado = saldo − o que as OPs abertas vão consumir · clique no insumo para ver as OPs</span>
+        <span class="filtro-on" id="filtro-ins"></span>
+        <div class="dir">
+          <select id="fCat" title="Categorias"><option value="LF">Luva e filtro</option><option value="TODAS">Todos</option></select>
+          <select id="fOrd" title="Ordem"><option value="urg">Precisa comprar primeiro</option><option value="cod">Código</option></select>
+        </div></div>
+      <div class="tab-wrap">
+        <table class="tab"><thead><tr><th>Insumo</th><th>Cat.</th><th class="num">Saldo</th><th class="num">Vai sair</th><th class="num">Projetado</th><th class="num">Mínimo</th><th class="num">Lead</th><th>Situação</th><th class="num">Comprar</th></tr></thead>
+          <tbody id="linhas"><tr><td colspan="9"><div class="carregando">Carregando…</div></td></tr></tbody></table>
+      </div>
+    </section>
+    <aside class="bx so-desk">
+      <div class="bx-cab"><h3>Solicitações de embalagem</h3><span class="s">criadas quando a OP abre · sob demanda</span><span class="filtro-on" id="filtro-sc"></span></div>
+      <div id="solic"><div class="carregando">Carregando…</div></div>
+    </aside>
+
+    <!-- celular -->
+    <div class="kpi-mini so-mob" id="cards-mob"></div>
+    <div class="info-mob so-mob" id="info-mob"></div>
+    <div class="lista-mob so-mob" id="cartoes"></div>
+    <div class="barra-mob so-mob" data-editar>
+      <button class="ic" data-imprimir-compras title="Imprimir"><svg class="i"><use href="#i-imp"/></svg></button>
+      <button class="ic" data-excel-compras title="Excel"><svg class="i"><use href="#i-xls"/></svg></button>
+      <button class="ic" data-inventario title="Inventário"><svg class="i"><use href="#i-lista"/></svg></button>
+      <button class="pri" data-entrada><svg class="i"><use href="#i-mais"/></svg>Entrada de material</button>
+    </div>
+  </div>
+</main>
+
+<script src="js/config.js"></script>
+<script src="js/icones.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/api.js"></script>
+<script src="js/sessao.js"></script>
+<script src="js/shell.js"></script>
+<script>
+Sessao.iniciarPagina('compras').then(function (ctx) {
+  const $ = function (s) { return document.querySelector(s); };
+  const e = Ui.esc;
+
+  let painel = { indicadores: {}, insumos: [], solicitacoes: [] };
+  let cadastro = [];          // todos os insumos ativos (entrada de material), com saldo quando possível
+  let modo = '';              // filtro dos cards: RUPTURA | ABAIXO | PENDENTES | CHEGANDO
+  const contagem = {};        // inventário em andamento: cod → texto digitado
+  const pendente = {};        // idReq reaproveitado se o MESMO envio falhar por conexão
+
+  if (!ctx.podeEditar) document.querySelectorAll('[data-editar]').forEach(function (b) { b.hidden = true; });
+  if (!ctx.podeEditar) $('#cartoes').style.paddingBottom = '16px';
+
+  carregar();
+  carregarCadastro();
+  // Recalcula a cada 60 s (não atrapalha quem está digitando ou com janela aberta)
+  setInterval(function () {
+    const f = document.activeElement;
+    if (document.hidden || document.querySelector('.modal-fundo') || (f && f.closest && f.closest('#solic'))) return;
+    carregar(true);
+  }, 60000);
+
+  async function carregar(silencioso) {
+    try {
+      painel = await Api.chamar('painelCompras', { categorias: $('#fCat').value === 'TODAS' ? 'TODAS' : ['LUVA', 'FILTRO'] }, { rapido: function () {
+        const f = document.activeElement;
+        if (!document.querySelector('.modal-fundo') && !(f && f.closest && f.closest('#solic'))) carregar(true);
+      } });
+      desenhar();
+    } catch (err) {
+      if (!silencioso) Ui.erro(err);
+    }
+  }
+  async function carregarCadastro() {
+    try {
+      if (ctx.nivelDe('insumos') !== 'NENHUM') cadastro = await Api.chamar('situacaoInsumos', {});
+      else cadastro = (await Api.chamar('listarInsumos', {})).map(function (i) {
+        return { cod_insumo: i.COD_INSUMO, descricao: i.DESCRICAO, categoria: i.CATEGORIA, unidade: i.UNIDADE, saldo: null };
+      });
+    } catch (err) { cadastro = []; }
+  }
+
+  // ---------- Apoio ----------
+  // A janela que o Ui.janela acabou de abrir (a última na tela)
+  function ultimaJanela() { const l = document.querySelectorAll('.modal-fundo .modal-caixa'); return l[l.length - 1]; }
+  function num(v) {
+    let t = String(v === undefined || v === null ? '' : v).trim();
+    if (!t) return null;
+    if (t.indexOf(',') !== -1) t = t.replace(/\./g, '').replace(',', '.');
+    const n = Number(t);
+    return isNaN(n) ? NaN : Math.round(n * 1000) / 1000;
+  }
+  function catClasse(c) { return { LUVA: 'luva', FILTRO: 'filtro', EMBALAGEM: 'emb' }[c] || ''; }
+  function titulo(s) { return String(s || '').toLowerCase().replace(/(^|\s)\S/g, function (l) { return l.toUpperCase(); }); }
+  function dataBR(d) { return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear(); }
+  function deBR(br) { const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(br || ''); return m ? new Date(+m[3], m[2] - 1, +m[1]) : null; }
+  function paraISO(br) { const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(br || ''); return m ? m[3] + '-' + m[2] + '-' + m[1] : ''; }
+  function isoParaBR(iso) { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || ''); return m ? m[3] + '/' + m[2] + '/' + m[1] : ''; }
+  function hojeMais(dias) { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + dias); return d; }
+  const hojeISO = function () { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+
+  async function enviar(rota, dados) {
+    const chave = rota + JSON.stringify(dados);
+    const idReq = pendente[chave] || Api.idReq();
+    pendente[chave] = idReq;
+    try {
+      const r = await Api.chamar(rota, Object.assign({ idReq: idReq }, dados));
+      delete pendente[chave];
+      return r;
+    } catch (err) {
+      if (err.codigo !== 'SEM_CONEXAO') delete pendente[chave];
+      throw err;
+    }
+  }
+
+  // ---------- Regras dos filtros (mesmas contas do servidor) ----------
+  const abaixo = function (i) { return i.projetado < i.minimo || i.situacao === 'RUPTURA'; };
+  const chegando = function (s) { const p = deBR(s.previsao_chegada); return s.status === 'COMPRADO' && p && p <= hojeMais(7); };
+  // Urgente: pendente e a OP já está na Inspeção Final (esperando a caixa) ou precisa em até 2 dias
+  const urgente = function (s) { const n = deBR(s.data_necessidade); return s.status === 'SOLICITADO' && (s.processo === 'INSPEÇÃO FINAL' || (n && n <= hojeMais(2))); };
+  const MODOS_INS = { RUPTURA: 1, ABAIXO: 1 }, MODOS_SC = { PENDENTES: 1, CHEGANDO: 1 };
+  const ROTULO = { RUPTURA: 'Ruptura prevista', ABAIXO: 'Abaixo do mínimo', PENDENTES: 'Embalagens pendentes', CHEGANDO: 'Chegando na semana' };
+
+  function insumosFiltrados() {
+    let l = painel.insumos.slice();
+    if (modo === 'RUPTURA') l = l.filter(function (i) { return i.situacao === 'RUPTURA'; });
+    if (modo === 'ABAIXO') l = l.filter(abaixo);
+    if ($('#fOrd').value === 'cod') l.sort(function (a, b) { return a.cod_insumo.localeCompare(b.cod_insumo); });
+    return l;
+  }
+  function solicitacoesFiltradas() {
+    let l = painel.solicitacoes;
+    if (modo === 'PENDENTES') l = l.filter(function (s) { return s.status === 'SOLICITADO'; });
+    if (modo === 'CHEGANDO') l = l.filter(chegando);
+    return l;
+  }
+
+  // ---------- Desenho ----------
+  function desenhar() {
+    const ind = painel.indicadores;
+    const pend = painel.solicitacoes.filter(function (s) { return s.status === 'SOLICITADO'; });
+    const nUrg = pend.filter(urgente).length;
+    const k = [
+      { m: 'RUPTURA', c: '#dc2626', n: ind.ruptura, s: 'o projetado fica negativo', mob: 'Ruptura', pisca: ind.ruptura > 0 },
+      { m: 'ABAIXO', c: '#eab308', n: ind.abaixoMinimo, s: 'sugerido comprar', mob: 'Abaixo mín.' },
+      { m: 'PENDENTES', c: '#f07a1f', n: ind.embalagensPendentes, s: nUrg ? nUrg + ' urgente' + (nUrg > 1 ? 's' : '') + ' (Inspeção Final ou até 2 dias)' : 'aguardando compra', mob: 'Embalagens' },
+      { m: 'CHEGANDO', c: '#3b82f6', n: ind.chegandoSemana, s: 'solicitações compradas', mob: 'Chegando', neutro: true }
+    ];
+    $('#cards').innerHTML = k.map(function (x) {
+      return '<button class="kq' + (x.n > 0 && !x.neutro ? ' alerta' : '') + (x.pisca ? ' piscando' : '') + (modo === x.m ? ' sel' : '') + '" data-modo="' + x.m + '" style="--c:' + x.c + '">' +
+        '<span class="l">' + ROTULO[x.m] + '</span><b>' + e(x.n || 0) + '</b><span class="s">' + e(x.s) + '</span></button>';
+    }).join('');
+    $('#cards-mob').innerHTML = k.map(function (x) {
+      return '<button class="km' + (x.pisca ? ' piscando' : '') + (modo === x.m ? ' sel' : '') + '" data-modo="' + x.m + '" style="--c:' + x.c + '"><b>' + e(x.n || 0) + '</b> ' + x.mob + '</button>';
+    }).join('');
+    desenharInsumos();
+    desenharSolicitacoes();
+    desenharCartoes();
+  }
+
+  function tagSituacao(i) {
+    if (i.situacao === 'RUPTURA') return '<span class="stt rup">RUPTURA</span>';
+    if (i.situacao === 'COMPRAR') return '<span class="stt comprar">COMPRAR</span>';
+    if (i.situacao === 'ATENCAO') return '<span class="stt ok">OK · atenção</span>';
+    if (i.situacao === 'SOB_DEMANDA') return '<span class="stt pend">SOB DEMANDA</span>';
+    return '<span class="stt ok">OK</span>';
+  }
+  function classeLinha(i) { return i.situacao === 'RUPTURA' ? 'rup' : (i.situacao === 'COMPRAR' || i.situacao === 'ATENCAO') ? 'comprar' : ''; }
+  const n = function (v) { return e(Fmt.num(v)); };
+
+  function desenharInsumos() {
+    const l = insumosFiltrados();
+    $('#filtro-ins').innerHTML = MODOS_INS[modo] ? 'Filtro: ' + ROTULO[modo] + '<button type="button" data-modo="' + modo + '">limpar</button>' : '';
+    $('#linhas').innerHTML = l.map(function (i) {
+      return '<tr class="' + classeLinha(i) + '" data-ins="' + e(i.cod_insumo) + '"><td class="d" title="' + e(i.descricao) + '"><b>' + e(i.cod_insumo) + '</b><small>' + e(i.descricao) + '</small></td>' +
+        '<td><span class="cat ' + catClasse(i.categoria) + '">' + e(i.categoria) + '</span></td>' +
+        '<td class="num">' + n(i.saldo) + '</td><td class="num">' + n(i.vai_sair) + '</td>' +
+        '<td class="num">' + (i.projetado < 0 ? '<span class="neg">' + n(i.projetado) + '</span>' : n(i.projetado)) + '</td>' +
+        '<td class="num">' + n(i.minimo) + '</td><td class="num">' + n(i.lead_time) + ' d</td><td>' + tagSituacao(i) + '</td>' +
+        '<td class="num sug">' + (i.sugerido > 0 ? '<b>' + n(i.sugerido) + '</b>' : '—') + '</td></tr>';
+    }).join('') || '<tr><td colspan="9"><div class="vazio">' + (modo ? 'Nenhum insumo neste filtro.' : 'Nenhum insumo estocado nesta categoria.') + '</div></td></tr>';
+  }
+
+  function tagSolic(s) {
+    if (s.status === 'SOLICITADO') return '<span class="stt pend">PENDENTE</span>';
+    if (s.status === 'COMPRADO') return '<span class="stt compr">COMPRADA' + (s.previsao_chegada ? ' · chega ' + e(s.previsao_chegada.slice(0, 5)) : '') + '</span>';
+    if (s.status === 'RECEBIDO') return '<span class="stt cheg">CHEGOU</span>';
+    return '<span class="stt">' + e(s.status) + '</span>';
+  }
+  function detalheSolic(s) {
+    const onde = (s.processo === 'INSPEÇÃO FINAL' ? 'na Inspeção Final agora' : s.processo === 'SEM MOVIMENTAÇÃO' ? 'OP sem apontamento' : 'em ' + titulo(s.processo)) +
+      (s.data_necessidade && s.processo !== 'INSPEÇÃO FINAL' ? ' · precisa até ' + s.data_necessidade.slice(0, 5) : '');
+    return 'OP ' + s.op + ' · ' + titulo(s.cliente) + ' · ' + Fmt.num(s.qtd) + ' ' + String(s.unidade || '').toLowerCase() + ' · ' + onde;
+  }
+  const editavel = function (s) { return ctx.podeEditar && (s.status === 'SOLICITADO' || s.status === 'COMPRADO'); };
+
+  function desenharSolicitacoes() {
+    const l = solicitacoesFiltradas();
+    $('#filtro-sc').innerHTML = MODOS_SC[modo] ? 'Filtro: ' + ROTULO[modo] + '<button type="button" data-modo="' + modo + '">limpar</button>' : '';
+    $('#solic').innerHTML = l.map(function (s) {
+      const acs = !editavel(s) ? '' : '<div class="acs">' +
+        '<input data-campo="fornecedor" placeholder="Fornecedor" value="' + e(s.fornecedor) + '" title="Fornecedor">' +
+        '<input type="date" data-campo="previsao_chegada" value="' + e(paraISO(s.previsao_chegada)) + '" title="Previsão de chegada">' +
+        '<select data-acao-sc title="Situação">' +
+        (s.status === 'SOLICITADO' ? '<option value="">Pendente</option><option value="COMPRADO">Marcar comprada</option>' : '<option value="">Comprada</option>') +
+        '<option value="CHEGOU">Chegou → lançar entrada</option></select></div>';
+      return '<div class="sc' + (urgente(s) ? ' urg' : '') + '" data-sc="' + e(s.id_solicitacao) + '"><b>' + e(s.id_solicitacao) + ' · ' + e(s.cod_insumo) + '</b>' + tagSolic(s) +
+        '<small>' + e(detalheSolic(s)) + '</small>' + acs + '</div>';
+    }).join('') || '<div class="vazio">' + (modo ? 'Nenhuma solicitação neste filtro.' : 'Nenhuma solicitação de embalagem em aberto.') + '</div>';
+  }
+
+  // Celular: embalagens (ordem de urgência) e depois os insumos
+  function desenharCartoes() {
+    const mostraSc = !MODOS_INS[modo], mostraIns = !MODOS_SC[modo];
+    const sc = mostraSc ? solicitacoesFiltradas() : [], ins = mostraIns ? insumosFiltrados() : [];
+    $('#info-mob').textContent = modo ? ROTULO[modo] + ' · ' + (mostraSc ? sc.length : ins.length) + ' · toque de novo para limpar'
+      : sc.length + ' embalage' + (sc.length === 1 ? 'm' : 'ns') + ' (ordem de urgência) · ' + ins.length + ' insumo' + (ins.length === 1 ? '' : 's');
+    $('#cartoes').innerHTML = sc.map(function (s) {
+      return '<div class="cm' + (urgente(s) ? ' urg' : '') + '" data-sc-mob="' + e(s.id_solicitacao) + '"><div class="cm-top"><span class="op">' + e(s.cod_insumo) + '</span><span class="cli">' + e(s.id_solicitacao) + '</span>' + tagSolic(s) + '</div>' +
+        '<div class="cm-desc">OP ' + e(s.op) + ' · ' + e(titulo(s.cliente)) + ' · ' + n(s.qtd) + ' ' + e(String(s.unidade || '').toLowerCase()) + '<small>' + e(detalheSolic(s).split(' · ').slice(3).join(' · ')) + (s.fornecedor ? ' · ' + e(s.fornecedor) : '') + '</small></div></div>';
+    }).join('') + ins.map(function (i) {
+      return '<div class="cm" data-ins="' + e(i.cod_insumo) + '"><div class="cm-top"><span class="op">' + e(i.cod_insumo) + '</span><span class="cli">' + e(i.categoria) + '</span>' + tagSituacao(i) + '</div>' +
+        '<div class="cm-desc">' + e(i.descricao) + '<small>saldo ' + n(i.saldo) + ' · vai sair ' + n(i.vai_sair) + ' · projetado ' + n(i.projetado) + ' · mín. ' + n(i.minimo) + (i.sugerido > 0 ? ' · comprar ' + n(i.sugerido) : '') + '</small></div></div>';
+    }).join('') || '<div class="vazio">Nada neste filtro.</div>';
+  }
+
+  // ---------- Eventos ----------
+  document.addEventListener('click', function (ev) {
+    if (ev.target.closest('.modal-fundo')) return;
+    const m = ev.target.closest('[data-modo]');
+    if (m) { modo = m.dataset.modo === modo ? '' : m.dataset.modo; desenhar(); return; }
+    const ins = ev.target.closest('[data-ins]');
+    if (ins) { verOPs(ins.dataset.ins); return; }
+    const scm = ev.target.closest('[data-sc-mob]');
+    if (scm) { editarSolicMob(scm.dataset.scMob); return; }
+    if (ev.target.closest('[data-entrada]')) { abrirEntrada(); return; }
+    if (ev.target.closest('[data-inventario]')) abrirInventario();
+  });
+  $('#fCat').addEventListener('change', function () { carregar(); });
+  $('#fOrd').addEventListener('change', function () { desenharInsumos(); desenharCartoes(); });
+
+  // Fornecedor / previsão: grava ao sair do campo · select: comprada ou chegou
+  $('#solic').addEventListener('change', async function (ev) {
+    const cx = ev.target.closest('[data-sc]');
+    if (!cx) return;
+    const s = painel.solicitacoes.find(function (x) { return x.id_solicitacao === cx.dataset.sc; });
+    if (!s) return;
+    const forn = cx.querySelector('[data-campo="fornecedor"]').value.trim();
+    const prev = isoParaBR(cx.querySelector('[data-campo="previsao_chegada"]').value);
+    if (ev.target.matches('[data-acao-sc]')) {
+      const v = ev.target.value;
+      ev.target.value = '';
+      if (v === 'CHEGOU') { abrirEntrada(s); return; }
+      if (v === 'COMPRADO') await atualizarSolic(s, { status: 'COMPRADO', fornecedor: forn, previsao_chegada: prev }, 'marcada como comprada');
+      return;
+    }
+    const campo = ev.target.dataset.campo;
+    if (!campo) return;
+    const d = {};
+    d[campo] = campo === 'fornecedor' ? forn : prev;
+    if (d[campo] === (s[campo] || '')) return;
+    await atualizarSolic(s, d, 'atualizada');
+  });
+
+  async function atualizarSolic(s, dados, texto) {
+    try {
+      await Api.chamar('atualizarSolicitacao', Object.assign({ id_solicitacao: s.id_solicitacao }, dados));
+      Ui.toast(s.id_solicitacao + ' (' + s.cod_insumo + ', OP ' + s.op + ') ' + texto + '.', 'ok', 'Solicitação');
+      await carregar(true);
+      return true;
+    } catch (err) {
+      Ui.erro(err);
+      desenharSolicitacoes();
+      return false;
+    }
+  }
+
+  // Celular: uma solicitação por vez numa janela
+  function editarSolicMob(id) {
+    const s = painel.solicitacoes.find(function (x) { return x.id_solicitacao === id; });
+    if (!s) return;
+    const pode = editavel(s);
+    const corpo = '<div class="msg-erro"></div><p style="margin:0 0 12px">' + e(detalheSolic(s)) + '</p>' +
+      (pode ? '<div class="mf"><label class="fc l">FORNECEDOR<input name="forn" value="' + e(s.fornecedor) + '"></label>' +
+        '<label class="fc l">PREVISÃO DE CHEGADA<input type="date" name="prev" value="' + e(paraISO(s.previsao_chegada)) + '"></label></div>'
+        : '<p class="mut" style="margin:0">' + (s.fornecedor ? 'Fornecedor: ' + e(s.fornecedor) + '. ' : '') + (s.status === 'RECEBIDO' ? 'Já chegou: o almoxarifado baixa na Inspeção Final.' : '') + '</p>');
+    const botoes = [{ texto: 'Voltar', valor: null }];
+    if (pode) {
+      botoes.push({ texto: 'Chegou → entrada', valor: 'chegou' });
+      botoes.push({ texto: s.status === 'SOLICITADO' ? 'Marcar comprada' : 'Salvar', classe: 'pri', valor: 'salvar' });
+    }
+    Ui.janela({
+      titulo: s.id_solicitacao + ' · ' + s.cod_insumo, subtitulo: s.descricao, largura: 460, corpo: corpo, botoes: botoes,
+      antesDeFechar: async function (v, cx) {
+        if (v !== 'salvar') return true;
+        const d = { fornecedor: cx.querySelector('[name="forn"]').value.trim(), previsao_chegada: isoParaBR(cx.querySelector('[name="prev"]').value) };
+        if (s.status === 'SOLICITADO') d.status = 'COMPRADO';
+        try {
+          await Api.chamar('atualizarSolicitacao', Object.assign({ id_solicitacao: s.id_solicitacao }, d));
+          return true;
+        } catch (err) { Ui.msgErro(cx.querySelector('.msg-erro'), err.message); return false; }
+      }
+    }).then(function (v) {
+      if (v === 'chegou') abrirEntrada(s);
+      if (v === 'salvar') { Ui.toast(s.id_solicitacao + ' ' + (s.status === 'SOLICITADO' ? 'marcada como comprada' : 'atualizada') + '.', 'ok', 'Solicitação'); carregar(true); }
+    });
+  }
+
+  // ---------- Relatório de compras: imprimir e Excel ----------
+  // Sai o que está na tela: o filtro do card (Ruptura / Abaixo do mínimo),
+  // a categoria e a ordem escolhidas. Sem filtro, sai a categoria inteira.
+  function linhasRelatorio() {
+    return insumosFiltrados().map(function (i) {
+      return { cod: i.cod_insumo, desc: i.descricao, cat: i.categoria, un: String(i.unidade || ''), saldo: i.saldo, sair: i.vai_sair,
+        proj: i.projetado, min: i.minimo, lead: i.lead_time, sit: i.situacao || '', comprar: i.sugerido > 0 ? i.sugerido : 0 };
+    });
+  }
+  function tituloRelatorio() {
+    return 'LISTA DE COMPRAS — ' + (MODOS_INS[modo] ? ROTULO[modo].toUpperCase() : ($('#fCat').value === 'TODAS' ? 'TODOS OS INSUMOS' : 'LUVA E FILTRO'));
+  }
+  document.addEventListener('click', function (ev) {
+    if (ev.target.closest('[data-imprimir-compras]')) imprimirCompras();
+    if (ev.target.closest('[data-excel-compras]')) baixarExcel();
+  });
+
+  function imprimirCompras() {
+    const l = linhasRelatorio();
+    if (!l.length) { Ui.toast('Nenhum insumo neste filtro.', 'aviso'); return; }
+    const aComprar = l.filter(function (r) { return r.comprar > 0; }).length;
+    const w = window.open('');
+    if (!w) { Ui.toast('O navegador bloqueou a janela de impressão. Libere pop-ups para este site.', 'erro'); return; }
+    const corLinha = function (r) { return r.sit === 'RUPTURA' ? ' style="background:#fde2e2"' : r.comprar > 0 ? ' style="background:#fff4d6"' : ''; };
+    w.document.write(`<html><head><title>${e(tituloRelatorio())}</title>
+<style>
+  body{font-family:Arial;padding:20px;color:#111}
+  h2{font-size:16px;margin-bottom:2px}
+  .sub{font-size:10px;color:#555;margin-bottom:14px}
+  table{width:100%;border-collapse:collapse}
+  th,td{border:1px solid #ccc;padding:4px 6px;font-size:10px;text-align:left}
+  th{background:#efefef} td.n{text-align:right} td.c{text-align:right;font-weight:bold}
+  tr{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+</style></head><body>
+  <h2>${e(tituloRelatorio())}</h2>
+  <div class="sub">Emitido em: ${new Date().toLocaleString('pt-BR')} &nbsp;|&nbsp; ${l.length} insumos &nbsp;|&nbsp; ${aComprar} para comprar &nbsp;|&nbsp; projetado = saldo − o que as OPs abertas vão consumir</div>
+  <table><thead><tr><th>CÓDIGO</th><th>DESCRIÇÃO</th><th>CATEGORIA</th><th>UN.</th><th>SALDO</th><th>VAI SAIR</th><th>PROJETADO</th><th>MÍNIMO</th><th>LEAD (DIAS)</th><th>SITUAÇÃO</th><th>COMPRAR</th></tr></thead>
+  <tbody>${l.map(function (r) {
+    return '<tr' + corLinha(r) + '><td><b>' + e(r.cod) + '</b></td><td>' + e(r.desc) + '</td><td>' + e(r.cat) + '</td><td>' + e(r.un) + '</td>' +
+      '<td class="n">' + Fmt.num(r.saldo) + '</td><td class="n">' + Fmt.num(r.sair) + '</td><td class="n">' + Fmt.num(r.proj) + '</td>' +
+      '<td class="n">' + Fmt.num(r.min) + '</td><td class="n">' + Fmt.num(r.lead) + '</td><td>' + e(r.sit) + '</td>' +
+      '<td class="c">' + (r.comprar > 0 ? Fmt.num(r.comprar) : '—') + '</td></tr>';
+  }).join('')}</tbody></table>
+  <script>window.onload=()=>window.print();<\/script></body></html>`);
+    w.document.close();
+  }
+
+  // Excel: biblioteca SheetJS, carregada só quando o botão é usado.
+  function carregarSheetJS() {
+    if (window.XLSX) return Promise.resolve();
+    return new Promise(function (ok, falha) {
+      const sc = document.createElement('script');
+      sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+      sc.onload = ok; sc.onerror = function () { falha(new Error('Não foi possível carregar o gerador de Excel (sem internet?).')); };
+      document.head.appendChild(sc);
+    });
+  }
+  async function baixarExcel() {
+    const l = linhasRelatorio();
+    if (!l.length) { Ui.toast('Nenhum insumo neste filtro.', 'aviso'); return; }
+    try {
+      await carregarSheetJS();
+      const dados = l.map(function (r) {
+        return { 'Código': r.cod, 'Descrição': r.desc, 'Categoria': r.cat, 'Unidade': r.un, 'Saldo': r.saldo, 'Vai sair': r.sair,
+          'Projetado': r.proj, 'Mínimo': r.min, 'Lead (dias)': r.lead, 'Situação': r.sit, 'Comprar': r.comprar };
+      });
+      const ws = XLSX.utils.json_to_sheet(dados);
+      ws['!cols'] = [12, 42, 12, 8, 10, 10, 11, 10, 11, 12, 10].map(function (c) { return { wch: c }; });
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Compras');
+      const hoje = new Date();
+      const nome = 'compras_' + hoje.getFullYear() + String(hoje.getMonth() + 1).padStart(2, '0') + String(hoje.getDate()).padStart(2, '0') + '.xlsx';
+      XLSX.writeFile(wb, nome);
+      Ui.toast(l.length + ' insumos exportados · ' + nome, 'ok', 'Excel');
+    } catch (err) { Ui.erro(err); }
+  }
+
+  // ---------- OPs que vão consumir o insumo ----------
+  function verOPs(cod) {
+    const i = painel.insumos.find(function (x) { return x.cod_insumo === cod; });
+    if (!i) return;
+    const corpo = (i.ops.length ? '<div class="ops-lista"><table class="tab"><thead><tr><th>OP</th><th>Cliente</th><th>Processo</th><th class="num">Falta retirar</th></tr></thead><tbody>' +
+      i.ops.map(function (o) { return '<tr><td><b>' + e(o.op) + '</b></td><td>' + e(titulo(o.cliente)) + '</td><td>' + e(o.processo) + '</td><td class="num">' + n(o.falta) + '</td></tr>'; }).join('') +
+      '</tbody></table></div>' : '<p class="mut" style="margin:0">Nenhuma OP aberta vai consumir este insumo (as que já passaram do processo de consumo saem da conta).</p>') +
+      '<p style="margin:12px 0 0;font-size:12.5px">Saldo <b>' + n(i.saldo) + '</b> − vai sair <b>' + n(i.vai_sair) + '</b> = projetado <b' + (i.projetado < 0 ? ' class="neg"' : '') + '>' + n(i.projetado) + '</b> · mínimo ' + n(i.minimo) + ' · lead ' + n(i.lead_time) + ' dias' +
+      (i.sugerido > 0 ? ' · <b style="color:var(--destaque)">comprar ' + n(i.sugerido) + ' ' + e(String(i.unidade || '').toLowerCase()) + '</b>' : '') + '</p>';
+    Ui.janela({ titulo: i.cod_insumo + ' · ' + i.descricao, subtitulo: 'OPs abertas que ainda vão retirar este insumo', largura: 560, corpo: corpo, botoes: [{ texto: 'Fechar', valor: null }] });
+  }
+
+  // ============================================================
+  // ENTRADA DE MATERIAL
+  // ============================================================
+  function achaInsumo(texto) {
+    const t = String(texto || '').trim().toUpperCase();
+    if (!t) return null;
+    const cod = t.split(' · ')[0].trim();
+    return cadastro.find(function (i) { return i.cod_insumo.toUpperCase() === cod; }) ||
+      painel.insumos.find(function (i) { return i.cod_insumo.toUpperCase() === cod; }) || null;
+  }
+  function saldoDe(cod) {
+    const i = painel.insumos.find(function (x) { return x.cod_insumo === cod; }) || cadastro.find(function (x) { return x.cod_insumo === cod; });
+    return i && i.saldo !== null && i.saldo !== undefined ? i.saldo : null;
+  }
+
+  async function abrirEntrada(solic) {
+    if (!ctx.podeEditar) return;
+    if (!cadastro.length) await carregarCadastro();
+    const abertas = painel.solicitacoes.filter(function (s) { return s.status === 'SOLICITADO' || s.status === 'COMPRADO'; });
+    const ins0 = solic ? achaInsumo(solic.cod_insumo) || { cod_insumo: solic.cod_insumo, descricao: solic.descricao } : null;
+    const corpo = '<div class="msg-erro"></div><div class="mf">' +
+      '<label class="fc l">INSUMO<input name="ins" list="dl-ins" autocomplete="off" placeholder="Código ou descrição" value="' + e(ins0 ? ins0.cod_insumo + ' · ' + ins0.descricao : '') + '">' +
+      '<datalist id="dl-ins">' + cadastro.map(function (i) { return '<option value="' + e(i.cod_insumo + ' · ' + i.descricao) + '">'; }).join('') + '</datalist></label>' +
+      '<label class="fc">QUANTIDADE<input name="qtd" inputmode="decimal" autocomplete="off" value="' + e(solic ? Fmt.num(solic.qtd) : '') + '"><small data-saldo></small></label>' +
+      '<label class="fc">DATA DA CHEGADA<input type="date" name="data" value="' + hojeISO() + '"></label>' +
+      '<label class="fc">FORNECEDOR<input name="forn" autocomplete="off" value="' + e(solic ? solic.fornecedor : '') + '"></label>' +
+      '<label class="fc">DOCUMENTO (opcional)<input name="doc" autocomplete="off" placeholder="NF / pedido"></label>' +
+      '<div class="vinc"><b style="font-size:11px;color:var(--texto-suave)">É EMBALAGEM DE UMA SOLICITAÇÃO?</b>' +
+      '<label><input type="checkbox" class="chk" name="vinc"' + (solic ? ' checked' : '') + '> Vincular a uma solicitação (a solicitação vira "Chegou" e o almoxarifado é avisado)</label>' +
+      '<select name="sc"' + (solic ? '' : ' hidden') + '></select></div></div>';
+    Ui.janela({
+      titulo: 'Entrada de material', subtitulo: 'O saldo sobe na hora; fica registrado quem lançou', largura: 560, corpo: corpo, enterConfirma: false,
+      botoes: [{ texto: 'Cancelar', valor: null }, { texto: 'Lançar entrada', classe: 'verde', valor: 'ok' }],
+      antesDeFechar: async function (v, cx) {
+        const erro = cx.querySelector('.msg-erro');
+        const ins = achaInsumo(cx.querySelector('[name="ins"]').value);
+        const q = num(cx.querySelector('[name="qtd"]').value);
+        const vinc = cx.querySelector('[name="vinc"]').checked;
+        const sc = cx.querySelector('[name="sc"]').value;
+        if (!ins) { Ui.msgErro(erro, 'Escolha um insumo da lista.'); return false; }
+        if (!(q > 0)) { Ui.msgErro(erro, 'Informe a quantidade (maior que zero).'); return false; }
+        if (vinc && !sc) { Ui.msgErro(erro, 'Escolha a solicitação ou desmarque o vínculo.'); return false; }
+        const dados = { cod_insumo: ins.cod_insumo, qtd: q };
+        const forn = cx.querySelector('[name="forn"]').value.trim(), doc = cx.querySelector('[name="doc"]').value.trim(), data = cx.querySelector('[name="data"]').value;
+        if (forn) dados.fornecedor = forn;
+        if (doc) dados.documento = doc;
+        if (data) dados.data_chegada = data;
+        if (vinc) dados.id_solicitacao = sc;
+        try {
+          const r = await enviar('registrarEntrada', dados);
+          if (r.duplicado) Ui.toast('Esta entrada já tinha sido lançada.', 'aviso');
+          else Ui.toast(ins.cod_insumo + ' +' + Fmt.num(q) + ' · saldo ' + Fmt.num(r.saldo) + ' · ' + r.id + (r.solicitacao ? ' · ' + r.solicitacao + ' chegou: o almoxarifado já vê para baixar' : ''), 'ok', 'Entrada lançada');
+          return true;
+        } catch (err) { Ui.msgErro(erro, err.message); return false; }
+      }
+    }).then(function (v) { if (v === 'ok') { carregar(true); carregarCadastro(); } });
+
+    const cx = ultimaJanela();
+    const fIns = cx.querySelector('[name="ins"]'), fQtd = cx.querySelector('[name="qtd"]'), fVinc = cx.querySelector('[name="vinc"]'), fSc = cx.querySelector('[name="sc"]');
+    // Lista de solicitações abertas (do insumo escolhido, se houver)
+    function opcoesSc() {
+      const ins = achaInsumo(fIns.value);
+      const atual = fSc.value || (solic ? solic.id_solicitacao : '');
+      const l = abertas.filter(function (s) { return !ins || s.cod_insumo === ins.cod_insumo; });
+      fSc.innerHTML = '<option value="">' + (l.length ? 'Escolha a solicitação…' : 'Nenhuma solicitação aberta' + (ins ? ' deste insumo' : '')) + '</option>' + l.map(function (s) {
+        return '<option value="' + e(s.id_solicitacao) + '"' + (s.id_solicitacao === atual ? ' selected' : '') + '>' + e(s.id_solicitacao + ' · ' + s.cod_insumo + ' · OP ' + s.op + ' · ' + titulo(s.cliente) + ' · ' + Fmt.num(s.qtd) + ' ' + String(s.unidade || '').toLowerCase()) + '</option>';
+      }).join('');
+    }
+    function saldoInfo() {
+      const ins = achaInsumo(fIns.value), q = num(fQtd.value), el = cx.querySelector('[data-saldo]');
+      const sd = ins ? saldoDe(ins.cod_insumo) : null;
+      el.textContent = ins && sd !== null ? (q > 0 ? 'saldo vai de ' + Fmt.num(sd) + ' para ' + Fmt.num(Math.round((sd + q) * 1000) / 1000) : 'saldo atual ' + Fmt.num(sd)) : '';
+    }
+    fIns.addEventListener('input', function () { opcoesSc(); saldoInfo(); });
+    fQtd.addEventListener('input', saldoInfo);
+    fVinc.addEventListener('change', function () { fSc.hidden = !fVinc.checked; opcoesSc(); });
+    fSc.addEventListener('change', function () {
+      const s = abertas.find(function (x) { return x.id_solicitacao === fSc.value; });
+      if (!s) return;
+      const ins = achaInsumo(s.cod_insumo);
+      fIns.value = s.cod_insumo + ' · ' + (ins ? ins.descricao : s.descricao);
+      if (!fQtd.value) fQtd.value = Fmt.num(s.qtd);
+      if (!cx.querySelector('[name="forn"]').value && s.fornecedor) cx.querySelector('[name="forn"]').value = s.fornecedor;
+      saldoInfo();
+    });
+    opcoesSc();
+    saldoInfo();
+  }
+
+  // ============================================================
+  // INVENTÁRIO (contado × sistema; rascunho no servidor)
+  // ============================================================
+  async function abrirInventario() {
+    if (!ctx.podeEditar) return;
+    let rasc = { salvoEm: '', contagens: [] };
+    try { rasc = await Api.chamar('lerRascunhoInventario', {}); } catch (err) { Ui.erro(err); }
+    (rasc.contagens || []).forEach(function (c) {
+      if (!(c.cod_insumo in contagem) && c.qtd_contada !== '' && c.qtd_contada !== null) contagem[c.cod_insumo] = String(c.qtd_contada).replace('.', ',');
+    });
+    const ORDEM_CAT = { LUVA: 0, FILTRO: 1, EMBALAGEM: 2 };
+    const oc = function (c) { return c in ORDEM_CAT ? ORDEM_CAT[c] : 9; };
+    const lista = painel.insumos.slice().sort(function (a, b) { return oc(a.categoria) - oc(b.categoria) || a.cod_insumo.localeCompare(b.cod_insumo); });
+    const nomeCat = $('#fCat').value === 'TODAS' ? 'Todos os estocados' : 'Luva e filtro';
+    const corpo = '<div class="msg-erro" style="margin-bottom:10px"></div><div class="inv-wrap"><table class="tab"><thead><tr><th>Insumo</th><th class="col-desc">Descrição</th><th class="num"><span class="so-desk">Saldo no sistema</span><span class="so-mob">Sistema</span></th><th class="num">Contado</th><th class="num"><span class="so-desk">Diferença</span><span class="so-mob">Dif.</span></th></tr></thead><tbody>' +
+      lista.map(function (i) {
+        return '<tr data-inv="' + e(i.cod_insumo) + '"><td><b>' + e(i.cod_insumo) + '</b></td><td class="col-desc">' + e(i.descricao) + '</td><td class="num">' + n(i.saldo) + '</td>' +
+          '<td class="num"><input class="in" inputmode="decimal" placeholder="contar" value="' + e(contagem[i.cod_insumo] || '') + '"></td><td class="num" data-dif></td></tr>';
+      }).join('') + '</tbody></table></div>';
+    Ui.janela({
+      titulo: 'Inventário · ' + nomeCat,
+      subtitulo: 'Conte o físico; a diferença vira um ajuste registrado (nada é sobrescrito)' + (rasc.salvoEm ? ' · rascunho de ' + rasc.salvoEm : ''),
+      largura: 860, corpo: corpo, enterConfirma: false,
+      botoes: [{ texto: 'Voltar', valor: null }, { texto: 'Salvar rascunho', valor: 'rasc' }, { texto: 'Fechar inventário e ajustar', classe: 'verde', valor: 'fechar' }],
+      antesDeFechar: async function (v, cx) {
+        const erro = cx.querySelector('.msg-erro');
+        Ui.msgErro(erro, '');
+        const todas = lista.map(function (i) { return { cod_insumo: i.cod_insumo, qtd_contada: (contagem[i.cod_insumo] || '').trim() }; });
+        const ruim = todas.find(function (c) { const q = num(c.qtd_contada); return c.qtd_contada !== '' && (isNaN(q) || q < 0); });
+        if (ruim) { Ui.msgErro(erro, ruim.cod_insumo + ': contagem inválida.'); return false; }
+        if (v === 'rasc') {
+          try {
+            const r = await Api.chamar('salvarRascunhoInventario', { contagens: todas });
+            Ui.toast(r.salvos + ' linha(s) guardada(s). Dá para continuar em outro aparelho.', 'ok', 'Rascunho salvo');
+          } catch (err) { Ui.msgErro(erro, err.message); }
+          return false;   // continua contando
+        }
+        const contadas = todas.filter(function (c) { return c.qtd_contada !== ''; });
+        if (!contadas.length) { Ui.msgErro(erro, 'Nenhum insumo contado.'); return false; }
+        const difs = contadas.filter(function (c) { const i = lista.find(function (x) { return x.cod_insumo === c.cod_insumo; }); return Math.abs(num(c.qtd_contada) - i.saldo) > 1e-9; }).length;
+        const ok = await Ui.confirmar({ titulo: 'Fechar inventário', texto: contadas.length + ' insumo(s) contado(s), ' + difs + ' com diferença. Cada diferença vira um ajuste no estoque (fica registrado quem fechou).', ok: 'Fechar e ajustar' });
+        if (!ok) return false;
+        try {
+          const r = await enviar('fecharInventario', { contagens: contadas.map(function (c) { return { cod_insumo: c.cod_insumo, qtd_contada: num(c.qtd_contada) }; }) });
+          if (r.duplicado) Ui.toast('Este inventário já tinha sido fechado.', 'aviso');
+          else Ui.toast(r.contados + ' contado(s) · ' + r.ajustes + ' ajuste(s)' + (r.diferencas.length ? ': ' + r.diferencas.map(function (d) { return d.cod_insumo + ' ' + (d.diferenca > 0 ? '+' : '') + Fmt.num(d.diferenca); }).join(', ') : ''), 'ok', 'Inventário fechado');
+          Object.keys(contagem).forEach(function (k) { delete contagem[k]; });
+          return true;
+        } catch (err) { Ui.msgErro(erro, err.message); return false; }
+      }
+    }).then(function (v) { if (v === 'fechar') { carregar(true); carregarCadastro(); } });
+
+    const cx = ultimaJanela();
+    const rod = cx.querySelector('.rodape');
+    const info = document.createElement('span');
+    info.className = 't-inv';
+    rod.insertBefore(info, rod.firstChild);
+    function atualizar() {
+      let nCont = 0, nDif = 0;
+      cx.querySelectorAll('tr[data-inv]').forEach(function (tr) {
+        const i = lista.find(function (x) { return x.cod_insumo === tr.dataset.inv; });
+        const t = (contagem[i.cod_insumo] || '').trim(), q = num(t);
+        const cel = tr.querySelector('[data-dif]');
+        if (t === '') { cel.innerHTML = '<span class="dif zero">—</span>'; return; }
+        if (isNaN(q)) { cel.innerHTML = '<span class="dif neg2">?</span>'; return; }
+        nCont++;
+        const d = Math.round((q - i.saldo) * 1000) / 1000;
+        if (d !== 0) nDif++;
+        cel.innerHTML = d < 0 ? '<span class="dif neg2">' + n(d) + '</span>' : d > 0 ? '<span class="dif pos">+' + n(d) + '</span>' : '<span class="dif zero">0</span>';
+      });
+      info.textContent = nCont + ' de ' + lista.length + ' contados · ' + nDif + ' com diferença';
+    }
+    cx.addEventListener('input', function (ev) {
+      const tr = ev.target.closest('tr[data-inv]');
+      if (!tr) return;
+      contagem[tr.dataset.inv] = ev.target.value;
+      atualizar();
+    });
+    atualizar();
+  }
+});
+</script>
+</body>
+</html>

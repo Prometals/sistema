@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Produtos e Estrutura · Prometals</title>
+<link rel="stylesheet" href="css/tema.css">
+<link rel="stylesheet" href="css/sistema.css">
+<style>
+/* ---------- específico desta página ---------- */
+.cadg { display: grid; grid-template-columns: 340px 1fr; gap: 14px; height: calc(100vh - 56px - 28px - 40px - 70px); min-height: 560px; }
+.cadg > * { min-width: 0; }
+
+/* lista de produtos (esquerda) */
+.lst { background: var(--painel); border: 1px solid var(--linha); border-radius: 12px; display: flex; flex-direction: column; min-height: 0; }
+.lst-top { padding: 12px; display: grid; gap: 10px; border-bottom: 1px solid var(--linha); }
+.f-busca { position: relative; }
+.f-busca input { width: 100%; padding-left: 34px; height: 38px; font-size: 13px; }
+.f-busca svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--texto-suave); }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chips button { height: 28px; padding: 0 10px; border-radius: 999px; border: 1px solid var(--borda); background: transparent; font-size: 11.5px; font-weight: 800; color: var(--texto-suave); cursor: pointer; }
+.chips button.on { background: var(--destaque); border-color: var(--destaque); color: #fff; }
+.chips button.am.on { background: #ca8a04; border-color: #ca8a04; }
+.lst-l { overflow: auto; flex: 1; min-height: 0; }
+.pi { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; padding: 10px 14px; border-bottom: 1px solid var(--linha); cursor: pointer; }
+.pi:hover { background: var(--hover); }
+.pi b { font-size: 13px; }
+.pi .d { grid-column: 1; font-size: 11.5px; color: var(--texto-suave); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pi .bom { grid-row: 1 / span 2; grid-column: 2; align-self: center; }
+.pi.sel { background: color-mix(in srgb, var(--destaque) 12%, transparent); box-shadow: inset 3px 0 0 var(--destaque); }
+.pi.inativo { opacity: .5; }
+.bom { font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 5px; white-space: nowrap; }
+.bom.ok { background: rgba(34,197,94,.15); color: #34d399; }
+.bom.sem { background: rgba(234,179,8,.18); color: #eab308; }
+html.tema-claro .bom.ok { color: #166534; }
+html.tema-claro .bom.sem { color: #92400e; }
+.lst-rod { padding: 9px 14px; font-size: 11.5px; color: var(--texto-suave); border-top: 1px solid var(--linha); }
+
+/* detalhe (direita) */
+.det { display: flex; flex-direction: column; gap: 14px; min-height: 0; overflow: auto; }
+.bx { background: var(--painel); border: 1px solid var(--linha); border-radius: 12px; }
+.bx-cab { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--linha); }
+.bx-cab h3 { margin: 0; font-size: 14px; }
+.bx-cab .s { font-size: 12px; color: var(--texto-suave); }
+.bx-cab .dir { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+.frm { padding: 14px 16px; display: grid; grid-template-columns: 170px 1fr 120px 130px; gap: 12px; }
+.fc { display: grid; gap: 5px; font-size: 11px; font-weight: 800; color: var(--texto-suave); letter-spacing: .4px; align-content: start; }
+.fc input, .fc select { height: 38px; font-size: 13.5px; padding: 0 10px; }
+.fc input:disabled { opacity: .7; }
+.fc.largo { grid-column: 1 / -1; }
+.fc small { font-weight: 600; font-size: 11px; letter-spacing: 0; }
+.fc input.mud { border-color: var(--destaque); }
+/* chave Ativo */
+.at-sw { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; cursor: pointer; user-select: none; background: none; border: 0; padding: 0; }
+.at-sw:disabled { cursor: default; opacity: .8; }
+.sw { width: 38px; height: 22px; border-radius: 999px; background: var(--bloqueado); position: relative; flex: none; }
+.sw::after { content: ""; position: absolute; left: 3px; top: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: left .15s; }
+.at-sw.on .sw { background: #16a34a; }
+.at-sw.on .sw::after { left: 19px; }
+.at-sw.mud { color: var(--destaque); }
+/* BOM */
+.cat { font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 5px; white-space: nowrap; }
+.cat.luva { background: rgba(59,130,246,.18); color: #93c5fd; }
+.cat.filtro { background: rgba(20,184,166,.18); color: #5eead4; }
+.cat.emb { background: rgba(240,122,31,.18); color: #fdba74; }
+.cat.out { background: var(--painel-2); color: var(--texto-suave); }
+html.tema-claro .cat.luva { color: #1d4ed8; }
+html.tema-claro .cat.filtro { color: #0f766e; }
+html.tema-claro .cat.emb { color: #9a3412; }
+.pol { font-size: 10px; font-weight: 800; color: var(--destaque); }
+table.tab input.in, table.tab select.in { height: 32px; font-size: 13px; padding: 0 8px; border-radius: 7px; }
+.det table.tab th, .det table.tab td { padding-left: 10px; padding-right: 10px; }
+.det table.tab td:nth-child(2) { max-width: 230px; overflow: hidden; text-overflow: ellipsis; }
+table.tab input.in.q { width: 70px; text-align: right; }
+table.tab select.in { width: 118px; }
+table.tab input.in.mud, table.tab select.in.mud { border-color: var(--destaque); }
+tr.nova td { background: color-mix(in srgb, #16a34a 9%, transparent); }
+tr.removida td { opacity: .5; text-decoration: line-through; }
+tr.removida td:last-child { opacity: 1; text-decoration: none; }
+.ins-inat { font-size: 10px; font-weight: 800; color: var(--erro); display: block; }
+.bom-vazia { padding: 18px 16px; color: var(--texto-suave); font-size: 13px; }
+.add-ins { display: flex; gap: 10px; padding: 12px 16px; border-top: 1px solid var(--linha); align-items: start; position: relative; }
+.add-ins .f-busca { flex: 1; }
+.sug { position: absolute; left: 16px; right: 200px; top: 54px; background: var(--painel); border: 1px solid var(--destaque); border-radius: 10px; box-shadow: var(--sombra); z-index: 4; overflow: hidden; }
+.sug div { display: flex; gap: 10px; align-items: center; padding: 8px 12px; font-size: 12.5px; cursor: pointer; }
+.sug div.on { background: color-mix(in srgb, var(--destaque) 16%, transparent); }
+.sug div b { min-width: 72px; }
+.sug div span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.sug .nada { color: var(--texto-suave); cursor: default; }
+.x { width: 28px; height: 28px; border-radius: 7px; border: 1px solid rgba(220,38,38,.4); background: transparent; color: #f87171; cursor: pointer; font-size: 15px; line-height: 1; }
+.x.volta { border-color: var(--borda); color: var(--texto-suave); font-size: 11px; width: auto; padding: 0 8px; }
+/* simulação */
+.sim { padding: 12px 16px; display: grid; grid-template-columns: auto repeat(3, 1fr); gap: 12px; align-items: center; }
+.sim .ent { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--texto-suave); font-weight: 700; flex-wrap: wrap; }
+.sim .ent input { width: 70px; height: 34px; text-align: right; font-weight: 800; padding: 0 8px; }
+.sim .r { background: var(--painel-2); border-radius: 10px; padding: 9px 12px; font-size: 11px; font-weight: 800; color: var(--texto-suave); min-width: 0; }
+.sim .r b { display: block; font-size: 20px; color: var(--texto); }
+.sim .r small { font-weight: 600; }
+.sim .aviso { grid-column: 1 / -1; font-size: 12px; color: var(--alerta); font-weight: 600; }
+.aud { font-size: 11.5px; color: var(--texto-suave); padding: 0 2px; display: flex; gap: 6px; align-items: center; }
+.aud svg { width: 14px; height: 14px; }
+.btn2.salvar { background: #16a34a; border-color: #16a34a; color: #fff; }
+.btn2 .n { background: rgba(255,255,255,.25); border-radius: 999px; padding: 0 7px; font-size: 11px; }
+.det-vazio { background: var(--painel); border: 1px solid var(--linha); border-radius: 12px; padding: 60px 20px; text-align: center; color: var(--texto-suave); font-size: 13px; }
+.voltar-mob { display: none; }
+.hist { display: grid; gap: 8px; font-size: 13px; }
+.hist div { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--linha); padding-bottom: 6px; }
+.hist span { color: var(--texto-suave); }
+
+@media (max-width: 1200px) { .cadg { grid-template-columns: 320px 1fr; } .frm { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 760px) {
+  .cadg { display: block; height: auto; min-height: 0; }
+  .lst { border: 0; background: transparent; }
+  .lst-top { padding: 0 0 10px; border: 0; }
+  .lst-l { overflow: visible; }
+  .pi { background: var(--painel); border: 1px solid var(--linha); border-radius: 10px; margin-bottom: 8px; }
+  .lst-rod { border: 0; padding: 4px 2px; }
+  .det { display: none; overflow: visible; }
+  body.mob-det .det { display: flex; }
+  body.mob-det .lst, body.mob-det .tit-pagina p { display: none; }
+  .frm { grid-template-columns: 1fr 1fr; }
+  .frm .f-desc { grid-column: 1 / -1; order: -1; }
+  .frm .f-cod { order: -2; grid-column: 1 / -1; }
+  .sim { grid-template-columns: 1fr 1fr 1fr; }
+  .sim .ent { grid-column: 1 / -1; }
+  .add-ins { flex-wrap: wrap; }
+  .add-ins .btn2 { width: 100%; justify-content: center; }
+  .sug { left: 16px; right: 16px; }
+  .det table.tab th:nth-child(2), .det table.tab td:nth-child(2), .det table.tab th:nth-child(4), .det table.tab td:nth-child(4) { display: none; }
+  table.tab select.in { width: 92px; }
+  table.tab input.in.q { width: 50px; }
+  .det table.tab td, .det table.tab th { padding: 8px 6px; }
+  .det table.tab td:last-child, .det table.tab th:last-child { padding-right: 10px; }
+  .det table.tab td:first-child, .det table.tab th:first-child { padding-left: 12px; }
+  .bx-cab .s { display: none; }
+  .bx-cab { flex-wrap: wrap; }
+  .bx-cab .dir [data-acao="historico"] { display: none; }
+  .bx-cab .dir { flex-wrap: wrap; justify-content: flex-end; }
+  .bx { overflow: hidden; }
+  .voltar-mob { display: inline-flex; }
+  .aud-hist { display: inline-flex !important; }
+}
+.aud-hist { display: none !important; }
+</style>
+</head>
+<body>
+
+<!-- Cadastros · Produtos e Estrutura.
+     Esquerda: lista de produtos (busca ignora zeros à esquerda; filtros).
+     Direita: dados do produto + estrutura (BOM) + simulação de consumo.
+     No celular: lista → detalhe. Edita: quem tem EDITAR na página (PCP/Admin). -->
+<main class="conteudo">
+  <div class="tit-pagina">
+    <div><h1>Produtos e Estrutura</h1><p>Cadastro do produto e da BOM (luva, filtro, embalagem) · feito uma vez, usado em todas as OPs</p></div>
+    <div class="acoes-pagina so-desk"><button class="btn2 pri" data-acao="novo" data-editar hidden><svg class="i"><use href="#i-mais"/></svg>Novo produto</button></div>
+  </div>
+
+  <div class="cadg">
+    <aside class="lst">
+      <div class="lst-top">
+        <div class="f-busca"><svg class="i"><use href="#i-busca"/></svg><input id="busca" autocomplete="off" placeholder="Código ou descrição (ignora zeros à esquerda)…"></div>
+        <div class="chips" id="chips"></div>
+      </div>
+      <div class="lst-l" id="lista"><div class="carregando">Carregando…</div></div>
+      <div class="lst-rod" id="rod"></div>
+    </aside>
+    <section class="det" id="det"><div class="det-vazio">Escolha um produto na lista.</div></section>
+  </div>
+</main>
+
+<script src="js/config.js"></script>
+<script src="js/icones.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/api.js"></script>
+<script src="js/sessao.js"></script>
+<script src="js/shell.js"></script>
+<script>
+Sessao.iniciarPagina('produtos').then(function (ctx) {
+  const $ = function (s) { return document.querySelector(s); };
+  const pode = ctx.podeEditar;
+  const CLS_CAT = { LUVA: 'luva', FILTRO: 'filtro', EMBALAGEM: 'emb', OUTROS: 'out' };
+  const MAX_LISTA = 800;     // desenha no máximo 800 itens (a busca afina o resto)
+
+  let produtos = [];         // cadastro completo (inclui inativos), com QTD_INSUMOS
+  let insumos = [];          // insumos ATIVOS (para adicionar à BOM)
+  let filtro = 'TODOS';      // TODOS | COM | SEM | INATIVOS
+  let atual = null;          // produto aberto no detalhe (ver abrir())
+  let sug = [], sugSel = 0;  // sugestões da busca de insumo
+  let salvando = false;
+
+  if (pode) document.querySelectorAll('[data-editar]').forEach(function (b) { b.hidden = false; });
+
+  carregar().then(function () {
+    const pedido = new URLSearchParams(location.search).get('cod');
+    const alvo = pedido ? acharProduto(pedido) : null;
+    if (alvo) abrir(alvo.COD_ITEM);
+    else if (!mobile()) { const p = visiveis()[0]; if (p) abrir(p.COD_ITEM); }
+  });
+  carregarInsumos();
+
+  // ---------- Dados ----------
+  async function carregar() {
+    try {
+      produtos = await Api.chamar('listarProdutos', { incluirInativos: true });
+      produtos.sort(function (a, b) { return String(a.COD_ITEM).localeCompare(String(b.COD_ITEM)); });
+      desenharLista();
+    } catch (e) {
+      Ui.erro(e);
+      $('#lista').innerHTML = '<div class="vazio">Não foi possível carregar. ' + Ui.esc(e.message) + '</div>';
+    }
+  }
+  async function carregarInsumos() {
+    try { insumos = await Api.chamar('listarInsumos', {}); } catch (e) { /* sem a lista, só não sugere */ }
+  }
+
+  // ---------- Códigos: toda busca ignora os zeros à esquerda ----------
+  function semZeros(v) { return String(v === null || v === undefined ? '' : v).trim().toUpperCase().replace(/^0+(?=.)/, ''); }
+  function acharProduto(cod) {
+    const k = semZeros(cod);
+    return produtos.find(function (p) { return semZeros(p.COD_ITEM) === k; }) || null;
+  }
+  // Cada palavra digitada precisa aparecer no código (sem zeros) ou na descrição.
+  function bate(busca, codigo, descricao) {
+    const palavras = busca.toUpperCase().split(/\s+/).filter(Boolean);
+    const cod = semZeros(codigo), txt = String(codigo).toUpperCase() + ' ' + String(descricao || '').toUpperCase();
+    return palavras.every(function (w) { return txt.indexOf(w) !== -1 || cod.indexOf(semZeros(w)) !== -1; });
+  }
+
+  // ---------- Lista ----------
+  function visiveis() {
+    const busca = $('#busca').value.trim();
+    return produtos.filter(function (p) {
+      const ativo = p.ATIVO === 'SIM';
+      if (filtro === 'INATIVOS' ? ativo : !ativo) return false;
+      if (filtro === 'COM' && !(p.QTD_INSUMOS > 0)) return false;
+      if (filtro === 'SEM' && p.QTD_INSUMOS > 0) return false;
+      return !busca || bate(busca, p.COD_ITEM, p.DESCRICAO);
+    });
+  }
+
+  function desenharLista() {
+    const ativos = produtos.filter(function (p) { return p.ATIVO === 'SIM'; });
+    const com = ativos.filter(function (p) { return p.QTD_INSUMOS > 0; }).length;
+    const inat = produtos.length - ativos.length;
+    const chips = [['TODOS', 'Todos · ' + ativos.length, ''], ['COM', 'Com BOM · ' + com, ''], ['SEM', 'Sem BOM · ' + (ativos.length - com), 'am'],
+      ['INATIVOS', 'Inativos' + (inat ? ' · ' + inat : ''), '']];
+    $('#chips').innerHTML = chips.map(function (c) {
+      return '<button class="' + c[2] + (filtro === c[0] ? ' on' : '') + '" data-filtro="' + c[0] + '">' + c[1] + '</button>';
+    }).join('');
+    const lista = visiveis();
+    const cod = atual && !atual.novo ? atual.orig.cod : null;
+    $('#lista').innerHTML = lista.slice(0, MAX_LISTA).map(function (p) {
+      const b = p.QTD_INSUMOS > 0 ? '<span class="bom ok">BOM · ' + p.QTD_INSUMOS + '</span>' : '<span class="bom sem">sem BOM</span>';
+      return '<div class="pi' + (p.COD_ITEM === cod ? ' sel' : '') + (p.ATIVO !== 'SIM' ? ' inativo' : '') + '" data-cod="' + Ui.esc(p.COD_ITEM) + '">' +
+        '<b>' + Ui.esc(p.COD_ITEM) + '</b>' + b + '<span class="d">' + Ui.esc(p.DESCRICAO) + '</span></div>';
+    }).join('') || '<div class="vazio">Nenhum produto encontrado.</div>';
+    $('#rod').textContent = lista.length > MAX_LISTA
+      ? 'Mostrando ' + MAX_LISTA + ' de ' + lista.length + ' · refine a busca'
+      : lista.length + ' de ' + produtos.length + ' produtos · ' + com + ' com BOM';
+  }
+
+  $('#busca').addEventListener('input', desenharLista);
+  $('#chips').addEventListener('click', function (ev) {
+    const b = ev.target.closest('[data-filtro]');
+    if (!b) return;
+    filtro = b.dataset.filtro;
+    desenharLista();
+  });
+  $('#lista').addEventListener('click', async function (ev) {
+    const it = ev.target.closest('.pi[data-cod]');
+    if (!it) return;
+    if (atual && !atual.novo && it.dataset.cod === atual.orig.cod) { document.body.classList.add('mob-det'); return; }
+    if (!(await podeSair())) return;
+    abrir(it.dataset.cod);
+  });
+
+  // ---------- Abrir produto ----------
+  function mobile() { return window.innerWidth <= 760; }
+
+  async function abrir(cod) {
+    document.body.classList.add('mob-det');
+    $('#det').innerHTML = '<div class="det-vazio carregando">Carregando…</div>';
+    try {
+      const r = await Api.chamar('buscarProduto', { cod_item: cod });
+      if (!r.encontrado) throw new Api.Erro('NAO_ENCONTRADO', 'Produto ' + cod + ' não encontrado.');
+      montar(r.produto, r.estrutura);
+    } catch (e) {
+      Ui.erro(e);
+      $('#det').innerHTML = '<div class="det-vazio">Não foi possível abrir o produto. ' + Ui.esc(e.message) + '</div>';
+    }
+  }
+
+  function novoProduto() {
+    document.body.classList.add('mob-det');
+    montar(null, []);
+    setTimeout(function () { const c = $('#det [data-campo="cod"]'); if (c) c.focus(); }, 30);
+  }
+
+  // Estado do produto aberto: orig = como está no servidor; campos/bom = como está na tela.
+  function montar(p, estrutura) {
+    const orig = p ? {
+      cod: String(p.COD_ITEM), descricao: String(p.DESCRICAO || ''), liga: String(p.LIGA_PADRAO || ''),
+      moldes: p.MOLDES_POR_PECA === '' || p.MOLDES_POR_PECA === null ? '' : String(p.MOLDES_POR_PECA),
+      obs: String(p.OBS || ''), ativo: p.ATIVO === 'SIM' ? 'SIM' : 'NAO'
+    } : { cod: '', descricao: '', liga: '', moldes: '', obs: '', ativo: 'SIM' };
+    const bom = estrutura.map(function (e) {
+      return { cod: String(e.COD_INSUMO), descricao: e.DESCRICAO, categoria: e.CATEGORIA, unidade: e.UNIDADE, politica: e.POLITICA,
+        insumoAtivo: e.INSUMO_ATIVO === 'SIM', qtd: String(e.QTD), base: e.BASE_CALCULO, qtdOrig: String(e.QTD), baseOrig: e.BASE_CALCULO,
+        nova: false, removida: false };
+    });
+    atual = { novo: !p, reg: p, orig: orig, campos: Object.assign({}, orig), bom: bom, pecas: '1' };
+    desenharDetalhe();
+    desenharLista();
+  }
+
+  // ---------- Detalhe ----------
+  function desenharDetalhe() {
+    const a = atual, c = a.campos;
+    const trava = !pode ? ' disabled' : '';
+    const ligas = Array.from(new Set(produtos.map(function (p) { return String(p.LIGA_PADRAO || '').toUpperCase(); }).filter(Boolean))).sort();
+    const sub = a.novo ? 'novo produto · preencha e clique em Salvar'
+      : 'criado' + (a.reg.CRIADO_POR ? ' por ' + nomeUsuario(a.reg.CRIADO_POR) : '') + (a.reg.CRIADO_EM ? ' · ' + Fmt.data(a.reg.CRIADO_EM) : '') +
+        (a.reg.ATUALIZADO_EM ? ' · alterado por ' + a.reg.ATUALIZADO_POR + ' em ' + Fmt.data(a.reg.ATUALIZADO_EM) : '');
+    const inativo = !a.novo && a.orig.ativo !== 'SIM';
+
+    $('#det').innerHTML =
+      '<div class="bx">' +
+        '<div class="bx-cab"><button class="btn2 voltar-mob" data-acao="voltar">‹ Lista</button><h3>' + Ui.esc(a.novo ? 'Novo produto' : a.orig.cod) + '</h3><span class="s">' + Ui.esc(sub) + '</span>' +
+          '<div class="dir">' +
+            '<button type="button" class="at-sw" data-acao="ativo"' + (a.novo || !pode ? ' disabled' : '') + ' title="Produto inativo não aparece para novas OPs; nada é apagado"><span class="sw"></span><span data-ativo-txt></span></button>' +
+            (a.novo ? '' : '<button class="btn2" data-acao="historico">' + Ui.ic('i-hist') + 'Histórico</button>') +
+            (pode ? '<button class="btn2 salvar" data-acao="salvar" id="bt-salvar">' + Ui.ic('i-check') + 'Salvar <span class="n" id="n-salvar">0</span></button>' : '') +
+          '</div></div>' +
+        '<div class="frm">' +
+          '<label class="fc f-cod">CÓDIGO<input data-campo="cod" autocomplete="off" spellcheck="false" value="' + Ui.esc(c.cod) + '"' + (a.novo && pode ? '' : ' disabled') + ' placeholder="como no NW"></label>' +
+          '<label class="fc f-desc">DESCRIÇÃO<input data-campo="descricao" value="' + Ui.esc(c.descricao) + '"' + trava + '></label>' +
+          '<label class="fc">LIGA PADRÃO<input data-campo="liga" list="ligas" autocomplete="off" value="' + Ui.esc(c.liga) + '"' + trava + ' placeholder="—"></label>' +
+          '<datalist id="ligas">' + ligas.map(function (l) { return '<option value="' + Ui.esc(l) + '">'; }).join('') + '</datalist>' +
+          '<label class="fc">MOLDES POR PEÇA<input data-campo="moldes" inputmode="decimal" value="' + Ui.esc(c.moldes) + '"' + trava + ' placeholder="vazio"><small>usado para calcular os moldes da OP</small></label>' +
+          '<label class="fc largo">OBSERVAÇÃO<input data-campo="obs" value="' + Ui.esc(c.obs) + '"' + trava + ' placeholder="Opcional"></label>' +
+        '</div>' +
+      '</div>' +
+
+      '<div class="bx">' +
+        '<div class="bx-cab"><h3>Estrutura (BOM)</h3><span class="s" id="bom-sub"></span></div>' +
+        '<div id="bom-tab"></div>' +
+        (pode && !inativo ?
+          '<div class="add-ins">' +
+            '<div class="f-busca"><svg class="i"><use href="#i-busca"/></svg><input id="busca-ins" autocomplete="off" placeholder="Adicionar insumo: código ou descrição…"></div>' +
+            '<button class="btn2" data-acao="adicionar">' + Ui.ic('i-mais') + 'Adicionar à estrutura</button>' +
+            '<div class="sug" id="sug" hidden></div>' +
+          '</div>' : '') +
+        (inativo ? '<div class="bom-vazia">Produto inativo: reative (chave Ativo) e salve para editar a estrutura.</div>' : '') +
+      '</div>' +
+
+      '<div class="bx">' +
+        '<div class="bx-cab"><h3>Simulação de consumo</h3><span class="s">quanto uma OP deste produto vai pedir</span></div>' +
+        '<div class="sim" id="sim"></div>' +
+      '</div>' +
+      '<div class="aud">' + Ui.ic('i-hist') + '<span>Toda alteração fica registrada (quem, quando, de → para). Insumo removido é inativado, nunca apagado.</span>' +
+        (a.novo ? '' : '<button class="btn2 aud-hist" data-acao="historico">Histórico</button>') + '</div>';
+
+    desenharAtivo();
+    desenharBom();
+    desenharSim();
+    marcarCampos();
+    contar();
+  }
+
+  function desenharAtivo() {
+    const sw = $('#det [data-acao="ativo"]');
+    if (!sw) return;
+    sw.classList.toggle('on', atual.campos.ativo === 'SIM');
+    sw.classList.toggle('mud', !atual.novo && atual.campos.ativo !== atual.orig.ativo);
+    sw.querySelector('[data-ativo-txt]').textContent = atual.campos.ativo === 'SIM' ? 'Ativo' : 'Inativo';
+  }
+
+  function desenharBom() {
+    const linhas = atual.bom;
+    const trava = !pode || (!atual.novo && atual.orig.ativo !== 'SIM');
+    const ativas = linhas.filter(function (l) { return !l.removida; }).length;
+    $('#bom-sub').textContent = ativas + ' insumo' + (ativas === 1 ? '' : 's') + ' · o que a OP consome';
+    if (!linhas.length) {
+      $('#bom-tab').innerHTML = '<div class="bom-vazia">Sem estrutura. ' + (trava ? '' : 'Busque um insumo abaixo para adicionar.') + '</div>';
+      return;
+    }
+    $('#bom-tab').innerHTML = '<table class="tab"><thead><tr><th>Insumo</th><th>Descrição</th><th>Categoria</th><th>Política</th><th class="num">Qtd</th><th>Base de cálculo</th><th></th></tr></thead><tbody>' +
+      linhas.map(function (l, i) {
+        const emb = l.categoria === 'EMBALAGEM';
+        const dis = trava || l.removida ? ' disabled' : '';
+        const pol = l.politica === 'SOB_DEMANDA' ? '<span class="pol">SOB DEMANDA</span>' : '<span class="mut" style="font-size:11px">estocado</span>';
+        const opts = ['POR_MOLDE', 'POR_PECA'].map(function (o) {
+          return '<option value="' + o + '"' + (o === l.base ? ' selected' : '') + (emb && o === 'POR_MOLDE' ? ' disabled' : '') + '>' + (o === 'POR_MOLDE' ? 'Por molde' : 'Por peça') + '</option>';
+        }).join('');
+        const acao = trava ? '' : l.removida
+          ? '<button class="x volta" data-volta="' + i + '" title="Desfazer a remoção">desfazer</button>'
+          : '<button class="x" data-remover="' + i + '" title="Inativar esta linha da estrutura">×</button>';
+        return '<tr class="' + (l.nova ? 'nova' : '') + (l.removida ? ' removida' : '') + '" data-i="' + i + '">' +
+          '<td><b>' + Ui.esc(l.cod) + '</b>' + (l.insumoAtivo ? '' : '<span class="ins-inat">insumo inativo</span>') + '</td>' +
+          '<td title="' + Ui.esc(l.descricao) + '">' + Ui.esc(l.descricao) + '</td>' +
+          '<td><span class="cat ' + (CLS_CAT[l.categoria] || 'out') + '">' + Ui.esc(l.categoria || '—') + '</span></td><td>' + pol + '</td>' +
+          '<td class="num"><input class="in q' + (!l.nova && l.qtd !== l.qtdOrig ? ' mud' : '') + '" data-qtd="' + i + '" inputmode="decimal" value="' + Ui.esc(l.qtd) + '"' + dis + '></td>' +
+          '<td><select class="in' + (!l.nova && l.base !== l.baseOrig ? ' mud' : '') + '" data-base="' + i + '"' + dis + (emb ? ' title="Embalagem é sempre por peça"' : '') + '>' + opts + '</select></td>' +
+          '<td>' + acao + '</td></tr>';
+      }).join('') + '</tbody></table>';
+  }
+
+  // Simulação: n peças → moldes → quanto de cada insumo a OP vai pedir.
+  function desenharSim() {
+    const pecas = numero(atual.pecas);
+    const mpp = numero(atual.campos.moldes);
+    const moldes = pecas !== null && mpp !== null ? arred(pecas * mpp) : null;
+    const linhas = atual.bom.filter(function (l) { return !l.removida; });
+    let html = '<label class="ent">Para <input data-pecas inputmode="decimal" value="' + Ui.esc(atual.pecas) + '"> peça(s) = <b style="color:var(--texto)" id="sim-moldes">' +
+      (moldes === null ? '— moldes' : Fmt.num(moldes) + ' molde' + (moldes === 1 ? '' : 's')) + '</b></label>';
+    html += linhas.map(function (l) {
+      const q = numero(l.qtd);
+      const base = l.base === 'POR_MOLDE' ? moldes : pecas;
+      const v = q === null || base === null ? null : arred(q * base);
+      return '<div class="r">' + Ui.esc((l.categoria || 'INSUMO') + ' · ' + l.cod) + '<b>' + (v === null ? '—' : Fmt.num(v)) +
+        ' <small>' + Ui.esc(String(l.unidade || '').toLowerCase()) + (l.politica === 'SOB_DEMANDA' ? ' · sob demanda' : '') + '</small></b></div>';
+    }).join('');
+    if (!linhas.length) html += '<div class="aviso">Sem estrutura: a OP não vai pedir insumos.</div>';
+    else if (mpp === null && linhas.some(function (l) { return l.base === 'POR_MOLDE'; })) {
+      html += '<div class="aviso">Preencha "Moldes por peça" para calcular os insumos por molde.</div>';
+    }
+    // mantém o foco no campo de peças enquanto digita
+    const foco = document.activeElement && document.activeElement.hasAttribute('data-pecas');
+    const pos = foco ? document.activeElement.selectionStart : 0;
+    $('#sim').innerHTML = html;
+    if (foco) { const inp = $('#sim [data-pecas]'); inp.focus(); try { inp.setSelectionRange(pos, pos); } catch (e) { /* ignora */ } }
+  }
+
+  // ---------- Mudanças (contador do Salvar) ----------
+  function camposMudados() {
+    if (!atual) return [];
+    const c = atual.campos, o = atual.orig;
+    return ['descricao', 'liga', 'moldes', 'obs', 'ativo'].filter(function (k) { return norm(k, c[k]) !== norm(k, o[k]); });
+  }
+  function norm(k, v) {
+    v = String(v === null || v === undefined ? '' : v).trim();
+    if (k === 'liga') return v.toUpperCase();
+    if (k === 'moldes') { const n = numero(v); return n === null ? v : String(n); }
+    return v;
+  }
+  function bomMudancas() {
+    if (!atual) return 0;
+    return atual.bom.filter(function (l) {
+      if (l.nova) return !l.removida;
+      if (l.removida) return true;
+      return numero(l.qtd) !== numero(l.qtdOrig) || l.base !== l.baseOrig;
+    }).length;
+  }
+  function contar() {
+    let n = 0;
+    if (atual && atual.novo) {
+      // produto novo: conta os campos preenchidos
+      n = ['cod', 'descricao', 'liga', 'moldes', 'obs'].filter(function (k) { return String(atual.campos[k]).trim(); }).length;
+    } else if (atual) {
+      n = camposMudados().length;
+    }
+    n += bomMudancas();
+    const el = $('#n-salvar');
+    if (el) el.textContent = n;
+    const bt = $('#bt-salvar');
+    if (bt) bt.disabled = salvando || !n;
+    return n;
+  }
+  function temMudanca() { return !!atual && contar() > 0; }
+  function marcarCampos() {
+    if (!atual || atual.novo) return;
+    const mud = camposMudados();
+    document.querySelectorAll('#det [data-campo]').forEach(function (el) { el.classList.toggle('mud', mud.indexOf(el.dataset.campo) !== -1); });
+  }
+
+  async function podeSair() {
+    if (!temMudanca()) return true;
+    return Ui.confirmar({ titulo: 'Descartar alterações?', texto: 'Há ' + contar() + ' alteração(ões) não salva(s) neste produto. Se continuar, elas serão perdidas.', ok: 'Descartar', perigo: true });
+  }
+  window.addEventListener('beforeunload', function (ev) { if (temMudanca()) { ev.preventDefault(); ev.returnValue = ''; } });
+
+  // ---------- Eventos do detalhe ----------
+  $('#det').addEventListener('input', function (ev) {
+    const t = ev.target;
+    if (t.dataset.campo) {
+      atual.campos[t.dataset.campo] = t.value;
+      if (t.dataset.campo === 'moldes') desenharSim();
+      marcarCampos();
+      contar();
+    } else if (t.hasAttribute('data-qtd')) {
+      const l = atual.bom[Number(t.dataset.qtd)];
+      l.qtd = t.value;
+      t.classList.toggle('mud', !l.nova && numero(l.qtd) !== numero(l.qtdOrig));
+      desenharSim();
+      contar();
+    } else if (t.hasAttribute('data-pecas')) {
+      atual.pecas = t.value;
+      desenharSim();
+    } else if (t.id === 'busca-ins') {
+      sugerir();
+    }
+  });
+  $('#det').addEventListener('change', function (ev) {
+    const t = ev.target;
+    if (t.hasAttribute('data-base')) {
+      atual.bom[Number(t.dataset.base)].base = t.value;
+      desenharBom();
+      desenharSim();
+      contar();
+    }
+    if (t.dataset.campo === 'liga') { t.value = t.value.trim().toUpperCase(); atual.campos.liga = t.value; marcarCampos(); contar(); }
+    if (t.dataset.campo === 'cod' && atual.novo) avisarCodigoRepetido(t.value);
+  });
+  $('#det').addEventListener('keydown', function (ev) {
+    if (ev.target.id !== 'busca-ins') return;
+    const caixa = $('#sug');
+    if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') {
+      if (!sug.length) return;
+      ev.preventDefault();
+      sugSel = (sugSel + (ev.key === 'ArrowDown' ? 1 : -1) + sug.length) % sug.length;
+      desenharSug();
+    } else if (ev.key === 'Enter') {
+      ev.preventDefault();
+      adicionar();
+    } else if (ev.key === 'Escape' && caixa) {
+      caixa.hidden = true;
+    }
+  });
+  $('#det').addEventListener('click', function (ev) {
+    const s = ev.target.closest('.sug [data-sug]');
+    if (s) { sugSel = Number(s.dataset.sug); adicionar(); return; }
+    const rem = ev.target.closest('[data-remover]');
+    if (rem) {
+      const i = Number(rem.dataset.remover), l = atual.bom[i];
+      if (l.nova) atual.bom.splice(i, 1); else l.removida = true;
+      desenharBom(); desenharSim(); contar();
+      return;
+    }
+    const volta = ev.target.closest('[data-volta]');
+    if (volta) {
+      atual.bom[Number(volta.dataset.volta)].removida = false;
+      desenharBom(); desenharSim(); contar();
+      return;
+    }
+    const bt = ev.target.closest('[data-acao]');
+    if (!bt || bt.disabled) return;
+    const acao = bt.dataset.acao;
+    if (acao === 'voltar') { document.body.classList.remove('mob-det'); window.scrollTo(0, 0); }
+    if (acao === 'ativo') { atual.campos.ativo = atual.campos.ativo === 'SIM' ? 'NAO' : 'SIM'; desenharAtivo(); contar(); }
+    if (acao === 'historico') historico();
+    if (acao === 'salvar') salvar();
+    if (acao === 'adicionar') adicionar();
+  });
+  document.addEventListener('click', function (ev) {
+    const caixa = $('#sug');
+    if (caixa && !ev.target.closest('.add-ins')) caixa.hidden = true;
+    const novo = ev.target.closest('[data-acao="novo"]');
+    if (novo) podeSair().then(function (ok) { if (ok) novoProduto(); });
+  });
+
+  function avisarCodigoRepetido(v) {
+    const p = v.trim() ? acharProduto(v) : null;
+    if (!p) return;
+    Ui.confirmar({ titulo: 'Produto já cadastrado', texto: 'O código ' + v.trim().toUpperCase() + ' já existe como ' + p.COD_ITEM + ' (' + p.DESCRICAO + '). Abrir esse cadastro?', ok: 'Abrir' })
+      .then(function (ok) { if (ok) abrir(p.COD_ITEM); });
+  }
+
+  // ---------- Adicionar insumo por busca ----------
+  function sugerir() {
+    const q = $('#busca-ins').value.trim();
+    const ja = {};
+    atual.bom.forEach(function (l) { ja[l.cod] = true; });
+    sug = !q ? [] : insumos.filter(function (i) { return !ja[i.COD_INSUMO] && bate(q, i.COD_INSUMO, i.DESCRICAO + ' ' + i.CATEGORIA); })
+      .sort(function (a, b) { return ordemCat(a) - ordemCat(b); }).slice(0, 8);
+    sugSel = 0;
+    desenharSug();
+  }
+  function ordemCat(i) { return ['LUVA', 'FILTRO', 'EMBALAGEM'].indexOf(i.CATEGORIA) === -1 ? 9 : ['LUVA', 'FILTRO', 'EMBALAGEM'].indexOf(i.CATEGORIA); }
+  function desenharSug() {
+    const caixa = $('#sug');
+    if (!caixa) return;
+    const q = $('#busca-ins').value.trim();
+    caixa.hidden = !q;
+    caixa.innerHTML = sug.map(function (i, k) {
+      return '<div data-sug="' + k + '" class="' + (k === sugSel ? 'on' : '') + '"><b>' + Ui.esc(i.COD_INSUMO) + '</b><span class="cat ' + (CLS_CAT[i.CATEGORIA] || 'out') + '">' +
+        Ui.esc(i.CATEGORIA) + '</span><span>' + Ui.esc(i.DESCRICAO) + '</span></div>';
+    }).join('') || '<div class="nada">Nenhum insumo ativo encontrado' + (insumos.length ? '' : ' (lista de insumos indisponível)') + '.</div>';
+  }
+  function adicionar() {
+    const inp = $('#busca-ins');
+    if (!inp) return;
+    if (!inp.value.trim()) { inp.focus(); return; }
+    if (!sug.length) sugerir();
+    const i = sug[sugSel];
+    if (!i) { Ui.toast('Nenhum insumo ativo com "' + inp.value.trim() + '".', 'aviso'); return; }
+    const base = i.CATEGORIA === 'LUVA' || i.CATEGORIA === 'FILTRO' ? 'POR_MOLDE' : 'POR_PECA';
+    atual.bom.push({ cod: String(i.COD_INSUMO), descricao: i.DESCRICAO, categoria: i.CATEGORIA, unidade: i.UNIDADE, politica: i.POLITICA,
+      insumoAtivo: true, qtd: '1', base: base, qtdOrig: '', baseOrig: '', nova: true, removida: false });
+    inp.value = '';
+    sug = [];
+    $('#sug').hidden = true;
+    desenharBom(); desenharSim(); contar();
+    inp.focus();
+  }
+
+  // ---------- Salvar ----------
+  async function salvar() {
+    if (salvando || !atual) return;
+    const a = atual, c = a.campos;
+    const cod = c.cod.trim().toUpperCase();
+    // validação na tela (o servidor valida de novo)
+    if (a.novo && !cod) return Ui.toast('Informe o código do produto.', 'erro');
+    if (a.novo && acharProduto(cod)) return Ui.toast('O código ' + cod + ' já está cadastrado.', 'erro');
+    if (!c.descricao.trim()) return Ui.toast('Informe a descrição.', 'erro');
+    const m = numero(c.moldes);
+    if (c.moldes.trim() && !(m > 0)) return Ui.toast('Moldes por peça deve ser um número maior que zero (ou vazio).', 'erro');
+    const linhas = a.bom.filter(function (l) { return !l.removida; });
+    const ruim = linhas.find(function (l) { return !(numero(l.qtd) > 0); });
+    if (ruim) return Ui.toast(ruim.cod + ': a quantidade deve ser maior que zero.', 'erro');
+    const inat = linhas.find(function (l) { return !l.insumoAtivo; });
+    const bomMudou = bomMudancas() > 0;
+    if (bomMudou && inat) return Ui.toast('O insumo ' + inat.cod + ' está inativo: remova-o da estrutura (×) antes de salvar.', 'erro');
+
+    const dadosProd = { cod_item: a.novo ? cod : a.orig.cod };
+    const mud = a.novo ? ['descricao', 'liga', 'moldes', 'obs'] : camposMudados();
+    mud.forEach(function (k) {
+      if (k === 'descricao') dadosProd.descricao = c.descricao.trim();
+      if (k === 'liga') dadosProd.liga_padrao = c.liga.trim().toUpperCase();
+      if (k === 'moldes') dadosProd.moldes_por_peca = c.moldes.trim();
+      if (k === 'obs') dadosProd.obs = c.obs.trim();
+      if (k === 'ativo') dadosProd.ativo = c.ativo;
+    });
+    const prodMudou = a.novo || mud.length > 0;
+    const itens = linhas.map(function (l) { return { cod_insumo: l.cod, qtd: numero(l.qtd), base_calculo: l.base }; });
+
+    salvando = true;
+    contar();
+    const partes = [];
+    try {
+      // Produto inativo sendo reativado (ou novo): grava o produto antes da BOM.
+      // Nos outros casos, a BOM vai primeiro (o servidor recusa BOM de produto inativo).
+      const produtoPrimeiro = a.novo || (a.orig.ativo !== 'SIM' && c.ativo === 'SIM');
+      if (prodMudou && produtoPrimeiro) { await Api.chamar('salvarProduto', dadosProd); partes.push(a.novo ? 'produto criado' : 'produto'); }
+      if (bomMudou) {
+        const r = await Api.chamar('salvarEstrutura', { cod_item: dadosProd.cod_item, itens: itens });
+        const t = [];
+        if (r.incluidos) t.push(r.incluidos + ' incluído(s)');
+        if (r.alterados) t.push(r.alterados + ' alterado(s)');
+        if (r.reativados) t.push(r.reativados + ' reativado(s)');
+        if (r.removidos) t.push(r.removidos + ' inativado(s)');
+        partes.push('estrutura: ' + (t.join(', ') || 'sem mudança'));
+      }
+      if (prodMudou && !produtoPrimeiro) { await Api.chamar('salvarProduto', dadosProd); partes.push('produto'); }
+      Ui.toast(dadosProd.cod_item + ' salvo · ' + partes.join(' · '));
+      salvando = false;
+      atual = null;
+      await carregar();
+      await abrir(dadosProd.cod_item);
+    } catch (e) {
+      salvando = false;
+      Ui.erro(e);
+      // parte já gravada: recarrega para a tela mostrar o que ficou no servidor
+      if (partes.length) { atual = null; await carregar(); await abrir(dadosProd.cod_item); }
+      else contar();
+    }
+  }
+
+  // ---------- Histórico ----------
+  // Não há rota que leia MOV_AUDITORIA: mostra o que o cadastro devolve
+  // (criado/alterado por e quando). O detalhe campo a campo fica na planilha.
+  function historico() {
+    const r = atual.reg;
+    const linha = function (rot, v) { return '<div><span>' + rot + '</span><b>' + Ui.esc(v || '—') + '</b></div>'; };
+    Ui.janela({
+      titulo: 'Histórico · ' + atual.orig.cod,
+      subtitulo: atual.orig.descricao,
+      corpo: '<div class="hist">' +
+        linha('Criado em', r.CRIADO_EM ? Fmt.dataHora(r.CRIADO_EM) : '') +
+        linha('Criado por', nomeUsuario(r.CRIADO_POR)) +
+        linha('Última alteração', r.ATUALIZADO_EM ? Fmt.dataHora(r.ATUALIZADO_EM) : 'nunca alterado') +
+        linha('Alterado por', r.ATUALIZADO_POR) +
+        linha('Situação', r.ATIVO === 'SIM' ? 'Ativo' : 'Inativo') +
+        linha('Estrutura (BOM)', atual.bom.filter(function (l) { return !l.nova; }).length + ' insumo(s) ativo(s)') +
+        '</div><p class="mut" style="font-size:12px;margin:14px 0 0">Cada alteração (campo, de → para, quem e quando) fica gravada na aba MOV_AUDITORIA da planilha. ' +
+        'A consulta dessa lista aqui na tela ainda não está disponível.</p>',
+      botoes: [{ texto: 'Fechar', classe: 'pri', valor: null }]
+    });
+  }
+
+  // ---------- Apoio ----------
+  function numero(v) {
+    const s = String(v === null || v === undefined ? '' : v).trim().replace(',', '.');
+    if (!s || isNaN(Number(s))) return null;
+    return Number(s);
+  }
+  function arred(n) { return Math.round(n * 1000) / 1000; }
+  function nomeUsuario(login) { return login === 'importacao_nw' ? 'importação NW' : (login || ''); }
+});
+</script>
+</body>
+</html>
