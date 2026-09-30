@@ -7,164 +7,126 @@
 <link rel="stylesheet" href="css/tema.css">
 <link rel="stylesheet" href="css/sistema.css">
 <style>
-/* ---------- específico desta página (mockup-estoque aprovado) ---------- */
-.est { display: grid; grid-template-columns: 1fr 380px; gap: 14px; align-items: start; }
-.est > * { min-width: 0; }
-.acoes3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 14px; }
-.ac { border-radius: 14px; border: 1px solid var(--linha); background: var(--painel); padding: 14px 16px; display: flex; align-items: center; gap: 14px; cursor: pointer; text-align: left; font: inherit; color: inherit; }
-.ac .ic { width: 46px; height: 46px; border-radius: 12px; display: grid; place-items: center; background: color-mix(in srgb, var(--c) 18%, transparent); color: var(--c); flex: none; }
-.ac .ic svg { width: 24px; height: 24px; }
-.ac b { display: block; font-size: 15px; } .ac small { font-size: 12px; color: var(--texto-suave); }
-.ac.on { border-color: var(--c); box-shadow: 0 0 0 1px var(--c) inset; }
-.bx { background: var(--painel); border: 1px solid var(--linha); border-radius: 14px; }
-.bx-cab { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--linha); }
-.bx-cab h3 { margin: 0; font-size: 15px; } .bx-cab .s { font-size: 12px; color: var(--texto-suave); } .bx-cab .dir { margin-left: auto; }
-.voltar { width: 34px; height: 34px; border-radius: 9px; border: 1px solid var(--borda); background: var(--painel-2); display: grid; place-items: center; flex: none; cursor: pointer; }
-.op-busca { display: grid; grid-template-columns: 200px 1fr; gap: 14px; padding: 14px 16px; align-items: center; border-bottom: 1px solid var(--linha); }
-.op-busca input { height: 50px; font-size: 22px; font-weight: 800; text-align: center; letter-spacing: 2px; }
-.op-inf { display: grid; grid-template-columns: repeat(4, auto); gap: 4px 22px; font-size: 12px; color: var(--texto-suave); justify-content: start; }
-.op-inf b { display: block; font-size: 13.5px; color: var(--texto); }
-.op-inf.msg { display: block; font-size: 13px; }
-.op-inf .err { color: var(--erro); font-weight: 700; }
-.proc { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 800; padding: 3px 9px; border-radius: 999px; background: var(--painel-2); color: var(--texto); }
-.proc::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #f59e0b; }
-.itm { display: grid; grid-template-columns: 1.6fr repeat(3, 90px) 150px; gap: 12px; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--linha); }
-.itm.h { font-size: 10.5px; font-weight: 800; color: var(--texto-suave); letter-spacing: .5px; padding-top: 10px; padding-bottom: 10px; }
-.itm .n { text-align: right; font-variant-numeric: tabular-nums; }
-.itm .nome b { font-size: 13.5px; } .itm .nome small { display: block; font-size: 11.5px; color: var(--texto-suave); }
-.itm .extra { grid-column: 1 / -1; display: grid; gap: 6px; }
-.itm .extra:empty { display: none; }
-.itm .extra input { height: 42px; font-size: 14px; }
-.itm .extra input.falta-motivo { border: 1px dashed #dc2626; background: rgba(220,38,38,.07); }
-.itm.erro-saldo { box-shadow: inset 3px 0 0 #dc2626; }
-.itm.acima { box-shadow: inset 3px 0 0 #eab308; }
-.aviso-l { font-size: 12px; font-weight: 700; color: #eab308; } html.tema-claro .aviso-l { color: #92400e; }
-.erro-l { font-size: 12px; font-weight: 700; color: #f87171; } html.tema-claro .erro-l { color: #b91c1c; }
-.cat { font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 5px; margin-right: 6px; background: var(--painel-2); color: var(--texto-suave); }
+/* ---------- Estoque · Operador: assistente passo a passo ----------
+   Uma pergunta por tela, botões grandes (dedo com luva no celular).
+   No computador é o mesmo assistente, centralizado (máx. 560px). */
+.wiz { max-width: 560px; margin: 0 auto; display: grid; gap: 14px; }
+.wiz > * { min-width: 0; }
+.wiz-topo { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.wiz-passo { font-size: 13px; font-weight: 700; color: var(--texto-suave); white-space: nowrap; }
+.wiz h2 { margin: 0; font-size: 24px; line-height: 1.2; }
+.wiz .sub { margin: -6px 0 0; color: var(--texto-suave); font-size: 15px; }
+
+/* botões grandes */
+.bg { width: 100%; min-height: 60px; border-radius: 14px; border: 1px solid var(--borda); background: var(--painel); color: var(--texto);
+      font: inherit; font-size: 19px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; padding: 10px 16px; text-align: center; }
+.bg svg { width: 24px; height: 24px; flex: none; }
+.bg.pri { background: var(--destaque); border-color: var(--destaque); color: #fff; }
+.bg.ok { background: #16a34a; border-color: #16a34a; color: #fff; }
+.bg:disabled { opacity: .45; cursor: not-allowed; }
+.bg.sec { background: var(--painel-2, var(--painel)); }
+.voltar { min-height: 56px; width: auto; padding: 0 18px; font-size: 18px; }
+
+/* tela 1: as 3 ações */
+.acoes { display: grid; gap: 14px; }
+.acao { min-height: 110px; justify-content: flex-start; text-align: left; gap: 16px; padding: 16px 20px; border-width: 2px; }
+.acao .ic { width: 60px; height: 60px; border-radius: 14px; display: grid; place-items: center; flex: none; background: color-mix(in srgb, var(--c) 20%, transparent); color: var(--c); }
+.acao .ic svg { width: 32px; height: 32px; }
+.acao b { display: block; font-size: 22px; letter-spacing: .3px; }
+.acao small { display: block; font-size: 15px; font-weight: 600; color: var(--texto-suave); margin-top: 2px; }
+.acao:hover { border-color: var(--c); }
+
+/* entradas grandes */
+.campo-g { width: 100%; height: 68px; font-size: 26px; font-weight: 800; text-align: center; letter-spacing: 1px; border-radius: 14px; padding: 0 12px; }
+.campo-t { width: 100%; height: 60px; font-size: 18px; border-radius: 12px; padding: 0 14px; }
+.campo-t.falta-motivo, .campo-g.falta-motivo { border: 2px dashed #dc2626; background: rgba(220,38,38,.07); }
+.msg { font-size: 16px; line-height: 1.45; }
+.msg.err { color: var(--erro); font-weight: 700; }
+html.tema-claro .msg.err { color: #b91c1c; }
+.dica { font-size: 14px; color: var(--texto-suave); }
+
+/* cartões (OP, insumo escolhido, itens da OP) */
+.cartao { background: var(--painel); border: 1px solid var(--linha); border-radius: 14px; padding: 14px 16px; display: grid; gap: 10px; }
+.cartao.erro-saldo { border-color: #dc2626; box-shadow: inset 4px 0 0 #dc2626; }
+.cartao.acima { border-color: #eab308; box-shadow: inset 4px 0 0 #eab308; }
+.cartao.trav { opacity: .8; }
+.op-cab { font-size: 15px; color: var(--texto-suave); line-height: 1.45; }
+.op-cab b { color: var(--texto); font-size: 17px; }
+.nome b { font-size: 18px; } .nome small { display: block; font-size: 14px; color: var(--texto-suave); margin-top: 2px; }
+.nums { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 14px; color: var(--texto-suave); }
+.nums b { color: var(--texto); }
+.falta { color: #f87171; font-weight: 800; } html.tema-claro .falta { color: #b91c1c; }
+.cat { font-size: 11px; font-weight: 800; padding: 2px 7px; border-radius: 5px; margin-right: 6px; background: var(--painel-2, var(--linha)); color: var(--texto-suave); vertical-align: 2px; }
 .cat.luva { background: rgba(59,130,246,.18); color: #93c5fd; } .cat.filtro { background: rgba(20,184,166,.18); color: #5eead4; } .cat.emb { background: rgba(240,122,31,.18); color: #fdba74; }
 html.tema-claro .cat.luva { color: #1d4ed8; } html.tema-claro .cat.filtro { color: #0f766e; } html.tema-claro .cat.emb { color: #9a3412; }
-.passo { display: inline-flex; align-items: center; border: 1px solid var(--destaque); border-radius: 10px; overflow: hidden; height: 42px; width: 150px; background: var(--painel-2); }
-.passo button { width: 42px; height: 100%; border: 0; background: transparent; font-size: 20px; font-weight: 800; color: var(--texto-suave); cursor: pointer; flex: none; }
-.passo input { flex: 1; min-width: 0; height: 100%; border: 0; border-radius: 0; text-align: center; padding: 0; font-weight: 800; font-size: 17px; color: var(--destaque); background: transparent; }
+.aviso-l { font-size: 15px; font-weight: 700; color: #eab308; } html.tema-claro .aviso-l { color: #92400e; }
+.erro-l { font-size: 15px; font-weight: 700; color: #f87171; } html.tema-claro .erro-l { color: #b91c1c; }
+.trava { font-size: 14px; color: var(--texto-suave); line-height: 1.45; padding: 8px 10px; border-radius: 10px; border: 1px dashed rgba(240,122,31,.5); background: rgba(240,122,31,.08); }
+.extra { display: grid; gap: 8px; } .extra:empty { display: none; }
+
+/* − número + */
+.passo { display: flex; align-items: stretch; height: 64px; border: 2px solid var(--destaque); border-radius: 14px; overflow: hidden; background: var(--painel); }
+.passo button { width: 72px; flex: none; border: 0; background: color-mix(in srgb, var(--destaque) 12%, transparent); color: var(--texto); font-size: 32px; font-weight: 800; cursor: pointer; }
+.passo input { flex: 1; min-width: 0; border: 0; border-radius: 0; text-align: center; font-size: 28px; font-weight: 800; color: var(--texto); background: transparent; padding: 0; }
 .passo input:focus { outline: none; }
-.passo.off { border-color: var(--borda); opacity: .55; } .passo.off input { color: var(--texto-suave); } .passo.off button { cursor: not-allowed; }
-.passo.grande { width: 100%; max-width: 320px; height: 52px; }
-.falta { color: #f87171; font-weight: 800; } html.tema-claro .falta { color: #b91c1c; }
-.aviso-emb { margin: 12px 16px; padding: 9px 12px; border-radius: 10px; background: rgba(240,122,31,.1); border: 1px dashed rgba(240,122,31,.5); font-size: 12px; color: var(--texto-suave); line-height: 1.5; }
-.aviso-emb b { color: var(--destaque); }
-.conf { display: flex; gap: 10px; padding: 14px 16px; align-items: center; }
-.conf .t { font-size: 12.5px; color: var(--texto-suave); } .conf .t b { color: var(--texto); }
-.conf .btn2 { margin-left: auto; height: 46px; padding: 0 22px; font-size: 14px; flex: none; }
-.btn2.baixa { background: #16a34a; border-color: #16a34a; color: #fff; }
-.btn2.baixa:disabled { opacity: .45; cursor: not-allowed; }
-.leitura { margin: 12px 16px; }
-.vazio-f { padding: 22px 16px; color: var(--texto-suave); font-size: 13px; text-align: center; }
-/* formulários sem OP / devolução */
-.fs { padding: 14px 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-.fc { display: grid; gap: 6px; font-size: 11px; font-weight: 800; color: var(--texto-suave); letter-spacing: .4px; align-content: start; }
-.fc.l { grid-column: 1 / -1; }
-.fc input, .fc select { height: 46px; font-size: 15px; padding: 0 12px; }
-.fc small { font-weight: 600; letter-spacing: 0; font-size: 11.5px; }
-.pick { position: relative; }
-.sug { display: grid; gap: 4px; margin-top: 6px; }
-.sg { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; padding: 10px 12px; min-height: 46px; border-radius: 10px; border: 1px solid var(--linha); background: var(--painel-2); color: var(--texto); font: inherit; font-size: 13px; cursor: pointer; }
-.sg:hover { border-color: var(--destaque); }
-.sg .d { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--texto-suave); font-weight: 500; }
-.sg .sl { font-size: 12px; color: var(--texto-suave); white-space: nowrap; }
-.ins-sel { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--destaque); background: color-mix(in srgb, var(--destaque) 8%, var(--painel)); font-size: 13px; color: var(--texto); font-weight: 600; }
-.ins-sel .d { flex: 1; min-width: 0; }
-.ins-sel .d small { display: block; color: var(--texto-suave); font-weight: 500; font-size: 12px; }
-.ins-sel button { width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--borda); background: var(--painel-2); display: grid; place-items: center; cursor: pointer; flex: none; }
-.chips { display: flex; flex-wrap: wrap; gap: 8px; }
-.chips button { min-height: 44px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--borda); background: var(--painel-2); color: var(--texto); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
-.chips button.on { border-color: var(--destaque); background: color-mix(in srgb, var(--destaque) 16%, var(--painel)); color: var(--texto); box-shadow: 0 0 0 1px var(--destaque) inset; }
-.chips button small { display: block; font-size: 11px; font-weight: 600; color: var(--texto-suave); }
-.chips.op button { text-align: left; padding: 6px 12px; }
-/* lateral */
-.lado { display: flex; flex-direction: column; gap: 14px; }
-.pend { padding: 6px 0; }
-.pd { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; padding: 9px 16px; border-bottom: 1px solid var(--linha); font-size: 12.5px; }
-.pd:last-child { border-bottom: 0; }
-.pd.pronto { cursor: pointer; } .pd.pronto:hover { background: var(--hover); }
-.pd b { font-size: 13px; } .pd small { color: var(--texto-suave); font-size: 11.5px; } .pd .st { grid-row: 1 / span 2; grid-column: 2; align-self: center; font-size: 10.5px; font-weight: 800; padding: 3px 8px; border-radius: 6px; white-space: nowrap; }
-.st.chegou { background: rgba(34,197,94,.15); color: #34d399; } .st.comprar { background: rgba(234,179,8,.18); color: #eab308; }
-html.tema-claro .st.chegou { color: #166534; } html.tema-claro .st.comprar { color: #92400e; }
-.mv { display: grid; grid-template-columns: 44px 1fr auto; gap: 10px; align-items: center; padding: 9px 16px; border-bottom: 1px solid var(--linha); font-size: 12.5px; }
-.mv .h { color: var(--texto-suave); font-size: 11.5px; } .mv small { display: block; color: var(--texto-suave); font-size: 11.5px; overflow-wrap: anywhere; }
+.passo.off { border-color: var(--borda); opacity: .55; } .passo.off button { cursor: not-allowed; }
+
+/* lista de insumos para tocar */
+.lista { display: grid; gap: 10px; }
+.item-b { min-height: 64px; justify-content: flex-start; text-align: left; font-size: 17px; font-weight: 700; flex-wrap: wrap; gap: 4px 8px; }
+.item-b .d { flex-basis: 100%; font-size: 14px; font-weight: 500; color: var(--texto-suave); overflow-wrap: anywhere; }
+.item-b .sl { margin-left: auto; font-size: 14px; font-weight: 600; color: var(--texto-suave); }
+.chips { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.chips .bg { font-size: 17px; min-height: 64px; }
+
+/* resumo final e tela "Pronto" */
+.resumo { font-size: 17px; line-height: 1.5; padding: 14px 16px; border-radius: 14px; background: color-mix(in srgb, var(--destaque) 8%, var(--painel)); border: 1px solid var(--linha); overflow-wrap: anywhere; }
+.pronto { text-align: center; display: grid; gap: 14px; padding: 18px 0; }
+.pronto h2 { font-size: 34px; }
+.pronto .ids { font-size: 13px; color: var(--texto-suave); overflow-wrap: anywhere; }
+
+/* rodapé discreto */
+.rodape-w { display: flex; flex-wrap: wrap; gap: 10px 18px; justify-content: center; padding-top: 6px; }
+.link { background: none; border: 0; padding: 10px 4px; font: inherit; font-size: 15px; font-weight: 700; color: var(--destaque); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.emb { border: 1px solid var(--linha); border-radius: 12px; background: var(--painel); }
+.emb summary { cursor: pointer; padding: 12px 14px; font-size: 15px; font-weight: 700; color: var(--texto-suave); }
+.emb .lista { padding: 0 12px 12px; }
+.leitura { font-size: 15px; }
+
+/* janela "Meus lançamentos de hoje" e estorno */
+.mv { display: grid; grid-template-columns: 44px 1fr auto; gap: 10px; align-items: center; padding: 9px 2px; border-bottom: 1px solid var(--linha); font-size: 13.5px; }
+.mv .h { color: var(--texto-suave); font-size: 12px; } .mv small { display: block; color: var(--texto-suave); font-size: 12px; overflow-wrap: anywhere; }
 .mv .q { font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; } .mv .q.s { color: #f87171; } .mv .q.e { color: #34d399; }
 html.tema-claro .mv .q.s { color: #b91c1c; } html.tema-claro .mv .q.e { color: #166534; }
 .mv.estornado > span:nth-child(2) > span, .mv.estornado .q { text-decoration: line-through; opacity: .6; }
-.mv .tg { font-size: 10px; font-weight: 800; padding: 1px 6px; border-radius: 5px; background: var(--painel-2); color: var(--texto-suave); margin-left: 4px; text-decoration: none; display: inline-block; }
-.mv-rod { padding: 9px 16px; font-size: 11.5px; color: var(--texto-suave); display: flex; justify-content: space-between; gap: 10px; }
-.mv-rod button { color: var(--destaque); font-weight: 700; background: none; border: 0; padding: 0; font: inherit; font-weight: 700; cursor: pointer; }
-/* janela de estorno */
+.mv .tg { font-size: 10px; font-weight: 800; padding: 1px 6px; border-radius: 5px; background: var(--linha); color: var(--texto-suave); margin-left: 4px; display: inline-block; }
+.mv-lista { max-height: 55vh; overflow: auto; }
 .est-lista { display: grid; gap: 6px; max-height: 300px; overflow: auto; margin-bottom: 12px; }
-.est-lista label { display: flex; gap: 10px; align-items: center; padding: 9px 10px; border: 1px solid var(--linha); border-radius: 9px; cursor: pointer; font-size: 13px; }
-.est-lista label small { display: block; color: var(--texto-suave); font-size: 11.5px; }
-.est-lista input { width: 18px; height: 18px; flex: none; accent-color: var(--destaque); }
+.est-lista label { display: flex; gap: 10px; align-items: center; padding: 10px; border: 1px solid var(--linha); border-radius: 9px; cursor: pointer; font-size: 14px; }
+.est-lista label small { display: block; color: var(--texto-suave); font-size: 12px; overflow-wrap: anywhere; }
+.est-lista input { width: 20px; height: 20px; flex: none; accent-color: var(--destaque); }
 .est-lista .q { margin-left: auto; font-weight: 800; }
 .campo-e { display: grid; gap: 5px; font-size: 11px; font-weight: 800; color: var(--texto-suave); letter-spacing: .4px; margin-bottom: 10px; }
-.campo-e input { height: 42px; padding: 0 12px; font-size: 14px; }
+.campo-e input { height: 48px; padding: 0 12px; font-size: 16px; }
 
-@media (max-width: 1200px) { .est { grid-template-columns: 1fr; } .itm { grid-template-columns: 1.4fr repeat(3, 70px) 150px; } }
-/* celular: tela inicial (3 ações + listas) e tela do formulário */
 @media (max-width: 760px) {
-  .acoes3 { grid-template-columns: 1fr; gap: 10px; } .ac { padding: 16px; } .ac .ic { width: 52px; height: 52px; }
-  .op-busca { grid-template-columns: 1fr; } .op-inf { grid-template-columns: 1fr 1fr; }
-  .itm.h { display: none; }
-  .itm { grid-template-columns: 1fr 1fr 1fr; gap: 6px 10px; }
-  .itm .nome { grid-column: 1 / -1; } .itm .n { text-align: left; font-size: 12px; } .itm .n::before { content: attr(data-l); display: block; font-size: 10px; color: var(--texto-suave); font-weight: 800; }
-  .itm .pc { grid-column: 1 / -1; } .itm .pc .passo { width: 100%; height: 50px; }
-  .passo button { width: 56px; }
-  .fs { grid-template-columns: 1fr; }
-  .passo.grande { max-width: none; }
-  .conf { flex-wrap: wrap; position: sticky; bottom: 0; background: var(--painel); border-top: 1px solid var(--linha); border-radius: 0 0 14px 14px; }
-  .conf .btn2 { width: 100%; margin: 0; justify-content: center; height: 52px; }
-  body.t-inicio .form-op { display: none; } body:not(.t-inicio) .acoes3, body:not(.t-inicio) .lado { display: none; }
-  .lado { order: 2; }
+  .wiz h2 { font-size: 22px; }
+  .acao { min-height: 100px; }
+  .chips { grid-template-columns: 1fr; }
 }
 </style>
 </head>
 <body>
 
-<!-- Estoque · Operador (almoxarifado) — mobile-first.
-     3 ações: Retirada com OP (estrutura da OP, "retirar agora" já
-     preenchido com o que falta), Retirada sem OP (insumo, qtd, setor,
-     motivo) e Devolução. Regras do backend (30_Estoque.gs):
+<!-- Estoque · Operador (almoxarifado), em forma de perguntas:
+     1) O que você vai fazer? (Com OP / Sem OP / Devolução)
+     2) uma pergunta por tela até o CONFIRMAR  3) tela "Pronto".
+     Regras do backend (30_Estoque.gs) continuam iguais:
      saída maior que o saldo = bloqueada; acima do previsto = só com
-     motivo; embalagem só na Inspeção Final; estorno dos próprios
-     lançamentos (Admin: qualquer um). -->
+     motivo; embalagem só no processo de consumo (Inspeção Final);
+     estorno dos próprios lançamentos (Admin: qualquer um). -->
 <main class="conteudo">
-  <div class="tit-pagina">
-    <div><h1>Estoque · Operador</h1><p>Retirada e devolução de luva, filtro e embalagem</p></div>
-  </div>
-
-  <div class="acoes3">
-    <button class="ac" data-acao="op" style="--c:#f07a1f"><span class="ic"><svg class="i"><use href="#i-saida"/></svg></span><span><b>Retirada com OP</b><small>baixa pela estrutura da OP</small></span></button>
-    <button class="ac" data-acao="semop" style="--c:#3b82f6"><span class="ic"><svg class="i"><use href="#i-pacote"/></svg></span><span><b>Retirada sem OP</b><small>manutenção, teste, outro setor</small></span></button>
-    <button class="ac" data-acao="dev" style="--c:#16a34a"><span class="ic"><svg class="i"><use href="#i-volta"/></svg></span><span><b>Devolução</b><small>sobrou, volta para o estoque</small></span></button>
-  </div>
-
-  <div class="est">
-    <section class="bx form-op" id="form">
-      <div class="bx-cab">
-        <button class="voltar so-mob" id="bt-voltar" title="Voltar"><svg class="i"><use href="#i-volta"/></svg></button>
-        <h3 id="f-tit">Retirada com OP</h3><span class="s" id="f-sub"></span>
-      </div>
-      <div id="f-corpo"></div>
-    </section>
-
-    <aside class="lado">
-      <div class="bx">
-        <div class="bx-cab"><h3>Embalagens para baixar</h3><span class="s">OPs na Inspeção Final</span></div>
-        <div class="pend" id="embalagens"><div class="carregando">Carregando…</div></div>
-      </div>
-      <div class="bx">
-        <div class="bx-cab"><h3>Meus movimentos de hoje</h3></div>
-        <div id="movimentos"><div class="carregando">Carregando…</div></div>
-      </div>
-    </aside>
-  </div>
+  <div class="wiz" id="tela"><div class="carregando">Carregando…</div></div>
 </main>
 
 <script src="js/config.js"></script>
@@ -177,32 +139,36 @@ html.tema-claro .mv .q.s { color: #b91c1c; } html.tema-claro .mv .q.e { color: #
 Sessao.iniciarPagina('estoque').then(function (ctx) {
   const $ = function (s) { return document.querySelector(s); };
   const e = Ui.esc;
-  const mob = function () { return window.innerWidth <= 760; };
+  const tela = $('#tela');
 
   // Quem pode estornar: EDITAR em Estoque ou em Compras (regra do backend)
   const podeEstornar = ctx.podeEditar || ctx.nivelDe('compras') === 'EDITAR';
 
-  let acao = 'op';              // op | semop | dev
-  let insumos = [];             // cadastro com saldo (para sem OP / devolução)
+  // Passos de cada caminho (a ordem das perguntas)
+  const PASSOS = {
+    op: ['op-num', 'op-itens'],
+    semop: ['so-ins', 'so-qtd', 'so-setor', 'so-fim'],
+    dev: ['dv-op', 'dv-ins', 'dv-qtd', 'dv-fim']
+  };
+
+  let passo = 'inicio';          // tela atual
+  let fluxo = '';                // op | semop | dev
+  let insumos = [];              // cadastro com saldo (sem OP / devolução)
   let setores = [];
-  let estrutura = null;         // resposta de estruturaOP (retirada com OP)
-  let qtd = {}, motivo = {};    // o que o operador digitou, por insumo
-  let semop = { ins: null, qtd: 1, setor: '', motivo: '' };
-  let dev = { op: '', estr: null, avisoOp: '', ins: null, qtd: 1, motivo: '' };
-  let movs = [];
+  let embalagens = [];
+  let op = null;                 // { numero, estr, erro }
+  let qtd = {}, motivo = {};     // retirada com OP: o que o operador escolheu, por insumo
+  let semop = null, dev = null;
+  let pronto = null;             // { titulo, texto, ids }
   let enviando = false;
-  let seqOP = 0;                // descarta respostas antigas da busca da OP
-  const pendente = {};          // idReq reaproveitado se o MESMO envio falhar e for repetido
+  const pendente = {};           // idReq reaproveitado se o MESMO envio falhar e for repetido
 
-  // No celular começa pela tela das 3 ações
-  if (mob()) document.body.classList.add('t-inicio');
-
-  carregarListas();
   carregarInsumos();
-  Api.chamar('setoresEstoque', {}).then(function (s) { setores = s || []; if (acao === 'semop') desenharForm(); }).catch(function () {});
-  desenharForm();
-  // Listas da lateral: atualiza a cada 60 s (sem mexer no que está sendo digitado)
-  setInterval(function () { if (!document.hidden && !document.querySelector('.modal-fundo')) carregarListas(true); }, 60000);
+  carregarEmbalagens();
+  Api.chamar('setoresEstoque', {}).then(function (s) { setores = s || []; if (passo === 'so-setor') desenhar(); }).catch(function () {});
+  desenhar();
+  // Embalagens: atualiza a cada 60 s, só na tela inicial
+  setInterval(function () { if (!document.hidden && passo === 'inicio' && !document.querySelector('.modal-fundo')) carregarEmbalagens(); }, 60000);
 
   // ---------- Números (aceita vírgula) ----------
   function num(v) {
@@ -220,6 +186,8 @@ Sessao.iniciarPagina('estoque').then(function (ctx) {
   }
   function juntar(partes) { return partes.length > 1 ? partes.slice(0, -1).join(', ') + ' e ' + partes[partes.length - 1] : partes.join(''); }
   function titulo(s) { s = String(s || '').toLowerCase(); return s.charAt(0).toUpperCase() + s.slice(1); }
+  function temSaldo(i) { return i && i.saldo !== null && i.saldo !== undefined; }
+  function nomeStatus(s) { return { SOLICITADO: 'pendente', COMPRADO: 'comprada', RECEBIDO: 'chegou', BAIXADO: 'baixada' }[s] || String(s || '').toLowerCase(); }
 
   // ---------- Envio com o mesmo idReq na repetição ----------
   async function enviar(rota, dados) {
@@ -233,139 +201,153 @@ Sessao.iniciarPagina('estoque').then(function (ctx) {
   // Erro de regra (ex.: saldo): o próximo envio pode usar outro idReq
   function erroFinal(err) { if (err && err.codigo !== 'SEM_CONEXAO') Object.keys(pendente).forEach(function (k) { delete pendente[k]; }); }
 
-  // ---------- Troca de ação ----------
-  document.querySelector('.acoes3').addEventListener('click', function (ev) {
-    const b = ev.target.closest('[data-acao]');
-    if (!b) return;
-    trocarAcao(b.dataset.acao);
-  });
-  $('#bt-voltar').addEventListener('click', function () { document.body.classList.add('t-inicio'); window.scrollTo(0, 0); });
-
-  function trocarAcao(nova) {
-    acao = nova;
-    document.body.classList.remove('t-inicio');
-    desenharForm();
-    const foco = acao === 'op' ? '#op' : acao === 'semop' ? '#ins-busca' : '#dev-op';
-    if (!mob()) setTimeout(function () { const f = $(foco); if (f) f.focus(); }, 30);
-    document.querySelector('main.conteudo').scrollTop = 0;
+  // ============================================================
+  // NAVEGAÇÃO
+  // ============================================================
+  function irPara(novo) {
+    passo = novo;
+    desenhar();
+    window.scrollTo(0, 0);
+    const m = document.querySelector('main.conteudo'); if (m) m.scrollTop = 0;
+    // foco no campo principal (no celular abre o teclado numérico da OP)
+    const f = tela.querySelector('[data-foco]');
+    if (f) setTimeout(function () { f.focus(); }, 30);
+  }
+  function comecar(novoFluxo) {
+    fluxo = novoFluxo;
+    op = { numero: '', estr: null, erro: '' }; qtd = {}; motivo = {};
+    semop = { ins: null, qtd: 1, setor: '', motivo: '', busca: '' };
+    dev = { op: '', estr: null, avisoOp: '', erro: '', ins: null, qtd: 1, motivo: '', busca: '' };
+    irPara(PASSOS[fluxo][0]);
+  }
+  function voltar() {
+    const l = PASSOS[fluxo] || [];
+    const i = l.indexOf(passo);
+    irPara(i > 0 ? l[i - 1] : 'inicio');
+  }
+  function avancar() {
+    const l = PASSOS[fluxo];
+    irPara(l[l.indexOf(passo) + 1]);
   }
 
-  function desenharForm() {
-    document.querySelectorAll('.acoes3 .ac').forEach(function (b) { b.classList.toggle('on', b.dataset.acao === acao); });
-    const T = { op: ['Retirada com OP', 'digite ou leia a OP'], semop: ['Retirada sem OP', 'manutenção, teste, outro setor'], dev: ['Devolução', 'sobrou, volta para o estoque'] }[acao];
-    $('#f-tit').textContent = T[0];
-    $('#f-sub').textContent = T[1];
-    const leitura = ctx.podeEditar ? '' : '<div class="msg-info leitura">Somente consulta: seu perfil vê o estoque, mas não lança retiradas nem devoluções.</div>';
-    if (acao === 'op') {
-      $('#f-corpo').innerHTML = leitura +
-        '<div class="op-busca"><input id="op" inputmode="numeric" autocomplete="off" placeholder="OP" value="' + e(estrutura ? estrutura.op : '') + '">' +
-        '<div class="op-inf" id="op-inf"></div></div><div id="op-itens"></div>';
-      ligarOP();
-      desenharOP();
-    } else if (acao === 'semop') {
-      $('#f-corpo').innerHTML = leitura + '<div id="semop"></div>';
-      desenharSemOP();
-    } else {
-      $('#f-corpo').innerHTML = leitura + '<div id="dev"></div>';
-      desenharDev();
-    }
+  // Cabeçalho de cada passo: ← Voltar + "Passo X de Y" + a pergunta
+  function cab(pergunta, sub) {
+    const l = PASSOS[fluxo];
+    return '<div class="wiz-topo"><button type="button" class="bg sec voltar" data-voltar>← Voltar</button>' +
+      '<span class="wiz-passo">Passo ' + (l.indexOf(passo) + 1) + ' de ' + l.length + '</span></div>' +
+      '<h2>' + pergunta + '</h2>' + (sub ? '<p class="sub">' + sub + '</p>' : '');
+  }
+  function btConfirmar(id, texto) {
+    return ctx.podeEditar ? '<button type="button" class="bg ok" id="' + id + '">' + Ui.ic('i-check') + e(texto) + '</button>' : '';
+  }
+
+  function desenhar() {
+    const f = {
+      inicio: telaInicio, pronto: telaPronto,
+      'op-num': telaOpNum, 'op-itens': telaOpItens,
+      'so-ins': telaInsumo, 'so-qtd': telaQtd, 'so-setor': telaSetor, 'so-fim': telaSoFim,
+      'dv-op': telaDevOp, 'dv-ins': telaInsumo, 'dv-qtd': telaQtd, 'dv-fim': telaDevFim
+    }[passo];
+    tela.innerHTML = f();
+    depoisDeDesenhar();
+  }
+  function depoisDeDesenhar() {
+    if (passo === 'op-itens' && op.estr && !op.estr.semBom) { op.estr.itens.forEach(function (it) { validarLinha(it.cod_insumo); }); resumoOP(); }
+    if (passo === 'so-ins' || passo === 'dv-ins') desenharSugestoes();
+    if (passo === 'so-qtd' || passo === 'dv-qtd') validarQtd();
   }
 
   // ============================================================
-  // RETIRADA COM OP
+  // TELA 1: O que você vai fazer?
   // ============================================================
-  function ligarOP() {
-    const inp = $('#op');
-    let tempo = null;
-    inp.addEventListener('keydown', function (ev) { if (ev.key === 'Enter') { ev.preventDefault(); clearTimeout(tempo); buscarOP(inp.value); } });
-    inp.addEventListener('change', function () { clearTimeout(tempo); buscarOP(inp.value); });
-    inp.addEventListener('input', function () {
-      clearTimeout(tempo);
-      if (inp.value.trim().length >= 4) tempo = setTimeout(function () { buscarOP(inp.value); }, 700);
-    });
+  function telaInicio() {
+    const prontas = embalagens.filter(function (s) { return s.pronto; });
+    const acoes = ctx.podeEditar
+      ? botaoAcao('op', '#f07a1f', 'i-saida', 'RETIRAR COM OP', 'material para uma OP') +
+        botaoAcao('semop', '#3b82f6', 'i-pacote', 'RETIRAR SEM OP', 'manutenção, teste, outro setor') +
+        botaoAcao('dev', '#16a34a', 'i-volta', 'DEVOLUÇÃO', 'sobrou, volta para o estoque')
+      : botaoAcao('op', '#f07a1f', 'i-busca', 'CONSULTAR OP', 'ver a estrutura e o que já saiu');
+    return '<h2>O que você vai fazer?</h2>' +
+      (ctx.podeEditar ? '' : '<div class="msg-info leitura">Somente consulta: seu perfil vê o estoque, mas não lança retiradas nem devoluções.</div>') +
+      '<div class="acoes">' + acoes + '</div>' +
+      (ctx.podeEditar && prontas.length ? '<details class="emb" id="embalagens"><summary>Embalagens para baixar (' + prontas.length + ')</summary><div class="lista">' +
+        prontas.map(function (s) {
+          return '<button type="button" class="bg sec item-b" data-baixar="' + e(s.op) + '">OP ' + e(s.op) + ' · ' + e(s.cod_insumo) +
+            '<span class="sl">' + e(Fmt.num(s.qtd)) + ' ' + e(String(s.unidade || '').toLowerCase()) + '</span><span class="d">' + e(titulo(s.cliente)) + ' · ' + e(s.descricao) + '</span></button>';
+        }).join('') + '</div></details>' : '') +
+      '<div class="rodape-w"><button type="button" class="link" id="bt-meus">Meus lançamentos de hoje</button></div>';
+  }
+  function botaoAcao(f, cor, ic, t, s) {
+    return '<button type="button" class="bg acao" data-fluxo="' + f + '" style="--c:' + cor + '"><span class="ic">' + Ui.ic(ic) + '</span><span><b>' + t + '</b><small>' + s + '</small></span></button>';
   }
 
-  async function buscarOP(numero, forcar) {
-    numero = String(numero || '').trim();
-    if (!numero) { estrutura = null; desenharOP(); return; }
-    if (!forcar && estrutura && estrutura.op === numero) return;
-    const minha = ++seqOP;
-    const inf = $('#op-inf');   // só existe na tela da retirada com OP
-    if (inf && !forcar) { inf.className = 'op-inf msg'; inf.innerHTML = 'Buscando a OP ' + e(numero) + '…'; }
+  // ============================================================
+  // COM OP · passo 1: digite a OP
+  // ============================================================
+  function telaOpNum() {
+    return cab('Digite a OP', 'Número da OP (ou leia o código de barras)') +
+      '<input class="campo-g" id="op" data-foco inputmode="numeric" autocomplete="off" placeholder="nº da OP" value="' + e(op.numero) + '">' +
+      '<div class="msg err" id="op-erro">' + e(op.erro) + '</div>' +
+      '<button type="button" class="bg pri" id="bt-op">Continuar →</button>';
+  }
+  async function buscarOP() {
+    const numero = String(op.numero || '').trim();
+    if (!numero) { op.erro = 'Digite o número da OP.'; $('#op-erro').textContent = op.erro; return; }
+    const bt = $('#bt-op');
+    bt.disabled = true; bt.textContent = 'Buscando a OP ' + numero + '…';
     try {
       const r = await Api.chamar('estruturaOP', { op: numero });
-      if (minha !== seqOP) return;
-      const mesmaOP = estrutura && estrutura.id_item === r.id_item;
-      estrutura = r;
-      if (!mesmaOP) { qtd = {}; motivo = {}; }
-      // "Retirar agora" já vem com o que falta (limitado ao saldo)
-      r.itens.forEach(function (it) { if (!(it.cod_insumo in qtd) || forcar) qtd[it.cod_insumo] = it.liberado ? it.sugerido : 0; });
-      if (acao === 'op') { if ($('#op').value.trim() !== r.op && document.activeElement !== $('#op')) $('#op').value = r.op; desenharOP(); }
+      const mesma = op.estr && op.estr.id_item === r.id_item;
+      op.estr = r; op.erro = '';
+      if (!mesma) { qtd = {}; motivo = {}; }
+      // já vem com o que falta (limitado ao saldo)
+      r.itens.forEach(function (it) { qtd[it.cod_insumo] = it.liberado ? it.sugerido : 0; });
+      if (passo === 'op-num') avancar();
     } catch (err) {
-      if (minha !== seqOP) return;
-      estrutura = null;
-      if (acao !== 'op') return;
-      desenharOP();
-      if ($('#op-inf')) { $('#op-inf').className = 'op-inf msg'; $('#op-inf').innerHTML = '<span class="err">' + e(err.message) + '</span>'; }
+      op.estr = null; op.erro = err.message;
+      if (passo === 'op-num') { $('#op-erro').textContent = op.erro; bt.disabled = false; bt.textContent = 'Continuar →'; }
     }
   }
 
+  // ============================================================
+  // COM OP · passo 2: insumos da OP
+  // ============================================================
   function baseTexto(it) {
     const base = it.base === 'POR_PECA' ? 'por peça' : 'por molde';
     return Fmt.num(it.qtd_bom) + ' ' + base + (it.politica === 'SOB_DEMANDA' ? ' · sob demanda' : '');
   }
-
-  function desenharOP() {
-    const inf = $('#op-inf'), cx = $('#op-itens');
-    if (!inf) return;
-    if (!estrutura) {
-      inf.className = 'op-inf msg';
-      inf.innerHTML = 'Digite o número da OP (ou leia o código de barras) para ver a estrutura.';
-      cx.innerHTML = '';
-      return;
-    }
-    const x = estrutura;
-    inf.className = 'op-inf';
-    inf.innerHTML = '<span>Cliente<b>' + e(x.cliente || '—') + '</b></span><span>Item<b>' + e(x.codigo) + '</b></span>' +
-      '<span>Moldes<b>' + e(Fmt.num(x.moldes)) + ' planejados</b></span><span>Processo<b><span class="proc">' + e(x.processo) + '</span></b></span>';
-    if (x.semBom) {
-      cx.innerHTML = '<div class="vazio-f">O produto <b>' + e(x.codigo) + '</b> não tem estrutura (BOM) cadastrada.<br>Use a <b>Retirada sem OP</b> ou peça ao PCP para cadastrar a estrutura.</div>';
-      return;
-    }
-    const travados = x.itens.filter(function (it) { return !it.liberado; });
-    cx.innerHTML =
-      '<div class="itm h"><span>INSUMO DA ESTRUTURA</span><span class="n">PREVISTO</span><span class="n">JÁ RETIRADO</span><span class="n">SALDO ALMOX.</span><span>RETIRAR AGORA</span></div>' +
-      x.itens.map(function (it) {
-        const off = !it.liberado || !ctx.podeEditar;
-        return '<div class="itm" data-cod="' + e(it.cod_insumo) + '">' +
-          '<div class="nome"><span class="cat ' + catClasse(it.categoria) + '">' + e(it.categoria || 'OUTROS') + '</span><b>' + e(it.cod_insumo) + '</b><small>' + e(it.descricao) + ' · ' + e(baseTexto(it)) + '</small></div>' +
-          '<div class="n" data-l="PREVISTO">' + e(Fmt.num(it.previsto)) + '</div>' +
-          '<div class="n" data-l="JÁ RETIRADO">' + e(Fmt.num(it.ja_retirado)) + '</div>' +
-          '<div class="n" data-l="SALDO ALMOX.">' + (it.saldo > 0 ? e(Fmt.num(it.saldo)) : '<span class="falta">' + e(Fmt.num(it.saldo)) + '</span>') + '</div>' +
-          '<div class="pc"><span class="passo' + (off ? ' off' : '') + '"><button type="button" data-passo="-1"' + (off ? ' disabled' : '') + ' aria-label="menos">−</button>' +
-          '<input data-qtd inputmode="decimal" value="' + e(mostrar(it.liberado ? (qtd[it.cod_insumo] || 0) : 0)) + '"' + (off ? ' disabled' : '') + '>' +
-          '<button type="button" data-passo="1"' + (off ? ' disabled' : '') + ' aria-label="mais">+</button></span></div>' +
-          '<div class="extra"></div></div>';
-      }).join('') +
-      (travados.length ? '<div class="aviso-emb">' + travados.map(function (it) {
-        return 'A <b>' + (it.categoria === 'EMBALAGEM' ? 'embalagem' : e(it.cod_insumo)) + '</b> (' + e(it.cod_insumo) + ') ' + e(it.bloqueio.replace(/^Só é baixada/, 'só é baixada')) +
-          (it.id_solicitacao ? ' Já foi pedida ao Compras quando a OP abriu (solicitação ' + e(it.id_solicitacao) + ' · ' + e(nomeStatus(it.status_solicitacao)) + ').' : '');
-      }).join('<br>') + '</div>' : '') +
-      '<div class="conf"><span class="t" id="op-resumo"></span>' +
-      (ctx.podeEditar ? '<button class="btn2 baixa" id="bt-retirar"><svg class="i"><use href="#i-check"/></svg>Confirmar retirada</button>' : '') + '</div>';
-    x.itens.forEach(function (it) { validarLinha(it.cod_insumo); });
-    resumoOP();
+  function telaOpItens() {
+    const x = op.estr;
+    const topo = cab('Insumos da OP ' + e(x.op), 'Confira as quantidades e toque em CONFIRMAR') +
+      '<div class="cartao op-cab" id="op-inf"><span><b>' + e(x.cliente || '—') + '</b></span>' +
+      '<span>Item <b>' + e(x.codigo) + '</b> · ' + e(Fmt.num(x.moldes)) + ' moldes planejados · processo <b>' + e(x.processo) + '</b></span></div>';
+    if (x.semBom) return topo + '<div class="cartao msg">O produto <b>' + e(x.codigo) + '</b> não tem estrutura (BOM) cadastrada.<br>Use a <b>Retirada sem OP</b> ou peça ao PCP para cadastrar a estrutura.</div>';
+    return topo + '<div class="lista" id="op-itens">' + x.itens.map(function (it) {
+      const nome = '<div class="nome"><span class="cat ' + catClasse(it.categoria) + '">' + e(it.categoria || 'OUTROS') + '</span><b>' + e(it.cod_insumo) + '</b><small>' + e(it.descricao) + ' · ' + e(baseTexto(it)) + '</small></div>';
+      const nums = '<div class="nums"><span>Previsto <b>' + e(Fmt.num(it.previsto)) + '</b></span><span>Já retirado <b>' + e(Fmt.num(it.ja_retirado)) + '</b></span>' +
+        '<span>Saldo <b' + (it.saldo > 0 ? '' : ' class="falta"') + '>' + e(Fmt.num(it.saldo)) + '</b></span></div>';
+      if (!it.liberado) {
+        return '<div class="cartao trav" data-cod="' + e(it.cod_insumo) + '">' + nome + nums + '<div class="trava">🔒 ' +
+          (it.categoria === 'EMBALAGEM' ? 'A embalagem' : e(it.cod_insumo)) + ' ' + e(String(it.bloqueio || '').replace(/^Só é baixada/, 'só é baixada')) +
+          (it.id_solicitacao ? ' Já foi pedida ao Compras quando a OP abriu (solicitação ' + e(it.id_solicitacao) + ' · ' + e(nomeStatus(it.status_solicitacao)) + ').' : '') + '</div></div>';
+      }
+      const off = !ctx.podeEditar;
+      return '<div class="cartao" data-cod="' + e(it.cod_insumo) + '">' + nome + nums +
+        '<div class="passo' + (off ? ' off' : '') + '"><button type="button" data-passo="-1"' + (off ? ' disabled' : '') + ' aria-label="menos">−</button>' +
+        '<input data-qtd inputmode="decimal" value="' + e(mostrar(qtd[it.cod_insumo] || 0)) + '"' + (off ? ' disabled' : '') + '>' +
+        '<button type="button" data-passo="1"' + (off ? ' disabled' : '') + ' aria-label="mais">+</button></div>' +
+        '<div class="extra"></div></div>';
+    }).join('') + '</div>' +
+      '<div class="resumo" id="op-resumo"></div>' + btConfirmar('bt-retirar', 'CONFIRMAR RETIRADA');
   }
+  function itemDe(cod) { return op.estr ? op.estr.itens.find(function (i) { return i.cod_insumo === cod; }) : null; }
 
-  function nomeStatus(s) { return { SOLICITADO: 'pendente', COMPRADO: 'comprada', RECEBIDO: 'chegou', BAIXADO: 'baixada' }[s] || String(s || '').toLowerCase(); }
-  function itemDe(cod) { return estrutura ? estrutura.itens.find(function (i) { return i.cod_insumo === cod; }) : null; }
-
-  // Marca na linha: saldo insuficiente (bloqueia) e acima do previsto (pede motivo)
+  // Marca no cartão: saldo insuficiente (bloqueia) e acima do previsto (pede motivo)
   function validarLinha(cod) {
     const it = itemDe(cod);
-    const linha = document.querySelector('#op-itens .itm[data-cod="' + CSS.escape(cod) + '"]');
-    if (!it || !linha) return;
-    const q = it.liberado ? num(qtd[cod]) : 0;
+    const linha = tela.querySelector('#op-itens .cartao[data-cod="' + CSS.escape(cod) + '"]');
+    if (!it || !linha || !it.liberado) return;
+    const q = num(qtd[cod]);
     const extra = linha.querySelector('.extra');
     const acimaSaldo = q > it.saldo + 1e-9;
     const acimaPrev = q > 0 && it.ja_retirado + q > it.previsto + 1e-9;
@@ -375,101 +357,88 @@ Sessao.iniciarPagina('estoque').then(function (ctx) {
     if (isNaN(q)) h += '<span class="erro-l">Quantidade inválida.</span>';
     else if (acimaSaldo) h += '<span class="erro-l">Saldo no sistema é ' + e(Fmt.num(it.saldo)) + ': não dá para tirar ' + e(Fmt.num(q)) + '. Se o físico não bate, peça a Compras um inventário.</span>';
     if (!acimaSaldo && acimaPrev) {
-      const campo = extra.querySelector('[data-motivo]');
-      if (campo) return;   // já está na tela: não redesenha (não perde o que foi digitado)
+      if (extra.querySelector('[data-motivo]')) return;   // já está na tela: não perde o que foi digitado
       h += '<span class="aviso-l">Acima do previsto (previsto ' + e(Fmt.num(it.previsto)) + ', já retirado ' + e(Fmt.num(it.ja_retirado)) + '): informe o motivo.</span>' +
-        '<input data-motivo placeholder="Motivo (ex.: luva quebrada, molde refeito)" value="' + e(motivo[cod] || '') + '">';
+        '<input class="campo-t" data-motivo placeholder="Motivo (ex.: luva quebrada, molde refeito)" value="' + e(motivo[cod] || '') + '">';
     }
     extra.innerHTML = h;
   }
-
   function linhasOP() {
-    if (!estrutura) return [];
-    return estrutura.itens.filter(function (it) { return it.liberado && num(qtd[it.cod_insumo]) > 0; })
+    if (!op.estr || op.estr.semBom) return [];
+    return op.estr.itens.filter(function (it) { return it.liberado && num(qtd[it.cod_insumo]) > 0; })
       .map(function (it) { return { it: it, q: num(qtd[it.cod_insumo]) }; });
   }
-
+  function opInvalida() {
+    return op.estr.itens.find(function (it) { const q = num(qtd[it.cod_insumo]); return it.liberado && (isNaN(q) || q > it.saldo + 1e-9); });
+  }
   function resumoOP() {
     const el = $('#op-resumo');
     if (!el) return;
     const l = linhasOP();
-    el.innerHTML = l.length ? 'Retirando ' + juntar(l.map(function (x) { return nomeQtd(x.it, x.q); })) + ' para a OP ' + e(estrutura.op)
-      : 'Nada a retirar agora' + (estrutura.itens.every(function (it) { return !it.liberado || it.falta === 0; }) ? ': a OP já retirou o previsto.' : '.');
+    el.innerHTML = l.length ? 'Retirando ' + juntar(l.map(function (x) { return nomeQtd(x.it, x.q); })) + ' para a OP ' + e(op.estr.op)
+      : 'Nada a retirar agora' + (op.estr.itens.every(function (it) { return !it.liberado || it.falta === 0; }) ? ': a OP já retirou o previsto.' : '.');
     // saldo insuficiente ou número inválido: bloqueia (regra aprovada)
-    const invalida = estrutura.itens.some(function (it) { const q = num(qtd[it.cod_insumo]); return it.liberado && (isNaN(q) || q > it.saldo + 1e-9); });
     const bt = $('#bt-retirar');
-    if (bt) bt.disabled = !l.length || enviando || invalida;
+    if (bt) bt.disabled = !l.length || enviando || !!opInvalida();
   }
-
-  // Entrada da quantidade e do motivo (retirada com OP)
-  $('#f-corpo').addEventListener('input', function (ev) {
-    const linha = ev.target.closest('#op-itens .itm[data-cod]');
-    if (!linha) return;
-    const cod = linha.dataset.cod;
-    if (ev.target.matches('[data-qtd]')) { qtd[cod] = ev.target.value; validarLinha(cod); resumoOP(); }
-    if (ev.target.matches('[data-motivo]')) { motivo[cod] = ev.target.value; ev.target.classList.remove('falta-motivo'); }
-  });
-  $('#f-corpo').addEventListener('click', function (ev) {
-    const bp = ev.target.closest('[data-passo]');
-    if (bp && !bp.disabled) {
-      const passo = bp.closest('.passo'), inp = passo.querySelector('input');
-      const atual = num(inp.value);
-      const novo = Math.max(0, Math.round(((isNaN(atual) ? 0 : atual) + Number(bp.dataset.passo)) * 1000) / 1000);
-      inp.value = mostrar(novo);
-      inp.dispatchEvent(new Event('input', { bubbles: true }));
-      return;
-    }
-    if (ev.target.closest('#bt-retirar')) confirmarOP();
-  });
-
   async function confirmarOP() {
-    if (enviando || !estrutura) return;
+    if (enviando || !op.estr) return;
     const l = linhasOP();
     if (!l.length) return;
     // bloqueios na tela (o servidor confere de novo)
-    const invalida = estrutura.itens.find(function (it) { const q = num(qtd[it.cod_insumo]); return it.liberado && (isNaN(q) || q > it.saldo + 1e-9); });
+    const invalida = opInvalida();
     if (invalida) { Ui.toast(invalida.cod_insumo + ': quantidade maior que o saldo do sistema (' + Fmt.num(invalida.saldo) + '). Corrija antes de confirmar.', 'erro', 'Saldo insuficiente'); return; }
     const semMotivo = l.find(function (x) { return x.it.ja_retirado + x.q > x.it.previsto + 1e-9 && !String(motivo[x.it.cod_insumo] || '').trim(); });
     if (semMotivo) {
-      const c = document.querySelector('#op-itens .itm[data-cod="' + CSS.escape(semMotivo.it.cod_insumo) + '"] [data-motivo]');
+      const c = tela.querySelector('#op-itens .cartao[data-cod="' + CSS.escape(semMotivo.it.cod_insumo) + '"] [data-motivo]');
       if (c) { c.classList.add('falta-motivo'); c.focus(); }
       Ui.toast(semMotivo.it.cod_insumo + ': retirada acima do previsto precisa de motivo.', 'aviso', 'Informe o motivo');
       return;
     }
-    const dados = { op: estrutura.op, itens: l.map(function (x) {
+    const dados = { op: op.estr.op, itens: l.map(function (x) {
       const m = { cod_insumo: x.it.cod_insumo, qtd: x.q };
       if (x.it.ja_retirado + x.q > x.it.previsto + 1e-9) m.motivo = String(motivo[x.it.cod_insumo]).trim();
       return m;
     }) };
-    const resumo = $('#op-resumo').textContent;
-    await gravar('retirarComOP', dados, '#bt-retirar', 'Retirada registrada', function (r) {
-      Ui.toast(resumo + (r.ids ? ' · ' + r.ids.join(', ') : ''), 'ok', 'Retirada registrada');
-      buscarOP(estrutura.op, true);
+    const resumo = $('#op-resumo').innerHTML;
+    await gravar('retirarComOP', dados, '#bt-retirar', function (r) {
+      Ui.toast($('#op-resumo').textContent, 'ok', 'Retirada registrada');
+      return { titulo: 'Retirada registrada', texto: resumo, ids: r.ids || [] };
     });
   }
 
-  // Grava, trata erro e atualiza as listas
-  async function gravar(rota, dados, seletorBt, _titulo, depois) {
+  // ============================================================
+  // GRAVAR (comum aos 3 caminhos) → tela "Pronto"
+  // ============================================================
+  async function gravar(rota, dados, seletorBt, depois) {
     enviando = true;
     const bt = $(seletorBt);
-    if (bt) { bt.disabled = true; bt.dataset.txt = bt.innerHTML; bt.innerHTML = 'Gravando…'; }
+    const txt = bt ? bt.innerHTML : '';
+    if (bt) { bt.disabled = true; bt.innerHTML = 'Gravando…'; }
     try {
-      const r = await enviar(rota, dados);
-      if (r && r.duplicado) Ui.toast('Este lançamento já tinha sido gravado.', 'aviso');
-      else depois(r || {});
-      carregarListas(true);
+      const r = await enviar(rota, dados) || {};
+      if (r.duplicado) {
+        Ui.toast('Este lançamento já tinha sido gravado.', 'aviso');
+        pronto = { titulo: 'Já estava gravado', texto: 'Este lançamento já tinha sido gravado.', ids: [] };
+      } else pronto = depois(r);
+      enviando = false;
       carregarInsumos();
-      return true;
+      carregarEmbalagens();
+      irPara('pronto');
     } catch (err) {
       erroFinal(err);
       Ui.erro(err);
-      return false;
-    } finally {
       enviando = false;
       const b2 = $(seletorBt);
-      if (b2 && b2.dataset.txt) { b2.innerHTML = b2.dataset.txt; b2.disabled = false; }
-      if (acao === 'op') resumoOP();
+      if (b2) { b2.innerHTML = txt; b2.disabled = false; }
+      if (passo === 'op-itens') resumoOP();
     }
+  }
+  function telaPronto() {
+    return '<div class="pronto"><h2>Pronto ✅</h2><div class="dica">' + e(pronto.titulo) + '</div>' +
+      '<div class="resumo">' + pronto.texto + '</div>' +
+      (pronto.ids.length ? '<div class="ids">' + e(pronto.ids.join(', ')) + '</div>' : '') +
+      '<button type="button" class="bg pri" id="bt-nova">Nova ação</button></div>';
   }
 
   // ============================================================
@@ -482,21 +451,27 @@ Sessao.iniciarPagina('estoque').then(function (ctx) {
       else insumos = (await Api.chamar('listarInsumos', {})).map(function (i) {
         return { cod_insumo: i.COD_INSUMO, descricao: i.DESCRICAO, categoria: i.CATEGORIA, unidade: i.UNIDADE, politica: i.POLITICA, saldo: null };
       });
-      // atualiza o saldo mostrado do insumo escolhido
-      [semop, dev].forEach(function (f) { if (f.ins) f.ins = insumos.find(function (i) { return i.cod_insumo === f.ins.cod_insumo; }) || f.ins; });
-      if (acao === 'semop' && !document.activeElement.closest('#semop')) desenharSemOP();
+      // atualiza o saldo do insumo escolhido
+      [semop, dev].forEach(function (f) { if (f && f.ins) f.ins = insumos.find(function (i) { return i.cod_insumo === f.ins.cod_insumo; }) || f.ins; });
+      if (passo === 'so-ins' || passo === 'dv-ins') desenharSugestoes();
     } catch (err) { /* a busca de insumo mostra o aviso */ }
   }
+  function formAtual() { return fluxo === 'semop' ? semop : dev; }
 
-  function htmlPicker(f, id) {
-    if (f.ins) {
-      return '<div class="ins-sel"><span class="cat ' + catClasse(f.ins.categoria) + '">' + e(f.ins.categoria || 'OUTROS') + '</span>' +
-        '<span class="d">' + e(f.ins.cod_insumo) + '<small>' + e(f.ins.descricao) + (f.ins.saldo === null || f.ins.saldo === undefined ? '' : ' · saldo ' + e(Fmt.num(f.ins.saldo)) + ' ' + e(String(f.ins.unidade || '').toLowerCase())) + '</small></span>' +
-        '<button type="button" data-trocar="' + id + '" title="Trocar insumo">' + Ui.ic('i-x') + '</button></div>';
+  function telaInsumo() {
+    const f = formAtual();
+    let h = cab('Qual insumo?', fluxo === 'dev' ? 'O que está voltando para o estoque' : 'Digite o código ou parte do nome');
+    // devolução com OP: primeiro o que a OP levou
+    const retirados = fluxo === 'dev' && dev.estr ? dev.estr.itens.filter(function (it) { return it.ja_retirado > 0; }) : [];
+    if (retirados.length) {
+      h += '<div class="dica">Retirado pela OP ' + e(dev.estr.op) + ':</div><div class="lista" id="dv-da-op">' + retirados.map(function (it) {
+        return '<button type="button" class="bg sec item-b" data-pega-op="' + e(it.cod_insumo) + '"><span class="cat ' + catClasse(it.categoria) + '">' + e(it.categoria || 'OUTROS') + '</span>' + e(it.cod_insumo) +
+          '<span class="sl">retirou ' + e(Fmt.num(it.ja_retirado)) + '</span><span class="d">' + e(it.descricao) + '</span></button>';
+      }).join('') + '</div><div class="dica">Ou procure outro insumo:</div>';
     }
-    return '<div class="pick"><input id="' + id + '" placeholder="Código ou descrição (ex.: MP00056, luva)" autocomplete="off"><div class="sug" data-sug="' + id + '"></div></div>';
+    return h + '<input class="campo-t" id="busca"' + (retirados.length ? '' : ' data-foco') + ' placeholder="Ex.: MP00056, luva 4x7" autocomplete="off" value="' + e(f.busca) + '">' +
+      '<div class="lista" id="sug"></div>';
   }
-
   function sugestoes(texto) {
     const t = String(texto || '').toUpperCase().replace(/\s+/g, ' ').trim();
     let l = insumos;
@@ -505,242 +480,223 @@ Sessao.iniciarPagina('estoque').then(function (ctx) {
     else l = l.filter(function (i) { const alvo = (i.cod_insumo + ' ' + i.descricao + ' ' + i.categoria).toUpperCase(); return t.split(' ').every(function (p) { return alvo.indexOf(p) !== -1; }); });
     return l.slice(0, 8);
   }
-  function desenharSugestoes(id, texto) {
-    const cx = document.querySelector('[data-sug="' + id + '"]');
+  function desenharSugestoes() {
+    const cx = $('#sug');
     if (!cx) return;
-    const l = sugestoes(texto);
+    const l = sugestoes(formAtual().busca);
     cx.innerHTML = l.map(function (i) {
-      return '<button type="button" class="sg" data-pega="' + e(i.cod_insumo) + '" data-alvo="' + id + '"><span class="cat ' + catClasse(i.categoria) + '">' + e(i.categoria || 'OUTROS') + '</span><b>' + e(i.cod_insumo) + '</b>' +
-        '<span class="d">' + e(i.descricao) + '</span>' + (i.saldo === null || i.saldo === undefined ? '' : '<span class="sl">saldo ' + e(Fmt.num(i.saldo)) + '</span>') + '</button>';
-    }).join('') || '<div class="vazio-f">' + (insumos.length ? 'Nenhum insumo encontrado.' : 'Carregando insumos…') + '</div>';
+      return '<button type="button" class="bg sec item-b" data-pega="' + e(i.cod_insumo) + '"><span class="cat ' + catClasse(i.categoria) + '">' + e(i.categoria || 'OUTROS') + '</span>' + e(i.cod_insumo) +
+        (temSaldo(i) ? '<span class="sl">saldo ' + e(Fmt.num(i.saldo)) + '</span>' : '') + '<span class="d">' + e(i.descricao) + '</span></button>';
+    }).join('') || '<div class="dica">' + (insumos.length ? 'Nenhum insumo encontrado.' : 'Carregando insumos…') + '</div>';
   }
 
-  $('#f-corpo').addEventListener('input', function (ev) {
-    if (ev.target.id === 'ins-busca' || ev.target.id === 'dev-busca') desenharSugestoes(ev.target.id, ev.target.value);
-  });
-  $('#f-corpo').addEventListener('focusin', function (ev) {
-    if (ev.target.id === 'ins-busca' || ev.target.id === 'dev-busca') desenharSugestoes(ev.target.id, ev.target.value);
-  });
-  $('#f-corpo').addEventListener('click', function (ev) {
-    const pega = ev.target.closest('[data-pega]');
-    if (pega) {
-      const ins = insumos.find(function (i) { return i.cod_insumo === pega.dataset.pega; });
-      if (pega.dataset.alvo === 'ins-busca') { semop.ins = ins; desenharSemOP(); } else { dev.ins = ins; desenharDev(); }
-      return;
-    }
-    const troca = ev.target.closest('[data-trocar]');
-    if (troca) {
-      if (troca.dataset.trocar === 'ins-busca') { semop.ins = null; desenharSemOP(); } else { dev.ins = null; desenharDev(); }
-      const f = $('#' + troca.dataset.trocar); if (f) f.focus();
-    }
-  });
-
   // ============================================================
-  // RETIRADA SEM OP
+  // QUANTIDADE (sem OP e devolução)
   // ============================================================
-  function desenharSemOP() {
-    const cx = $('#semop');
-    if (!cx) return;
+  function cartaoInsumo(ins) {
+    return '<div class="cartao ins-sel"><div class="nome"><span class="cat ' + catClasse(ins.categoria) + '">' + e(ins.categoria || 'OUTROS') + '</span><b>' + e(ins.cod_insumo) + '</b>' +
+      '<small>' + e(ins.descricao) + (temSaldo(ins) ? ' · saldo ' + e(Fmt.num(ins.saldo)) + ' ' + e(String(ins.unidade || '').toLowerCase()) : '') + '</small></div></div>';
+  }
+  function telaQtd() {
+    const f = formAtual();
     const off = !ctx.podeEditar;
-    cx.innerHTML =
-      '<div class="fs">' +
-      '<div class="fc l">INSUMO' + htmlPicker(semop, 'ins-busca') + '</div>' +
-      '<div class="fc">QUANTIDADE<span class="passo grande' + (off ? ' off' : '') + '"><button type="button" data-passo="-1"' + (off ? ' disabled' : '') + '>−</button>' +
-        '<input id="so-qtd" inputmode="decimal" value="' + e(mostrar(semop.qtd)) + '"' + (off ? ' disabled' : '') + '><button type="button" data-passo="1"' + (off ? ' disabled' : '') + '>+</button></span><span id="so-aviso"></span></div>' +
-      '<div class="fc">SETOR<div class="chips" id="so-setor">' + (setores.map(function (s) {
-        return '<button type="button" data-setor="' + e(s) + '" class="' + (semop.setor === s ? 'on' : '') + '"' + (off ? ' disabled' : '') + '>' + e(titulo(s)) + '</button>';
-      }).join('') || '<span class="mut">Carregando setores…</span>') + '</div></div>' +
-      '<label class="fc l">MOTIVO<input id="so-motivo" placeholder="Ex.: teste de molde, manutenção do forno" value="' + e(semop.motivo) + '"' + (off ? ' disabled' : '') + '></label>' +
-      '</div>' +
-      '<div class="conf"><span class="t" id="so-resumo"></span>' + (ctx.podeEditar ? '<button class="btn2 baixa" id="bt-semop"><svg class="i"><use href="#i-check"/></svg>Confirmar retirada</button>' : '') + '</div>';
-    resumoSemOP();
+    return cab('Quantidade', fluxo === 'dev' ? 'Quanto está voltando?' : 'Quanto você vai tirar?') + cartaoInsumo(f.ins) +
+      '<div class="passo' + (off ? ' off' : '') + '"><button type="button" data-passo="-1"' + (off ? ' disabled' : '') + ' aria-label="menos">−</button>' +
+      '<input id="qtd" inputmode="decimal" value="' + e(mostrar(f.qtd)) + '"' + (off ? ' disabled' : '') + '>' +
+      '<button type="button" data-passo="1"' + (off ? ' disabled' : '') + ' aria-label="mais">+</button></div>' +
+      '<div id="qtd-aviso"></div><button type="button" class="bg pri" id="bt-qtd">Continuar →</button>';
   }
-  function resumoSemOP() {
-    const q = num(semop.qtd);
-    const av = $('#so-aviso');
-    const ins = semop.ins;
-    const falta = ins && ins.saldo !== null && ins.saldo !== undefined && q > ins.saldo + 1e-9;
-    if (av) av.innerHTML = isNaN(q) ? '<span class="erro-l">Quantidade inválida.</span>' : falta ? '<span class="erro-l">Saldo no sistema é ' + e(Fmt.num(ins.saldo)) + ': não dá para tirar ' + e(Fmt.num(q)) + '.</span>' : '';
-    const r = $('#so-resumo');
-    if (r) r.innerHTML = ins && q > 0 ? 'Retirando ' + nomeQtd(ins, q) + (ins.categoria in { LUVA: 1, FILTRO: 1, EMBALAGEM: 1 } ? ' (' + e(ins.cod_insumo) + ')' : '') + (semop.setor ? ' para ' + e(titulo(semop.setor)) : '') : 'Escolha o insumo, a quantidade, o setor e o motivo.';
-    const bt = $('#bt-semop');
-    if (bt) bt.disabled = enviando || !ins || !(q > 0) || falta;
-  }
-  $('#f-corpo').addEventListener('input', function (ev) {
-    if (ev.target.id === 'so-qtd') { semop.qtd = ev.target.value; resumoSemOP(); }
-    if (ev.target.id === 'so-motivo') semop.motivo = ev.target.value;
-    if (ev.target.id === 'dv-qtd') { dev.qtd = ev.target.value; resumoDev(); }
-    if (ev.target.id === 'dv-motivo') dev.motivo = ev.target.value;
-  });
-  $('#f-corpo').addEventListener('click', function (ev) {
-    const s = ev.target.closest('[data-setor]');
-    if (s) {
-      semop.setor = s.dataset.setor;
-      document.querySelectorAll('#so-setor button').forEach(function (b) { b.classList.toggle('on', b === s); });
-      resumoSemOP();
-      return;
-    }
-    if (ev.target.closest('#bt-semop')) confirmarSemOP();
-    if (ev.target.closest('#bt-dev')) confirmarDev();
-  });
-
-  async function confirmarSemOP() {
-    if (enviando) return;
-    const q = num(semop.qtd);
-    if (!semop.ins || !(q > 0)) return;
-    if (!semop.setor) { Ui.toast('Escolha o setor que vai usar o material.', 'aviso', 'Falta o setor'); return; }
-    if (!semop.motivo.trim()) { $('#so-motivo').focus(); Ui.toast('Informe o motivo da retirada sem OP.', 'aviso', 'Falta o motivo'); return; }
-    const ins = semop.ins;
-    const dados = { cod_insumo: ins.cod_insumo, qtd: q, setor: semop.setor, motivo: semop.motivo.trim() };
-    await gravar('retirarSemOP', dados, '#bt-semop', '', function (r) {
-      Ui.toast(ins.cod_insumo + ' · ' + Fmt.num(q) + ' para ' + titulo(semop.setor) + (r.id ? ' · ' + r.id : ''), 'ok', 'Retirada sem OP registrada');
-      semop = { ins: null, qtd: 1, setor: '', motivo: '' };
-      desenharSemOP();
-    });
-  }
-
-  // ============================================================
-  // DEVOLUÇÃO (com OP: até o que a OP retirou · sem OP: motivo)
-  // ============================================================
-  function desenharDev() {
-    const cx = $('#dev');
-    if (!cx) return;
-    const off = !ctx.podeEditar;
-    const retirados = dev.estr ? dev.estr.itens.filter(function (it) { return it.ja_retirado > 0; }) : [];
-    cx.innerHTML =
-      '<div class="fs">' +
-      '<label class="fc l">OP (se o material saiu para uma OP)<input id="dev-op" inputmode="numeric" autocomplete="off" placeholder="nº da OP · deixe vazio se foi sem OP" value="' + e(dev.op) + '"' + (off ? ' disabled' : '') + '>' +
-        '<small id="dev-op-inf">' + devOpInfo(retirados) + '</small></label>' +
-      (retirados.length ? '<div class="fc l">RETIRADO POR ESTA OP<div class="chips op">' + retirados.map(function (it) {
-        return '<button type="button" data-pega-op="' + e(it.cod_insumo) + '" class="' + (dev.ins && dev.ins.cod_insumo === it.cod_insumo ? 'on' : '') + '">' + e(it.cod_insumo) + '<small>retirou ' + e(Fmt.num(it.ja_retirado)) + '</small></button>';
-      }).join('') + '</div></div>' : '') +
-      '<div class="fc l">INSUMO' + htmlPicker(dev, 'dev-busca') + '</div>' +
-      '<div class="fc">QUANTIDADE<span class="passo grande' + (off ? ' off' : '') + '"><button type="button" data-passo="-1"' + (off ? ' disabled' : '') + '>−</button>' +
-        '<input id="dv-qtd" inputmode="decimal" value="' + e(mostrar(dev.qtd)) + '"' + (off ? ' disabled' : '') + '><button type="button" data-passo="1"' + (off ? ' disabled' : '') + '>+</button></span><span id="dv-aviso"></span></div>' +
-      '<label class="fc">MOTIVO <small id="dv-motivo-inf"></small><input id="dv-motivo" placeholder="Ex.: sobrou do molde" value="' + e(dev.motivo) + '"' + (off ? ' disabled' : '') + '></label>' +
-      '</div>' +
-      '<div class="conf"><span class="t" id="dv-resumo"></span>' + (ctx.podeEditar ? '<button class="btn2 baixa" id="bt-dev"><svg class="i"><use href="#i-check"/></svg>Confirmar devolução</button>' : '') + '</div>';
-    ligarDevOP();
-    resumoDev();
-  }
-  function devOpInfo(retirados) {
-    if (!dev.op.trim()) return 'Sem OP: o motivo é obrigatório.';
-    if (dev.avisoOp) return e(dev.avisoOp);
-    if (!dev.estr) return 'Buscando a OP…';
-    return 'OP ' + e(dev.estr.op) + ' · ' + e(dev.estr.cliente) + ' · ' + e(dev.estr.codigo) + (retirados.length ? '' : ' · esta OP ainda não retirou nada');
-  }
-  function ligarDevOP() {
-    const inp = $('#dev-op');
-    if (!inp) return;
-    let tempo = null;
-    const buscar = function () { clearTimeout(tempo); buscarDevOP(inp.value); };
-    inp.addEventListener('keydown', function (ev) { if (ev.key === 'Enter') { ev.preventDefault(); buscar(); } });
-    inp.addEventListener('change', buscar);
-    inp.addEventListener('input', function () {
-      dev.op = inp.value;
-      clearTimeout(tempo);
-      if (!inp.value.trim()) { dev.estr = null; dev.avisoOp = ''; $('#dev-op-inf').innerHTML = devOpInfo([]); resumoDev(); return; }
-      if (inp.value.trim().length >= 4) tempo = setTimeout(buscar, 700);
-      resumoDev();
-    });
-  }
-  let seqDev = 0;
-  async function buscarDevOP(numero) {
-    numero = String(numero || '').trim();
-    dev.op = numero;
-    if (!numero) { dev.estr = null; dev.avisoOp = ''; desenharDev(); return; }
-    if (dev.estr && dev.estr.op === numero) return;
-    const minha = ++seqDev;
-    dev.estr = null; dev.avisoOp = '';
-    try {
-      const r = await Api.chamar('estruturaOP', { op: numero });
-      if (minha !== seqDev) return;
-      dev.estr = r;
-    } catch (err) {
-      if (minha !== seqDev) return;
-      // OP fechada (ex.: expedida) aceita devolução: o servidor confere o limite
-      dev.avisoOp = err.codigo === 'OP_INATIVA' ? err.message.replace('não aceita retirada', 'a devolução é aceita') : err.message;
-    }
-    if (acao === 'dev') desenharDev();
-  }
-  $('#f-corpo').addEventListener('click', function (ev) {
-    const b = ev.target.closest('[data-pega-op]');
-    if (!b) return;
-    const cod = b.dataset.pegaOp;
-    dev.ins = insumos.find(function (i) { return i.cod_insumo === cod; }) || (function () {
-      const it = dev.estr.itens.find(function (x) { return x.cod_insumo === cod; });
-      return { cod_insumo: it.cod_insumo, descricao: it.descricao, categoria: it.categoria, unidade: it.unidade, saldo: it.saldo };
-    })();
-    desenharDev();
-  });
   function limiteDev() {
     if (!dev.estr || !dev.ins) return null;
     const it = dev.estr.itens.find(function (x) { return x.cod_insumo === dev.ins.cod_insumo; });
     return it ? it.ja_retirado : 0;
   }
-  function resumoDev() {
-    const q = num(dev.qtd);
-    const lim = limiteDev();
-    const acima = lim !== null && q > lim + 1e-9;
-    const av = $('#dv-aviso');
-    if (av) av.innerHTML = isNaN(q) ? '<span class="erro-l">Quantidade inválida.</span>' : acima ? '<span class="erro-l">A OP ' + e(dev.estr.op) + ' retirou ' + e(Fmt.num(lim)) + ' de ' + e(dev.ins.cod_insumo) + ': não dá para devolver ' + e(Fmt.num(q)) + '.</span>' : '';
-    const semOp = !dev.op.trim();
-    const mi = $('#dv-motivo-inf');
-    if (mi) mi.textContent = semOp ? '(obrigatório sem OP)' : '(opcional)';
-    const r = $('#dv-resumo');
-    if (r) r.innerHTML = dev.ins && q > 0 ? 'Devolvendo ' + nomeQtd(dev.ins, q) + ' (' + e(dev.ins.cod_insumo) + ')' + (semOp ? ' sem OP' : ' da OP ' + e(dev.op.trim())) : 'Escolha o insumo e a quantidade que voltou.';
-    const bt = $('#bt-dev');
-    if (bt) bt.disabled = enviando || !dev.ins || !(q > 0) || acima;
+  // devolve true se a quantidade pode seguir
+  function validarQtd() {
+    const f = formAtual();
+    const q = num(f.qtd);
+    let msg = '';
+    if (isNaN(q)) msg = 'Quantidade inválida.';
+    else if (fluxo === 'semop' && temSaldo(f.ins) && q > f.ins.saldo + 1e-9) msg = 'Saldo no sistema é ' + Fmt.num(f.ins.saldo) + ': não dá para tirar ' + Fmt.num(q) + '.';
+    else if (fluxo === 'dev') { const lim = limiteDev(); if (lim !== null && q > lim + 1e-9) msg = 'A OP ' + dev.estr.op + ' retirou ' + Fmt.num(lim) + ' de ' + dev.ins.cod_insumo + ': não dá para devolver ' + Fmt.num(q) + '.'; }
+    const av = $('#qtd-aviso');
+    if (av) av.innerHTML = msg ? '<span class="erro-l">' + e(msg) + '</span>' : '';
+    const ok = !msg && q > 0;
+    const bt = $('#bt-qtd'); if (bt) bt.disabled = !ok;
+    return ok;
+  }
+
+  // ============================================================
+  // SEM OP · setor e motivo
+  // ============================================================
+  function telaSetor() {
+    return cab('Setor', 'Qual setor vai usar o material?') +
+      '<div class="chips" id="so-setor">' + (setores.map(function (s) {
+        return '<button type="button" class="bg sec" data-setor="' + e(s) + '">' + e(titulo(s)) + '</button>';
+      }).join('') || '<span class="dica">Carregando setores…</span>') + '</div>';
+  }
+  function telaSoFim() {
+    const ins = semop.ins, q = num(semop.qtd);
+    return cab('Motivo', 'Para que é o material? (obrigatório sem OP)') +
+      '<input class="campo-t" id="so-motivo" data-foco placeholder="Ex.: teste de molde, manutenção do forno" value="' + e(semop.motivo) + '">' +
+      '<div class="resumo" id="so-resumo">Retirando ' + nomeQtd(ins, q) + (ins.categoria in { LUVA: 1, FILTRO: 1, EMBALAGEM: 1 } ? ' (' + e(ins.cod_insumo) + ')' : '') + ' para ' + e(titulo(semop.setor)) + '</div>' +
+      btConfirmar('bt-semop', 'CONFIRMAR RETIRADA');
+  }
+  async function confirmarSemOP() {
+    if (enviando) return;
+    const q = num(semop.qtd);
+    if (!semop.ins || !(q > 0)) return;
+    if (!semop.setor) { Ui.toast('Escolha o setor que vai usar o material.', 'aviso', 'Falta o setor'); return; }
+    if (!semop.motivo.trim()) { const c = $('#so-motivo'); c.classList.add('falta-motivo'); c.focus(); Ui.toast('Informe o motivo da retirada sem OP.', 'aviso', 'Falta o motivo'); return; }
+    const ins = semop.ins;
+    const dados = { cod_insumo: ins.cod_insumo, qtd: q, setor: semop.setor, motivo: semop.motivo.trim() };
+    const resumo = $('#so-resumo').innerHTML + ' · ' + e(dados.motivo);
+    await gravar('retirarSemOP', dados, '#bt-semop', function (r) {
+      Ui.toast(ins.cod_insumo + ' · ' + Fmt.num(q) + ' para ' + titulo(dados.setor) + (r.id ? ' · ' + r.id : ''), 'ok', 'Retirada sem OP registrada');
+      return { titulo: 'Retirada sem OP registrada', texto: resumo, ids: r.id ? [r.id] : [] };
+    });
+  }
+
+  // ============================================================
+  // DEVOLUÇÃO · OP (ou pular) e motivo
+  // ============================================================
+  function telaDevOp() {
+    return cab('De qual OP?', 'Se o material saiu para uma OP, digite o número. Se não, toque em "Sem OP".') +
+      '<input class="campo-g" id="dev-op" data-foco inputmode="numeric" autocomplete="off" placeholder="nº da OP" value="' + e(dev.op) + '">' +
+      '<div class="msg err" id="dev-op-erro">' + e(dev.erro) + '</div>' +
+      '<button type="button" class="bg pri" id="bt-dev-op">Continuar →</button>' +
+      '<button type="button" class="bg sec" id="bt-dev-pular">Sem OP (pular)</button>';
+  }
+  async function buscarDevOP() {
+    const numero = String(dev.op || '').trim();
+    if (!numero) { pularDevOP(); return; }
+    const bt = $('#bt-dev-op');
+    bt.disabled = true; bt.textContent = 'Buscando a OP ' + numero + '…';
+    dev.estr = null; dev.avisoOp = ''; dev.erro = '';
+    try {
+      dev.estr = await Api.chamar('estruturaOP', { op: numero });
+    } catch (err) {
+      // OP fechada (ex.: expedida) aceita devolução: o servidor confere o limite
+      if (err.codigo === 'OP_INATIVA') dev.avisoOp = err.message.replace('não aceita retirada', 'a devolução é aceita');
+      else dev.erro = err.message;
+    }
+    if (passo !== 'dv-op') return;
+    if (dev.erro) { $('#dev-op-erro').textContent = dev.erro; bt.disabled = false; bt.textContent = 'Continuar →'; return; }
+    if (dev.avisoOp) Ui.toast(dev.avisoOp, 'aviso');
+    dev.ins = null;
+    avancar();
+  }
+  function pularDevOP() { dev.op = ''; dev.estr = null; dev.avisoOp = ''; dev.erro = ''; dev.ins = null; avancar(); }
+  function telaDevFim() {
+    const semOp = !dev.op.trim(), q = num(dev.qtd);
+    return cab('Motivo', semOp ? 'Devolução sem OP: o motivo é obrigatório.' : 'Opcional com OP') +
+      '<input class="campo-t" id="dv-motivo" data-foco placeholder="Ex.: sobrou do molde" value="' + e(dev.motivo) + '">' +
+      '<div class="resumo" id="dv-resumo">Devolvendo ' + nomeQtd(dev.ins, q) + ' (' + e(dev.ins.cod_insumo) + ')' + (semOp ? ' sem OP' : ' da OP ' + e(dev.op.trim())) + '</div>' +
+      btConfirmar('bt-dev', 'CONFIRMAR DEVOLUÇÃO');
   }
   async function confirmarDev() {
     if (enviando) return;
     const q = num(dev.qtd);
     if (!dev.ins || !(q > 0)) return;
     const semOp = !dev.op.trim();
-    if (semOp && !dev.motivo.trim()) { $('#dv-motivo').focus(); Ui.toast('Devolução sem OP precisa de motivo.', 'aviso', 'Falta o motivo'); return; }
+    if (semOp && !dev.motivo.trim()) { const c = $('#dv-motivo'); c.classList.add('falta-motivo'); c.focus(); Ui.toast('Devolução sem OP precisa de motivo.', 'aviso', 'Falta o motivo'); return; }
     const dados = { cod_insumo: dev.ins.cod_insumo, qtd: q };
     if (!semOp) dados.op = dev.op.trim();
     if (dev.motivo.trim()) dados.motivo = dev.motivo.trim();
     const ins = dev.ins;
-    await gravar('devolver', dados, '#bt-dev', '', function (r) {
+    const resumo = $('#dv-resumo').innerHTML + (dados.motivo ? ' · ' + e(dados.motivo) : '');
+    await gravar('devolver', dados, '#bt-dev', function (r) {
       Ui.toast(ins.cod_insumo + ' · +' + Fmt.num(q) + (semOp ? '' : ' da OP ' + dados.op) + (r.id ? ' · ' + r.id : ''), 'ok', 'Devolução registrada');
-      dev = { op: '', estr: null, avisoOp: '', ins: null, qtd: 1, motivo: '' };
-      desenharDev();
-      if (estrutura && dados.op && estrutura.op === dados.op) buscarOP(estrutura.op, true);
+      return { titulo: 'Devolução registrada', texto: resumo, ids: r.id ? [r.id] : [] };
     });
   }
 
   // ============================================================
-  // LATERAL: embalagens para baixar + meus movimentos de hoje
+  // EVENTOS (um só ouvinte para a tela toda)
   // ============================================================
-  async function carregarListas(silencioso) {
-    const tarefas = [
-      Api.chamar('embalagensParaBaixar', {}).then(desenharEmbalagens),
-      Api.chamar('meusMovimentosHoje', {}).then(function (m) { movs = m || []; desenharMovimentos(); })
-    ];
-    const r = await Promise.allSettled(tarefas);
-    const falha = r.find(function (x) { return x.status === 'rejected'; });
-    if (falha && !silencioso) Ui.erro(falha.reason);
-  }
-
-  function desenharEmbalagens(lista) {
-    $('#embalagens').innerHTML = (lista || []).map(function (s) {
-      const un = String(s.unidade || '').toLowerCase();
-      return '<div class="pd' + (s.pronto ? ' pronto' : '') + '"' + (s.pronto ? ' data-baixar="' + e(s.op) + '" title="Abrir a OP para baixar"' : '') + '>' +
-        '<b>OP ' + e(s.op) + ' · ' + e(s.cod_insumo) + '</b>' +
-        '<span class="st ' + (s.pronto ? 'chegou' : 'comprar') + '">' + (s.pronto ? 'CHEGOU · baixar' : e(s.situacao)) + '</span>' +
-        '<small>' + e(titulo(s.cliente)) + ' · ' + e(Fmt.num(s.qtd)) + ' ' + e(un) + (s.pronto ? ' · ' + e(s.descricao) : (s.previsao_chegada ? ' · prevista ' + e(s.previsao_chegada.slice(0, 5)) : ' · ' + e(s.id_solicitacao))) + '</small></div>';
-    }).join('') || '<div class="vazio">Nenhuma OP na Inspeção Final esperando embalagem.</div>';
-  }
-  $('#embalagens').addEventListener('click', function (ev) {
-    const b = ev.target.closest('[data-baixar]');
-    if (!b) return;
-    estrutura = null; qtd = {}; motivo = {};   // não mostra a OP anterior enquanto carrega
-    trocarAcao('op');
-    $('#op').value = b.dataset.baixar;
-    buscarOP(b.dataset.baixar, true);
+  tela.addEventListener('click', function (ev) {
+    const t = ev.target;
+    const b = function (s) { return t.closest(s); };
+    if (b('[data-voltar]')) return voltar();
+    if (b('[data-fluxo]')) return comecar(b('[data-fluxo]').dataset.fluxo);
+    if (b('#bt-meus')) return abrirMeus();
+    if (b('#bt-nova')) return irPara('inicio');
+    if (b('[data-baixar]')) {
+      // embalagem que chegou: abre a retirada com a OP
+      comecar('op'); op.numero = b('[data-baixar]').dataset.baixar; desenhar(); buscarOP(); return;
+    }
+    // botões − / +
+    const bp = b('[data-passo]');
+    if (bp && !bp.disabled) {
+      const inp = bp.closest('.passo').querySelector('input');
+      const atual = num(inp.value);
+      const novo = Math.max(0, Math.round(((isNaN(atual) ? 0 : atual) + Number(bp.dataset.passo)) * 1000) / 1000);
+      inp.value = mostrar(novo);
+      inp.dispatchEvent(new Event('input', { bubbles: true }));
+      return;
+    }
+    if (b('#bt-op')) return buscarOP();
+    if (b('#bt-retirar')) return confirmarOP();
+    if (b('#bt-dev-op')) return buscarDevOP();
+    if (b('#bt-dev-pular')) return pularDevOP();
+    const pega = b('[data-pega]') || b('[data-pega-op]');
+    if (pega) {
+      const cod = pega.dataset.pega || pega.dataset.pegaOp;
+      let ins = insumos.find(function (i) { return i.cod_insumo === cod; });
+      if (!ins && dev.estr) {
+        const it = dev.estr.itens.find(function (x) { return x.cod_insumo === cod; });
+        ins = { cod_insumo: it.cod_insumo, descricao: it.descricao, categoria: it.categoria, unidade: it.unidade, saldo: it.saldo };
+      }
+      formAtual().ins = ins;
+      return avancar();
+    }
+    if (b('#bt-qtd')) { if (validarQtd()) avancar(); return; }
+    const s = b('[data-setor]');
+    if (s) { semop.setor = s.dataset.setor; return avancar(); }
+    if (b('#bt-semop')) return confirmarSemOP();
+    if (b('#bt-dev')) return confirmarDev();
   });
 
+  tela.addEventListener('input', function (ev) {
+    const t = ev.target;
+    if (t.id === 'op') { op.numero = t.value; op.erro = ''; $('#op-erro').textContent = ''; }
+    if (t.id === 'dev-op') { dev.op = t.value; dev.erro = ''; $('#dev-op-erro').textContent = ''; }
+    if (t.id === 'busca') { formAtual().busca = t.value; desenharSugestoes(); }
+    if (t.id === 'qtd') { formAtual().qtd = t.value; validarQtd(); }
+    if (t.id === 'so-motivo') { semop.motivo = t.value; t.classList.remove('falta-motivo'); }
+    if (t.id === 'dv-motivo') { dev.motivo = t.value; t.classList.remove('falta-motivo'); }
+    const linha = t.closest('#op-itens .cartao[data-cod]');
+    if (linha) {
+      const cod = linha.dataset.cod;
+      if (t.matches('[data-qtd]')) { qtd[cod] = t.value; validarLinha(cod); resumoOP(); }
+      if (t.matches('[data-motivo]')) { motivo[cod] = t.value; t.classList.remove('falta-motivo'); }
+    }
+  });
+  // Enter = Continuar (leitor de código de barras manda Enter no fim)
+  tela.addEventListener('keydown', function (ev) {
+    if (ev.key !== 'Enter') return;
+    const id = ev.target.id;
+    const alvo = { op: '#bt-op', 'dev-op': '#bt-dev-op', qtd: '#bt-qtd' }[id];
+    if (alvo) { ev.preventDefault(); const bt = $(alvo); if (bt && !bt.disabled) bt.click(); }
+  });
+
+  // ============================================================
+  // EMBALAGENS PARA BAIXAR (discreto na tela inicial)
+  // ============================================================
+  async function carregarEmbalagens() {
+    try {
+      embalagens = await Api.chamar('embalagensParaBaixar', {}) || [];
+      if (passo === 'inicio') {
+        const aberto = $('#embalagens') && $('#embalagens').open;
+        desenhar();
+        if (aberto && $('#embalagens')) $('#embalagens').open = true;
+      }
+    } catch (err) { /* lista opcional */ }
+  }
+
+  // ============================================================
+  // MEUS LANÇAMENTOS DE HOJE + ESTORNO
+  // ============================================================
   function textoMov(m) {
     const cat = String(m.categoria || '').toLowerCase();
     let d;
@@ -755,22 +711,23 @@ Sessao.iniciarPagina('estoque').then(function (ctx) {
   }
   function qtdMov(m) { return (m.qtd > 0 ? '+' : m.qtd < 0 ? '−' : '') + Fmt.num(Math.abs(m.qtd)); }
 
-  function desenharMovimentos() {
-    $('#movimentos').innerHTML = movs.map(function (m) {
+  async function abrirMeus() {
+    let movs;
+    try { movs = await Api.chamar('meusMovimentosHoje', {}) || []; } catch (err) { Ui.erro(err); return; }
+    const corpo = '<div class="mv-lista" id="movimentos">' + movs.map(function (m) {
       const x = textoMov(m);
       return '<div class="mv' + (m.estornado ? ' estornado' : '') + '" data-mov="' + e(m.id) + '"><span class="h">' + e(m.hora) + '</span>' +
         '<span><span>' + e(x.t) + '</span>' + (m.estornado ? '<span class="tg">estornado</span>' : '') + '<small>' + e(x.d) + ' · ' + e(m.id) + '</small></span>' +
         '<span class="q ' + (m.qtd < 0 ? 's' : 'e') + '">' + e(qtdMov(m)) + '</span></div>';
-    }).join('') + (movs.length ? '' : '<div class="vazio">Nenhum lançamento seu hoje.</div>') +
-      '<div class="mv-rod"><span>' + movs.length + ' movimento' + (movs.length === 1 ? '' : 's') + '</span>' +
-      (podeEstornar ? '<button type="button" id="bt-estornar">Estornar um lançamento</button>' : '') + '</div>';
+    }).join('') + (movs.length ? '' : '<p class="mut">Nenhum lançamento seu hoje.</p>') + '</div>';
+    const botoes = [{ texto: 'Fechar', valor: null }];
+    if (podeEstornar) botoes.push({ texto: 'Estornar um lançamento', classe: 'pri', valor: 'est' });
+    Ui.janela({ titulo: 'Meus lançamentos de hoje', subtitulo: movs.length + ' movimento' + (movs.length === 1 ? '' : 's'), largura: 520, corpo: corpo, enterConfirma: false, botoes: botoes })
+      .then(function (v) { if (v === 'est') abrirEstorno(movs); });
   }
 
-  // ---------- Estorno (nada é apagado: grava uma linha ESTORNO) ----------
-  $('#movimentos').addEventListener('click', function (ev) {
-    if (ev.target.closest('#bt-estornar')) abrirEstorno();
-  });
-  function abrirEstorno() {
+  // Estorno (nada é apagado: grava uma linha ESTORNO)
+  function abrirEstorno(movs) {
     const lista = movs.filter(function (m) { return m.pode_estornar; });
     const corpo = '<div class="msg-erro"></div>' +
       (lista.length ? '<div class="est-lista">' + lista.map(function (m, i) {
@@ -804,9 +761,8 @@ Sessao.iniciarPagina('estoque').then(function (ctx) {
       }
     }).then(function (v) {
       if (v !== 'ok') return;
-      carregarListas(true);
       carregarInsumos();
-      if (estrutura) buscarOP(estrutura.op, true);
+      carregarEmbalagens();
     });
   }
 });
