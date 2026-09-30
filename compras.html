@@ -65,6 +65,24 @@ html.tema-claro .stt.pend { color: #9a3412; } html.tema-claro .stt.compr { color
 html.tema-claro .dif.neg2 { color: #b91c1c; } html.tema-claro .dif.pos { color: #166534; }
 .rodape .t-inv { margin-right: auto; font-size: 12px; color: var(--texto-suave); align-self: center; }
 .ops-lista table.tab td, .ops-lista table.tab th { padding: 8px 10px; }
+/* Avisos do PCP */
+.av-bx { margin-bottom: 14px; }
+#avisos { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 10px; padding: 12px; }
+.av { border: 1px solid var(--linha); border-left: 4px solid #22c55e; border-radius: 10px; padding: 10px 12px; background: var(--painel); font-size: 13px; }
+.av.falta { border-left-color: #dc2626; background: color-mix(in srgb, #dc2626 6%, var(--painel)); }
+.av .t { font-weight: 800; margin-bottom: 6px; }
+.av .t small { font-weight: 600; color: var(--texto-suave); }
+.av ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.av li { display: flex; gap: 8px; justify-content: space-between; align-items: baseline; }
+.av li .q { white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--texto-suave); }
+.av li .q b { color: var(--texto); }
+.av li .q .f { color: #f87171; font-weight: 800; }
+html.tema-claro .av li .q .f { color: #b91c1c; }
+.av li .q .ok { color: #34d399; font-weight: 800; }
+html.tema-claro .av li .q .ok { color: #166534; }
+.av-mais { grid-column: 1 / -1; justify-self: start; background: none; border: 0; color: var(--destaque); font-weight: 700; cursor: pointer; padding: 2px 0; }
+.av-vazio { grid-column: 1 / -1; color: var(--texto-suave); font-size: 13px; padding: 6px 2px; }
+@media (max-width: 760px) { #avisos { grid-template-columns: 1fr; padding: 10px 0; } .av-bx { margin: 0 0 12px; } }
 .lista-mob { padding-bottom: 90px; }
 .cm { cursor: pointer; text-align: left; }
 .cm.urg { border-left: 3px solid #dc2626; }
@@ -101,17 +119,23 @@ html.tema-claro .dif.neg2 { color: #b91c1c; } html.tema-claro .dif.pos { color: 
 
   <div class="kl so-desk" id="cards"></div>
 
+  <!-- Avisos do PCP: OP aberta × estrutura × estoque (conta de + e −, sem travar nada) -->
+  <section class="bx av-bx">
+    <div class="bx-cab"><h3>Avisos do PCP</h3><span class="s">OPs em Planejamento, Modelação ou Moldagem (ou recém-abertas) · o que cada uma vai usar × o que tem no estoque</span></div>
+    <div id="avisos"><div class="carregando">Carregando…</div></div>
+  </section>
+
   <div class="cp">
     <section class="bx so-desk">
-      <div class="bx-cab"><h3>Situação dos insumos</h3><span class="s">projetado = saldo − o que as OPs abertas vão consumir · clique no insumo para ver as OPs</span>
+      <div class="bx-cab"><h3>Situação dos insumos</h3><span class="s">sobra/falta = tem − vai usar · clique no insumo para ver as OPs, o mínimo e o lead time</span>
         <span class="filtro-on" id="filtro-ins"></span>
         <div class="dir">
           <select id="fCat" title="Categorias"><option value="LF">Luva e filtro</option><option value="TODAS">Todos</option></select>
           <select id="fOrd" title="Ordem"><option value="urg">Precisa comprar primeiro</option><option value="cod">Código</option></select>
         </div></div>
       <div class="tab-wrap">
-        <table class="tab"><thead><tr><th>Insumo</th><th>Cat.</th><th class="num">Saldo</th><th class="num">Vai sair</th><th class="num">Projetado</th><th class="num">Mínimo</th><th class="num">Lead</th><th>Situação</th><th class="num">Comprar</th></tr></thead>
-          <tbody id="linhas"><tr><td colspan="9"><div class="carregando">Carregando…</div></td></tr></tbody></table>
+        <table class="tab"><thead><tr><th>Insumo</th><th class="num">Tem</th><th class="num">Vai usar</th><th class="num">Sobra / falta</th><th class="num">Comprar</th><th>Situação</th></tr></thead>
+          <tbody id="linhas"><tr><td colspan="6"><div class="carregando">Carregando…</div></td></tr></tbody></table>
       </div>
     </section>
     <aside class="bx so-desk">
@@ -254,10 +278,63 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
     $('#cards-mob').innerHTML = k.map(function (x) {
       return '<button class="km' + (x.pisca ? ' piscando' : '') + (modo === x.m ? ' sel' : '') + '" data-modo="' + x.m + '" style="--c:' + x.c + '"><b>' + e(x.n || 0) + '</b> ' + x.mob + '</button>';
     }).join('');
+    desenharAvisos();
     desenharInsumos();
     desenharSolicitacoes();
     desenharCartoes();
   }
+
+  // ---------- Avisos do PCP ----------
+  // Para cada OP que ainda vai consumir: o que ela vai usar × o que tem.
+  // A conta é acumulada, da OP mais antiga para a mais nova: se duas OPs
+  // usam a mesma luva, a segunda já considera o que a primeira vai tirar.
+  let verTodosAvisos = false;
+  function avisosPorOP() {
+    const porOP = {}, ordem = [];
+    painel.insumos.forEach(function (i) {
+      if (i.politica === 'SOB_DEMANDA') return;   // embalagem tem o fluxo de solicitações
+      (i.ops || []).forEach(function (o) {
+        let a = porOP[o.id_item];
+        if (!a) { a = porOP[o.id_item] = { op: o.op, cliente: o.cliente, processo: o.processo, itens: [] }; ordem.push(a); }
+        a.itens.push({ cod: i.cod_insumo, desc: i.descricao, un: String(i.unidade || '').toLowerCase(), precisa: o.falta, saldo: i.saldo });
+      });
+    });
+    const numOP = function (a) { return Number(String(a.op).replace(/\D/g, '')) || 0; };
+    ordem.sort(function (a, b) { return numOP(a) - numOP(b); });
+    const disponivel = {};
+    painel.insumos.forEach(function (i) { disponivel[i.cod_insumo] = i.saldo; });
+    ordem.forEach(function (a) {
+      a.falta = false;
+      a.itens.forEach(function (it) {
+        it.tem = Math.max(disponivel[it.cod] || 0, 0);
+        it.faltam = Math.max(it.precisa - it.tem, 0);
+        disponivel[it.cod] = (disponivel[it.cod] || 0) - it.precisa;
+        if (it.faltam > 0) a.falta = true;
+      });
+    });
+    return ordem.reverse();   // mais nova primeiro na tela
+  }
+  function desenharAvisos() {
+    const todos = avisosPorOP();
+    const comFalta = todos.filter(function (a) { return a.falta; });
+    const lista = verTodosAvisos ? comFalta.concat(todos.filter(function (a) { return !a.falta; })) : comFalta;
+    const cartao = function (a) {
+      return '<div class="av' + (a.falta ? ' falta' : '') + '"><div class="t">OP ' + e(a.op) + ' · ' + e(titulo(a.cliente)) + ' <small>· ' + e(titulo(a.processo)) + '</small></div>' +
+        '<div class="mut" style="font-size:12px;margin-bottom:6px">Vai usar:</div><ul>' + a.itens.map(function (it) {
+          return '<li><span>' + e(it.desc) + ' <span class="mut">(' + e(it.cod) + ')</span></span><span class="q">precisa <b>' + n(it.precisa) + '</b> · tem <b>' + n(it.tem) + '</b> · ' +
+            (it.faltam > 0 ? '<span class="f">faltam ' + n(it.faltam) + ' ' + e(it.un) + '</span>' : '<span class="ok">ok</span>') + '</span></li>';
+        }).join('') + '</ul></div>';
+    };
+    let html = lista.map(cartao).join('');
+    if (!todos.length) html = '<div class="av-vazio">Nenhuma OP em Planejamento, Modelação ou Moldagem vai consumir ' + ($('#fCat').value === 'TODAS' ? 'insumos estocados' : 'luva ou filtro') + ' agora.</div>';
+    else if (!comFalta.length && !verTodosAvisos) html = '<div class="av-vazio">✅ Todas as ' + todos.length + ' OPs têm material no estoque.</div>';
+    const semFalta = todos.length - comFalta.length;
+    if (semFalta > 0) html += '<button type="button" class="av-mais" data-av-todos>' + (verTodosAvisos ? 'Mostrar só as que faltam material' : (semFalta > 1 ? 'Ver também as ' + semFalta + ' OPs que já têm material' : 'Ver também a OP que já tem material')) + '</button>';
+    $('#avisos').innerHTML = html;
+  }
+  document.addEventListener('click', function (ev) {
+    if (ev.target.closest('[data-av-todos]')) { verTodosAvisos = !verTodosAvisos; desenharAvisos(); }
+  });
 
   function tagSituacao(i) {
     if (i.situacao === 'RUPTURA') return '<span class="stt rup">RUPTURA</span>';
@@ -273,13 +350,11 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
     const l = insumosFiltrados();
     $('#filtro-ins').innerHTML = MODOS_INS[modo] ? 'Filtro: ' + ROTULO[modo] + '<button type="button" data-modo="' + modo + '">limpar</button>' : '';
     $('#linhas').innerHTML = l.map(function (i) {
-      return '<tr class="' + classeLinha(i) + '" data-ins="' + e(i.cod_insumo) + '"><td class="d" title="' + e(i.descricao) + '"><b>' + e(i.cod_insumo) + '</b><small>' + e(i.descricao) + '</small></td>' +
-        '<td><span class="cat ' + catClasse(i.categoria) + '">' + e(i.categoria) + '</span></td>' +
+      return '<tr class="' + classeLinha(i) + '" data-ins="' + e(i.cod_insumo) + '"><td class="d" title="' + e(i.descricao) + '"><b>' + e(i.cod_insumo) + '</b> <span class="cat ' + catClasse(i.categoria) + '">' + e(i.categoria) + '</span><small>' + e(i.descricao) + '</small></td>' +
         '<td class="num">' + n(i.saldo) + '</td><td class="num">' + n(i.vai_sair) + '</td>' +
         '<td class="num">' + (i.projetado < 0 ? '<span class="neg">' + n(i.projetado) + '</span>' : n(i.projetado)) + '</td>' +
-        '<td class="num">' + n(i.minimo) + '</td><td class="num">' + n(i.lead_time) + ' d</td><td>' + tagSituacao(i) + '</td>' +
-        '<td class="num sug">' + (i.sugerido > 0 ? '<b>' + n(i.sugerido) + '</b>' : '—') + '</td></tr>';
-    }).join('') || '<tr><td colspan="9"><div class="vazio">' + (modo ? 'Nenhum insumo neste filtro.' : 'Nenhum insumo estocado nesta categoria.') + '</div></td></tr>';
+        '<td class="num sug">' + (i.sugerido > 0 ? '<b>' + n(i.sugerido) + '</b>' : '—') + '</td><td>' + tagSituacao(i) + '</td></tr>';
+    }).join('') || '<tr><td colspan="6"><div class="vazio">' + (modo ? 'Nenhum insumo neste filtro.' : 'Nenhum insumo estocado nesta categoria.') + '</div></td></tr>';
   }
 
   function tagSolic(s) {
@@ -450,8 +525,22 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
       '<td class="n">' + Fmt.num(r.min) + '</td><td class="n">' + Fmt.num(r.lead) + '</td><td>' + e(r.sit) + '</td>' +
       '<td class="c">' + (r.comprar > 0 ? Fmt.num(r.comprar) : '—') + '</td></tr>';
   }).join('')}</tbody></table>
+  ${avisosHtml()}
   <script>window.onload=()=>window.print();<\/script></body></html>`);
     w.document.close();
+  }
+
+  // Avisos do PCP no relatório impresso (só as OPs que faltam material)
+  function avisosHtml() {
+    const l = avisosPorOP().filter(function (a) { return a.falta; });
+    if (!l.length) return '';
+    return '<h2 style="margin-top:22px">AVISOS DO PCP — OPs QUE FALTAM MATERIAL</h2><table><thead><tr><th>OP</th><th>CLIENTE</th><th>PROCESSO</th><th>INSUMO</th><th>DESCRIÇÃO</th><th>PRECISA</th><th>TEM</th><th>FALTAM</th></tr></thead><tbody>' +
+      l.map(function (a) {
+        return a.itens.map(function (it) {
+          return '<tr' + (it.faltam > 0 ? ' style="background:#fde2e2"' : '') + '><td><b>' + e(a.op) + '</b></td><td>' + e(a.cliente) + '</td><td>' + e(a.processo) + '</td><td>' + e(it.cod) + '</td><td>' + e(it.desc) + '</td>' +
+            '<td class="n">' + Fmt.num(it.precisa) + '</td><td class="n">' + Fmt.num(it.tem) + '</td><td class="c">' + (it.faltam > 0 ? Fmt.num(it.faltam) : '—') + '</td></tr>';
+        }).join('');
+      }).join('') + '</tbody></table>';
   }
 
   // Excel: biblioteca SheetJS, carregada só quando o botão é usado.
@@ -477,6 +566,17 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
       ws['!cols'] = [12, 42, 12, 8, 10, 10, 11, 10, 11, 12, 10].map(function (c) { return { wch: c }; });
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Compras');
+      const av = [];
+      avisosPorOP().forEach(function (a) {
+        a.itens.forEach(function (it) {
+          av.push({ 'OP': a.op, 'Cliente': a.cliente, 'Processo': a.processo, 'Insumo': it.cod, 'Descrição': it.desc, 'Precisa': it.precisa, 'Tem': it.tem, 'Faltam': it.faltam });
+        });
+      });
+      if (av.length) {
+        const ws2 = XLSX.utils.json_to_sheet(av);
+        ws2['!cols'] = [8, 30, 16, 12, 40, 10, 10, 10].map(function (c) { return { wch: c }; });
+        XLSX.utils.book_append_sheet(wb, ws2, 'Avisos por OP');
+      }
       const hoje = new Date();
       const nome = 'compras_' + hoje.getFullYear() + String(hoje.getMonth() + 1).padStart(2, '0') + String(hoje.getDate()).padStart(2, '0') + '.xlsx';
       XLSX.writeFile(wb, nome);
