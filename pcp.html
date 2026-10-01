@@ -275,7 +275,7 @@ Sessao.iniciarPagina('pcp').then(function (ctx) {
       '<td><b>' + Ui.esc(x.op ? semZeros(x.op) : '—') + '</b></td><td>' + Ui.esc(semZeros(x.pedido)) + '</td><td>' + Ui.esc(x.cliente) + '</td>' +
       '<td class="cod">' + Ui.esc(x.codigo) + selo(x.codigo) + '</td><td class="desc" title="' + Ui.esc(x.descricao) + '">' + Ui.esc(x.descricao) + '</td>' +
       '<td class="num">' + Ui.esc(x.qtdordem) + '</td><td>' + Ui.esc(x.liga) + '</td>' +
-      '<td class="prz' + (x.cat === 'VENCIDO' ? ' atr' : '') + '" title="' + Ui.esc(x.st.label + (x.st.diasAtraso ? ' · ' + x.st.diasAtraso + ' d' : '')) + '">' + Ui.esc(prazoCurto(x.prazo)) + '</td>' +
+      '<td class="prz' + (x.cat === 'VENCIDO' ? ' atr' : '') + '" title="' + Ui.esc(x.st.label) + '">' + Ui.esc(prazoCurto(x.prazo)) + '</td>' +
       '<td class="num mold">' + fmtN(x.qtdmoldes) + ' de ' + fmtN(x.qtdmoldesPlanejados) + '</td>' +
       '<td class="num">' + fmtPeso(x.pesomoldes) + '</td>' +
       '<td><span class="proc" style="--c:' + corProcesso(x) + '">' + Ui.esc(x.processo) + '</span></td>' +
