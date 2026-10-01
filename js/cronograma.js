@@ -9,11 +9,14 @@
 //   - Demais ligas (fundido): 2 d.u. de folga + 20 dias úteis.
 //   - Conta de trás para frente a partir do prazo, pulando sábado e
 //     domingo, e vê em qual fase a OP DEVERIA estar hoje.
-//   - Compara com o processo REAL: atrás da fase planejada = ATRASADO.
+//   - Compara com o processo REAL: atrás da fase planejada = FORA DO CRONO.
+//   - Passou o prazo do cliente = PRAZO VENCIDO.
+//   - Tem OP e 4+ dias sem apontamento = SEM MOVIMENTAÇÃO.
 //
 // Uso:  Cronograma.status(op)    → { cls, label, fase, diasAtraso }
-//       Cronograma.categoria(op) → 'ATRASADO' | 'NO_PRAZO' | 'OUTROS'
-//       op precisa ter: prazo ('dd/mm/aaaa'), liga, processo
+//       Cronograma.categoria(op) → 'VENCIDO' | 'SEM_MOV' | 'FORA_CRONO' | 'NO_PRAZO' | 'OUTROS'
+//       Cronograma.cor(op)       → cor do chip do processo
+//       op precisa ter: prazo ('dd/mm/aaaa'), liga, processo, op, ultima, abertura
 // ============================================================
 
 const Cronograma = (function () {
@@ -73,57 +76,80 @@ const Cronograma = (function () {
   }
 
   const limpar = function (p) { return String(p || '').replace(/ - INICIADO| - FINALIZADO/g, '').trim().toUpperCase(); };
-  const semMov = function (r) { return !r || r === 'SEM MOVIMENTAÇÃO' || r === 'AGUARDANDO PROCESSO'; };
+  const DIAS_PARADA = 4;
 
+  // Situação da OP — UMA etiqueta, a mais grave vence:
+  //   PRAZO VENCIDO     passou o prazo do CLIENTE (atraso de verdade)
+  //   SEM MOVIMENTAÇÃO  tem nº de OP e está 4+ dias sem apontamento novo
+  //   FORA DO CRONO.    o departamento passou do tempo combinado no
+  //                     cronograma, mas o prazo do cliente ainda dá
+  //   NO PRAZO / ADIANTADO   em dia com o cronograma
+  // Engenharia (sem nº de OP) também segue o cronograma: se passar do
+  // tempo combinado da fase dela, fica FORA DO CRONO.
   function status(op) {
     const h = hoje();
     const cron = cronograma(op);
     if (!cron) return { cls: 'future', label: 'SEM PRAZO', fase: null, diasAtraso: 0 };
     const prazo = parseBR(op.prazo);
-    const diasAtrasoPrazo = Math.floor((h - prazo) / 86400000);
+    if (h > prazo) return { cls: 'bad', label: 'PRAZO VENCIDO', fase: null, diasAtraso: Math.floor((h - prazo) / 86400000) };
     let fase = fasePlanejadaParaDia(cron, h);
-    if (!fase && h >= prazo) {
-      const validas = cron.fases.filter(function (f) { return f.n !== 'BUFFER'; });
-      fase = validas[validas.length - 1] || null;
-    }
+    if (parada(op)) return { cls: 'warn', label: 'SEM MOVIMENTAÇÃO', fase: fase, diasAtraso: 0, diasParada: diasParada(op) };
+    const validas = cron.fases.filter(function (f) { return f.n !== 'BUFFER'; });
+    const real = limpar(op.processo) || (op.op ? 'PLANEJAMENTO' : 'ENGENHARIA');
+    const idxReal = validas.findIndex(function (f) { return f.n.toUpperCase() === real; });
+    if (!fase && h >= prazo) fase = validas[validas.length - 1] || null;
     if (!fase) {
-      if (h > prazo) return { cls: 'bad', label: 'PRAZO VENCIDO', fase: null, diasAtraso: diasAtrasoPrazo };
-      const realCedo = limpar(op.processo);
-      if (!semMov(realCedo)) {
-        const validasCedo = cron.fases.filter(function (f) { return f.n !== 'BUFFER'; });
-        return { cls: 'future', label: 'ADIANTADO', fase: validasCedo[0] || null, diasAtraso: 0 };
-      }
-      return { cls: 'future', label: 'AGUARDANDO INÍCIO', fase: null, diasAtraso: 0 };
+      // Ainda não chegou a hora de começar (pela conta reversa)
+      const inicio = ['ENGENHARIA', 'VALIDAÇÃO TÉCNICA'].indexOf(real) !== -1 || idxReal === -1;
+      return inicio ? { cls: 'future', label: 'AGUARDANDO INÍCIO', fase: null, diasAtraso: 0 }
+                    : { cls: 'ok', label: 'ADIANTADO', fase: validas[0] || null, diasAtraso: 0 };
     }
-    const real = limpar(op.processo);
-    const plan = fase.n.toUpperCase();
-    if (semMov(real)) return { cls: 'warn', label: 'SEM MOVIMENTAÇÃO', fase: fase, diasAtraso: 0 };
-    if (real === plan) return { cls: 'ok', label: 'NO PRAZO', fase: fase, diasAtraso: 0 };
-    const idxReal = cron.fases.findIndex(function (f) { return f.n.toUpperCase() === real; });
-    const idxPlan = cron.fases.findIndex(function (f) { return f.n === fase.n; });
+    const idxPlan = validas.findIndex(function (f) { return f.n === fase.n; });
+    if (idxReal === -1 || idxReal === idxPlan) return { cls: 'ok', label: 'NO PRAZO', fase: fase, diasAtraso: 0 };
     if (idxReal > idxPlan) return { cls: 'ok', label: 'ADIANTADO', fase: fase, diasAtraso: 0 };
-    const diasAtraso = idxPlan - idxReal > 0 ? cron.fases.slice(idxReal, idxPlan).reduce(function (s, f) { return s + f.d; }, 0) : 0;
-    return { cls: 'bad', label: 'ATRASADO', fase: fase, diasAtraso: diasAtraso };
+    const diasAtraso = validas.slice(idxReal, idxPlan).reduce(function (s, f) { return s + f.d; }, 0);
+    return { cls: 'late', label: 'FORA DO CRONO.', fase: fase, diasAtraso: diasAtraso };
   }
 
+  // 'VENCIDO' | 'SEM_MOV' | 'FORA_CRONO' | 'NO_PRAZO' | 'OUTROS'
   function categoria(op) {
-    const st = status(op);
-    if (st.label === 'ATRASADO' || st.label === 'PRAZO VENCIDO') return 'ATRASADO';
-    if (st.label === 'NO PRAZO' || st.label === 'ADIANTADO') return 'NO_PRAZO';
+    const l = status(op).label;
+    if (l === 'PRAZO VENCIDO') return 'VENCIDO';
+    if (l === 'SEM MOVIMENTAÇÃO') return 'SEM_MOV';
+    if (l === 'FORA DO CRONO.') return 'FORA_CRONO';
+    if (l === 'NO PRAZO' || l === 'ADIANTADO') return 'NO_PRAZO';
     return 'OUTROS';
   }
 
-  // "Parada" (mesma regra do PCP antigo e do BI): já está em produção e
-  // está há 4 dias ou mais sem nenhuma movimentação nova.
+  // Cores e nomes iguais em todas as telas
+  const COR = { VENCIDO: '#ef4444', SEM_MOV: '#eab308', FORA_CRONO: '#f97316', NO_PRAZO: '#22c55e', ENG: '#a855f7', NEUTRO: '#64748b' };
+  const ROTULO = { VENCIDO: 'Prazo vencido', SEM_MOV: 'Sem movimentação', FORA_CRONO: 'Fora do crono.', NO_PRAZO: 'No prazo' };
+  // Cor do "chip" do processo: alerta primeiro; senão engenharia (roxo),
+  // em produção em dia (verde) ou aguardando (cinza).
+  function cor(op, cat) {
+    cat = cat || categoria(op);
+    if (COR[cat] && cat !== 'NO_PRAZO') return COR[cat];
+    if (!op.op) return COR.ENG;
+    if (op.situacao === 'EM PRODUÇÃO') return COR.NO_PRAZO;
+    return COR.NEUTRO;
+  }
+
+  // Dia de referência do "parado": último apontamento; se a OP nunca
+  // foi apontada, a data de abertura da OP.
+  function refParada(op) {
+    const u = op.ultima && op.ultima !== '-' ? parseBR(String(op.ultima).split(' ')[0]) : null;
+    return u || parseBR(op.abertura);
+  }
+  // Sem movimentação: tem nº de OP e 4+ dias sem apontamento novo.
   function parada(op) {
-    if (op.situacao !== 'EM PRODUÇÃO' || !op.ultima || op.ultima === '-') return false;
-    const d = parseBR(String(op.ultima).split(' ')[0]);
-    return !!d && Math.floor((hoje() - d) / 86400000) >= 4;
+    if (!op.op) return false;
+    const d = refParada(op);
+    return !!d && Math.floor((hoje() - d) / 86400000) >= DIAS_PARADA;
   }
   function diasParada(op) {
-    const d = parseBR(String(op.ultima || '').split(' ')[0]);
+    const d = refParada(op);
     return d ? Math.floor((hoje() - d) / 86400000) : 0;
   }
 
-  return { cronograma: cronograma, status: status, categoria: categoria, parada: parada, diasParada: diasParada, parseBR: parseBR };
+  return { cronograma: cronograma, status: status, categoria: categoria, parada: parada, diasParada: diasParada, parseBR: parseBR, cor: cor, COR: COR, ROTULO: ROTULO };
 })();
