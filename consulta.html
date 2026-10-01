@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="css/sistema.css">
 <style>
 /* ---------- específico desta página ---------- */
-.kc { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 14px; }
+.kc { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; }
 .kc button { background: var(--painel); border: 1px solid var(--linha); border-left: 4px solid var(--c); border-radius: 12px; padding: 12px 16px; cursor: pointer; text-align: left; display: grid; gap: 4px; }
 .kc button .r { display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 800; letter-spacing: .6px; color: var(--texto-suave); text-transform: uppercase; }
 .kc button .r svg { color: var(--c); width: 16px; height: 16px; }
@@ -47,7 +47,7 @@ html.tema-claro .prz.atr { color: #b91c1c; }
 .situ { margin-left: auto; font-size: 11px; font-weight: 800; letter-spacing: .3px; }
 .km { cursor: pointer; border: 0; font: inherit; }
 .cm-rod { display: flex; align-items: center; gap: 8px; }
-@media (max-width: 1100px) { .kc { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 1100px) { .kc { grid-template-columns: repeat(2, 1fr); } }
 </style>
 </head>
 <body>
@@ -80,7 +80,7 @@ html.tema-claro .prz.atr { color: #b91c1c; }
       <thead><tr><th>OP</th><th>PEDIDO</th><th>CLIENTE</th><th>CÓDIGO</th><th>DESCRIÇÃO</th><th class="num">QTD</th><th>LIGA</th><th>PRAZO</th><th>PROCESSO</th></tr></thead>
       <tbody id="linhas"><tr><td colspan="9"><div class="carregando">Carregando…</div></td></tr></tbody>
     </table>
-    <div class="leg"><span><i style="background:#ef4444"></i>Prazo vencido (cliente)</span><span><i style="background:#f97316"></i>Fora do crono. (departamento)</span><span><i style="background:#a855f7"></i>Engenharia (sem OP)</span><span>Atualização automática a cada 1 min</span></div>
+    <div class="leg"><span><i style="background:#ef4444"></i>Prazo vencido (cliente)</span><span><i style="background:#a855f7"></i>Engenharia (sem OP)</span><span>Atualização automática a cada 1 min</span></div>
   </div>
   <div class="lista-mob so-mob" id="cartoes" style="padding-bottom:20px"></div>
 </main>
@@ -95,7 +95,7 @@ html.tema-claro .prz.atr { color: #b91c1c; }
 <script>
 Sessao.iniciarPagina('consulta').then(function (ctx) {
   const $ = function (s) { return document.querySelector(s); };
-  const ROTULO_FILTRO = { 'TODAS': 'CARTEIRA TOTAL', 'EM PRODUÇÃO': 'EM PRODUÇÃO', 'ENGENHARIA': 'ENGENHARIA', 'VENCIDO': 'PRAZO VENCIDO', 'FORA_CRONO': 'FORA DO CRONO.' };
+  const ROTULO_FILTRO = { 'TODAS': 'CARTEIRA TOTAL', 'EM PRODUÇÃO': 'EM PRODUÇÃO', 'ENGENHARIA': 'ENGENHARIA', 'VENCIDO': 'PRAZO VENCIDO' };
   const COR_SITU = { 'PRAZO VENCIDO': '#f87171', 'FORA DO CRONO.': '#fb923c', 'NO PRAZO': '#34d399', 'ADIANTADO': '#34d399', 'SEM MOVIMENTAÇÃO': '#fbbf24' };
   const proc = function (x) { return x.processo || (x.op ? 'PLANEJAMENTO' : 'ENGENHARIA'); };
   let dados = [];
@@ -110,7 +110,10 @@ Sessao.iniciarPagina('consulta').then(function (ctx) {
       dados = r.itens.map(function (x) {
         x.ehEng = !x.op;
         x.st = Cronograma.status(x);
+        // Consulta mostra só o prazo do CLIENTE: "fora do crono." (atraso
+        // interno de departamento) aparece aqui como no prazo.
         x.cat = Cronograma.categoria(x);
+        if (x.cat === 'FORA_CRONO') { x.cat = 'NO_PRAZO'; x.st = { cls: 'ok', label: 'NO PRAZO', fase: x.st.fase, diasAtraso: 0 }; }
         return x;
       });
       desenhar();
@@ -124,7 +127,7 @@ Sessao.iniciarPagina('consulta').then(function (ctx) {
     return dados.filter(function (x) {
       let ok = true;
       if (filtro === 'EM PRODUÇÃO') ok = x.situacao === 'EM PRODUÇÃO';
-      if (filtro === 'VENCIDO' || filtro === 'FORA_CRONO') ok = x.cat === filtro;
+      if (filtro === 'VENCIDO') ok = x.cat === filtro;
       if (filtro === 'ENGENHARIA') ok = x.ehEng;
       const txt = (x.op + ' ' + x.pedido + ' ' + x.cliente + ' ' + x.codigo + ' ' + x.descricao).toLowerCase();
       return ok && (!busca || txt.indexOf(busca) !== -1);
@@ -139,8 +142,7 @@ Sessao.iniciarPagina('consulta').then(function (ctx) {
       { f: 'TODAS', c: '#3b82f6', ic: 'i-tabela', n: dados.length, t: 'Carteira total', d: 'OPs + engenharia', m: 'Carteira' },
       { f: 'EM PRODUÇÃO', c: '#22c55e', ic: 'i-fogo', n: dados.filter(function (x) { return !!x.op; }).length, t: 'Em produção', d: 'com OP aberta', m: 'Produção' },
       { f: 'ENGENHARIA', c: '#a855f7', ic: 'i-clip', n: dados.filter(function (x) { return x.ehEng; }).length, t: 'Engenharia', d: 'itens sem OP', m: 'Engenharia' },
-      { f: 'VENCIDO', c: Cronograma.COR.VENCIDO, ic: 'i-alerta', n: conta('VENCIDO'), t: 'Prazo vencido', d: 'passou o prazo do cliente', m: 'Vencidas' },
-      { f: 'FORA_CRONO', c: Cronograma.COR.FORA_CRONO, ic: 'i-cal', n: conta('FORA_CRONO'), t: 'Fora do crono.', d: 'departamento atrasado', m: 'Fora crono.' }
+      { f: 'VENCIDO', c: Cronograma.COR.VENCIDO, ic: 'i-alerta', n: conta('VENCIDO'), t: 'Prazo vencido', d: 'passou o prazo do cliente', m: 'Vencidas' }
     ];
     $('#cards').innerHTML = k.map(function (x) {
       return '<button data-filtro="' + x.f + '" class="' + (filtro === x.f ? 'sel' : '') + '" style="--c:' + x.c + '"><span class="r">' + Ui.ic(x.ic) + x.t + '</span><b>' + x.n + '</b><small>' + x.d + '</small></button>';
@@ -157,7 +159,6 @@ Sessao.iniciarPagina('consulta').then(function (ctx) {
 
   function classeLinha(x) {
     if (x.cat === 'VENCIDO') return 'atr';
-    if (x.cat === 'FORA_CRONO') return 'fcr';
     return x.ehEng ? 'eng' : '';
   }
 
