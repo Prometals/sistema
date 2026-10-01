@@ -145,10 +145,11 @@ html.tema-claro .cd { color: #1d4ed8; }
       <div class="cx ctl">
         <div class="l1">
           <select id="fDepto"><option value="">Todos os departamentos</option></select>
-          <label class="per-f" title="Período: mostra só as OPs com prazo entre estas datas"><svg class="i"><use href="#i-cal"/></svg><input type="date" id="fIni" aria-label="De"><span>até</span><input type="date" id="fFim" aria-label="Até"></label>
+          <label class="per-f" title="Período: o calendário mostra o planejamento destes dias; imprimir e Excel levam as OPs com prazo entre estas datas"><svg class="i"><use href="#i-cal"/></svg><input type="date" id="fIni" aria-label="De"><span>até</span><input type="date" id="fFim" aria-label="Até"></label>
           <button class="btn2" id="btAtr" title="Atrasadas: prazo vencido e fora do crono."><svg class="i"><use href="#i-alerta"/></svg>Atrasadas</button>
           <button class="btn2" id="btLimpar" title="Limpar filtros e voltar ao mês atual"><svg class="i"><use href="#i-x"/></svg>Limpar</button>
-          <button class="btn2" data-imprimir title="Imprimir o que está filtrado"><svg class="i"><use href="#i-imp"/></svg>Imprimir</button>
+          <button class="btn2" data-imprimir title="Imprimir: OPs com prazo no período (com os filtros)"><svg class="i"><use href="#i-imp"/></svg>Imprimir</button>
+          <button class="btn2" data-excel title="Excel: OPs com prazo no período (com os filtros)"><svg class="i"><use href="#i-xls"/></svg>Excel</button>
           <span class="per-rot" id="periodo"></span>
         </div>
         <div class="f"><svg class="i"><use href="#i-busca"/></svg><input id="busca" placeholder="Buscar OP, pedido, código, descrição ou liga…" autocomplete="off"></div>
@@ -275,8 +276,11 @@ Sessao.iniciarPagina('mapa').then(function (ctx) {
   function bateBusca(x) {
     return !filtBusca || (String(x.op) + String(x.pedido) + String(x.codigo) + String(x.descricao) + String(x.liga)).toUpperCase().indexOf(filtBusca) !== -1;
   }
-  // Filtros do usuário: departamento + busca e, com porPrazo, o período De/Até
-  // aplicado ao PRAZO da OP (só entram as OPs com prazo dentro do período).
+  // Duas leituras:
+  //   CALENDÁRIO (chips/pips) = planejamento: em que fase cada OP deveria estar
+  //     em cada dia, pela promessa de entrega (cronograma reverso).
+  //   IMPRIMIR / EXCEL = prazo: só as OPs com PRAZO dentro do período De/Até.
+  // Departamento e busca valem para os dois.
   function noPeriodo(x) { const p = parseBR(x.prazo); return !!p && p >= dtIni && p <= dtFim; }
   function listaCal(porPrazo) {
     return OPS.filter(function (x) { return (!filtDepto || x.processo === filtDepto) && bateBusca(x) && (!porPrazo || noPeriodo(x)); });
@@ -304,7 +308,7 @@ Sessao.iniciarPagina('mapa').then(function (ctx) {
 
   // 1 dia = vista do dia · até 62 dias = calendário (com os nº das OPs se até 14 dias) · mais = resumo por mês
   function renderCal() {
-    const lista = listaCal(!soAtrasadas);
+    const lista = listaCal(false);
     $('#btAtr').classList.toggle('ativo', soAtrasadas);
     $('#periodo').textContent = soAtrasadas ? 'ATRASADAS' : rotuloPeriodo();
     if (soAtrasadas) renderVistaAtrasadas(lista);
@@ -500,24 +504,62 @@ Sessao.iniciarPagina('mapa').then(function (ctx) {
     });
   }
 
-  // ---------- Impressão: imprime EXATAMENTE o que está filtrado na tela ----------
-  // Usa a mesma lista do calendário (departamento + busca) e, por ordem:
-  //   1) botão Atrasadas ligado → a lista de atrasadas da tela
-  //   2) um dia clicado no calendário → só as OPs daquele dia (painel da direita)
-  //   3) senão → as OPs com PRAZO dentro do período De/Até
-  function imprimir() {
+  // ---------- Impressão e Excel: leem o PRAZO ----------
+  //   botão Atrasadas ligado → a lista de atrasadas da tela
+  //   senão → OPs com PRAZO dentro do período De/Até
+  //   (sempre com o departamento e a busca escolhidos)
+  //   celular → OPs do dia escolhido na faixa
+  function selecaoRelatorio() {
     const mobil = window.innerWidth <= 760;
-    const lista = listaCal(!mobil && !soAtrasadas);
     const sufixo = (filtDepto ? ' — ' + filtDepto : '') + (filtBusca ? ' — busca "' + filtBusca + '"' : '');
-    if (mobil) return imprimirLista(opsDoDia(lista, diaMob), 'OPs do Dia ' + fmtBR(diaMob) + sufixo);
-    if (soAtrasadas) return imprimirLista(buildListaAtrasadas(lista), 'Atrasadas' + sufixo);
-    const dia = nDias() > 1 && diaSelecionado && diaSelecionado >= dtIni && diaSelecionado <= dtFim ? diaSelecionado : null;
-    if (dia) return imprimirLista(opsDoDia(lista, dia), 'OPs do Dia ' + fmtBR(dia) + sufixo);
-    // Período: todas as OPs com prazo dentro de De/Até
-    const ops = lista;
+    if (mobil) return { ops: opsDoDia(listaCal(false), diaMob), titulo: 'OPs do Dia ' + fmtBR(diaMob) + sufixo };
+    if (soAtrasadas) return { ops: buildListaAtrasadas(listaCal(false)), titulo: 'Atrasadas' + sufixo };
     const r = rotuloPeriodo();
     const titulo = 'OPs com prazo ' + (nDias() === 1 ? 'em ' + fmtBR(dtIni) : /DIAS$/.test(r) ? 'de ' + fmtBR(dtIni) + ' a ' + fmtBR(dtFim) : /^ANO/.test(r) ? 'no ano de ' + dtIni.getFullYear() : 'em ' + r.charAt(0) + r.slice(1).toLowerCase());
-    imprimirLista(ops, titulo + sufixo);
+    return { ops: listaCal(true), titulo: titulo + sufixo };
+  }
+  function imprimir() {
+    const sel = selecaoRelatorio();
+    imprimirLista(sel.ops, sel.titulo);
+  }
+
+  // Mesmas colunas da impressão, uma linha por OP (ordem do prazo)
+  function linhasRelatorio(lista) {
+    const h = hoje();
+    return lista.slice().sort(function (a, b) { return (parseBR(a.prazo) || new Date(9999, 0)) - (parseBR(b.prazo) || new Date(9999, 0)); }).map(function (x) {
+      const st = statusOP(x); const cron = cronograma(x);
+      const diasPrazo = parseBR(x.prazo) ? Math.floor((parseBR(x.prazo) - h) / 86400000) : '';
+      const diasNoDept = x.ultima ? (function () { const d = parseBR(x.ultima); return d ? contaDU(d, h) : 0; })() : 0;
+      return {
+        'OP': x.op || '', 'PEDIDO': x.pedido || '', 'CLIENTE': x.cliente || '', 'CÓDIGO': x.codigo || '', 'PRODUTO': x.descricao || '',
+        'LIGA': x.liga || '', 'PRAZO': x.prazo || '', 'INÍCIO PLANEJADO': cron ? fmtBR(cron.ini) : '',
+        'PROC. PLANEJADO': st.fase ? st.fase.n : '', 'PROC. ATUAL': x.processo || '', 'SITUAÇÃO': st.label,
+        'DIAS P/ PRAZO': diasPrazo, 'DIAS DEPTO': diasNoDept
+      };
+    });
+  }
+  function carregarSheetJS() {
+    if (window.XLSX) return Promise.resolve();
+    return new Promise(function (ok, falha) {
+      const sc = document.createElement('script');
+      sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+      sc.onload = ok; sc.onerror = function () { falha(new Error('Não foi possível carregar o gerador de Excel (sem internet?).')); };
+      document.head.appendChild(sc);
+    });
+  }
+  async function baixarExcel() {
+    const sel = selecaoRelatorio();
+    if (!sel.ops.length) { Ui.toast('Nenhuma OP neste filtro.', 'aviso'); return; }
+    try {
+      await carregarSheetJS();
+      const ws = XLSX.utils.json_to_sheet(linhasRelatorio(sel.ops));
+      ws['!cols'] = [8, 10, 22, 14, 34, 7, 11, 13, 18, 18, 16, 10, 10].map(function (w) { return { wch: w }; });
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Mapa');
+      const h = hoje();
+      XLSX.writeFile(wb, 'mapa_' + h.getFullYear() + String(h.getMonth() + 1).padStart(2, '0') + String(h.getDate()).padStart(2, '0') + '.xlsx');
+      Ui.toast(sel.titulo + ' · ' + sel.ops.length + ' OP' + (sel.ops.length > 1 ? 's' : ''), 'ok', 'Excel baixado');
+    } catch (e) { Ui.erro(e); }
   }
 
   function imprimirLista(lista, titulo) {
@@ -645,6 +687,7 @@ Sessao.iniciarPagina('mapa').then(function (ctx) {
       renderMob(); return;
     }
     if (ev.target.closest('[data-imprimir]')) imprimir();
+    if (ev.target.closest('[data-excel]')) baixarExcel();
   });
 });
 </script>
