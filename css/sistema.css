@@ -359,3 +359,20 @@ body > main.conteudo { margin: 56px 0 0 248px; }
   body:not(.kiosque) .login { min-height: calc(100vh / var(--escala)); }
   body:not(.kiosque) .modal-caixa .corpo { max-height: calc(100vh / var(--escala) - 170px); }
 }
+
+/* ============================================================
+   Botões só com ícone (a classe .so-icone é colocada pelo ui.js).
+   O texto fica escondido e vira dica ao passar o mouse.
+   ============================================================ */
+.btn2.so-icone { font-size: 0; gap: 0; padding: 0 9px; min-width: 38px; justify-content: center; position: relative; }
+.btn2.so-icone > :not(svg):not(.n) { display: none; }
+.btn2.so-icone > svg.i { width: 20px; height: 20px; }
+button.btn2.so-icone .n, a.btn2.so-icone .n {
+  position: absolute; top: -7px; right: -7px; margin: 0;
+  min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px;
+  background: var(--destaque); color: #fff; border: 2px solid var(--bg);
+  font-weight: 800; line-height: 14px; text-align: center; white-space: nowrap;
+  box-sizing: border-box; pointer-events: none; font-size: 0;
+}
+button.btn2.so-icone .n::after, a.btn2.so-icone .n::after { content: attr(data-num); font-size: 10px; }
+button.btn2.so-icone .n.vazio, a.btn2.so-icone .n.vazio { display: none; }
