@@ -3,86 +3,37 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Consulta · Prometals</title>
+<title>Visão geral · Prometals</title>
 <link rel="stylesheet" href="css/tema.css">
 <link rel="stylesheet" href="css/sistema.css">
-<style>
-/* ---------- específico desta página ---------- */
-.kc { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; }
-.kc button { background: var(--painel); border: 1px solid var(--linha); border-left: 4px solid var(--c); border-radius: 12px; padding: 12px 16px; cursor: pointer; text-align: left; display: grid; gap: 4px; }
-.kc button .r { display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 800; letter-spacing: .6px; color: var(--texto-suave); text-transform: uppercase; }
-.kc button .r svg { color: var(--c); width: 16px; height: 16px; }
-.kc button b { font-size: 26px; font-variant-numeric: tabular-nums; }
-.kc button small { font-size: 12px; color: var(--texto-suave); }
-.kc button.sel { outline: 2px solid var(--c); outline-offset: -1px; }
-
-.barra { display: flex; gap: 12px; align-items: center; background: var(--painel); border: 1px solid var(--linha); border-radius: 12px; padding: 10px; margin-bottom: 14px; }
-.barra .f { flex: 1; position: relative; }
-.barra .f input { height: 38px; padding-left: 36px; }
-.barra .f svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--texto-suave); }
-.barra .info { font-size: 12px; color: var(--texto-suave); white-space: nowrap; }
-.barra .info b { color: var(--texto); }
-.btn2 .n { background: var(--painel-2); border-radius: 999px; padding: 0 8px; font-size: 11px; }
-
-.tb { background: var(--painel); border: 1px solid var(--linha); border-radius: 12px; overflow: auto; max-height: calc(100vh - 360px); }
-table.op { width: 100%; border-collapse: collapse; font-size: 13px; }
-table.op th { position: sticky; top: 0; z-index: 2; background: var(--bg); text-align: left; font-size: 11px; font-weight: 800; letter-spacing: .5px; color: var(--texto-suave); padding: 10px 10px; white-space: nowrap; border-bottom: 1px solid var(--linha); }
-html.tema-claro table.op th { background: #f1f5f9; }
-table.op td { padding: 10px 10px; border-bottom: 1px solid var(--linha); white-space: nowrap; }
-table.op tr td:first-child { border-left: 3px solid transparent; }
-table.op tr.atr td:first-child { border-left-color: #ef4444; }
-table.op tr.eng td:first-child { border-left-color: #a855f7; }
-table.op tr.par td:first-child { border-left-color: #eab308; }
-table.op tr.fcr td:first-child { border-left-color: #f97316; }
-table.op tr:hover td { background: var(--hover); }
-table.op .num { text-align: right; }
-.desc { max-width: 330px; overflow: hidden; text-overflow: ellipsis; }
-.cod { color: var(--texto-suave); }
-.prz.atr { color: #f87171; font-weight: 800; }
-html.tema-claro .prz.atr { color: #b91c1c; }
-.proc { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 800; border-radius: 999px; padding: 3px 10px; background: var(--painel-2); }
-.proc::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--c, #64748b); }
-.leg { display: flex; gap: 16px; flex-wrap: wrap; padding: 10px 14px; font-size: 11.5px; color: var(--texto-suave); border-top: 1px solid var(--linha); }
-.leg i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
-.situ { margin-left: auto; font-size: 11px; font-weight: 800; letter-spacing: .3px; }
-.km { cursor: pointer; border: 0; font: inherit; }
-.cm-rod { display: flex; align-items: center; gap: 8px; }
-@media (max-width: 1100px) { .kc { grid-template-columns: repeat(2, 1fr); } }
-</style>
 </head>
 <body>
 
-<!-- Consulta — onde está cada OP (somente leitura).
-     Lógica igual ao painel antigo (cards clicáveis, busca, impressão
-     do que está filtrado, atualização a cada 1 min). Sem o card
-     "Paradas" e sem checkbox (decisões aprovadas). -->
+<!-- Visão geral: a página de entrada de quem tem mais de uma página.
+     Os números vêm do resumo do BI (resumoBI); se o usuário não tiver
+     acesso ao BI, aparecem só os atalhos das páginas liberadas. -->
 <main class="conteudo">
   <div class="tit-pagina">
-    <div><h1>Consulta</h1><p>Onde está cada OP · somente leitura</p></div>
-    <div class="acoes-pagina so-desk"><button class="btn2" data-imprimir><svg class="i"><use href="#i-imp"/></svg>Imprimir <span class="n" data-qtd-imp>—</span></button></div>
+    <div><h1 id="titulo">Visão geral</h1><p id="subtitulo"></p></div>
+    <div class="acoes-pagina so-desk">
+      <button class="btn2" id="atualizar"><svg class="i"><use href="#i-volta"/></svg>Atualizar</button>
+    </div>
   </div>
 
-  <div class="kc so-desk" id="cards"></div>
-  <div class="kpi-mini so-mob" id="cards-mob"></div>
+  <!-- indicadores: cards no computador, pílulas no celular -->
+  <div class="kpis so-desk" id="kpis" hidden></div>
+  <div class="kpi-mini so-mob" id="kpis-mob" hidden></div>
 
-  <div class="barra so-desk">
-    <div class="f"><svg class="i"><use href="#i-busca"/></svg><input id="busca" placeholder="Buscar por OP, cliente, código, pedido ou descrição…" autocomplete="off"></div>
-    <span class="info" id="info"></span>
+  <div class="grade2">
+    <div class="bloco" id="bloco-atencao">
+      <div class="bloco-cab"><h3>OPs que exigem atenção</h3><a id="link-pcp" href="pcp.html" hidden>Abrir PCP · Monitor →</a></div>
+      <div id="atencao"><div class="carregando">Carregando…</div></div>
+    </div>
+    <div class="bloco">
+      <div class="bloco-cab"><h3>Suas páginas</h3></div>
+      <ul class="atalhos" id="atalhos"></ul>
+    </div>
   </div>
-  <div class="busca-mob so-mob">
-    <div class="f"><svg class="i"><use href="#i-busca"/></svg><input id="busca-mob" placeholder="OP, cliente, código…" autocomplete="off"></div>
-    <button class="bt" data-imprimir title="Imprimir"><svg class="i"><use href="#i-imp"/></svg></button>
-  </div>
-  <div class="info-mob so-mob" id="info-mob"></div>
-
-  <div class="tb so-desk">
-    <table class="op">
-      <thead><tr><th>OP</th><th>PEDIDO</th><th>CLIENTE</th><th>CÓDIGO</th><th>DESCRIÇÃO</th><th class="num">QTD</th><th>LIGA</th><th>PRAZO</th><th>PROCESSO</th></tr></thead>
-      <tbody id="linhas"><tr><td colspan="9"><div class="carregando">Carregando…</div></td></tr></tbody>
-    </table>
-    <div class="leg"><span><i style="background:#ef4444"></i>Prazo vencido (cliente)</span><span><i style="background:#a855f7"></i>Engenharia (sem OP)</span><span>Atualização automática a cada 1 min</span></div>
-  </div>
-  <div class="lista-mob so-mob" id="cartoes" style="padding-bottom:20px"></div>
 </main>
 
 <script src="js/config.js"></script>
@@ -93,154 +44,135 @@ html.tema-claro .prz.atr { color: #b91c1c; }
 <script src="js/shell.js"></script>
 <script src="js/cronograma.js"></script>
 <script>
-Sessao.iniciarPagina('consulta').then(function (ctx) {
-  const $ = function (s) { return document.querySelector(s); };
-  const ROTULO_FILTRO = { 'TODAS': 'CARTEIRA TOTAL', 'EM PRODUÇÃO': 'EM PRODUÇÃO', 'ENGENHARIA': 'ENGENHARIA', 'VENCIDO': 'PRAZO VENCIDO' };
-  const COR_SITU = { 'PRAZO VENCIDO': '#f87171', 'FORA DO CRONO.': '#fb923c', 'NO PRAZO': '#34d399', 'ADIANTADO': '#34d399', 'SEM MOVIMENTAÇÃO': '#fbbf24' };
-  const proc = function (x) { return x.processo || (x.op ? 'PLANEJAMENTO' : 'ENGENHARIA'); };
-  let dados = [];
-  let filtro = 'TODAS';
+Sessao.iniciarPagina('inicio').then(function (ctx) {
+  const $ = function (id) { return document.getElementById(id); };
+  const primeiroNome = String(ctx.usuario.nome || '').split(' ')[0];
+  $('titulo').textContent = Fmt.saudacao() + ', ' + primeiroNome.charAt(0) + primeiroNome.slice(1).toLowerCase();
+  const podeAbrir = function (id) { return ctx.nivelDe(id) !== 'NENHUM' && CONFIG.PAGINAS_PRONTAS.indexOf(id) !== -1; };
+  $('link-pcp').hidden = !podeAbrir('pcp');
 
+  desenharAtalhos();
+  const temBI = ctx.nivelDe('bi') !== 'NENHUM';
+  if (!temBI) {
+    $('subtitulo').textContent = Fmt.hojeExtenso();
+    $('bloco-atencao').innerHTML = '<div class="vazio">Os indicadores da produção aparecem para quem tem acesso ao <b>Dashboard BI</b>.<br>Use os atalhos ao lado para abrir suas páginas.</div>';
+    return;
+  }
   carregar();
-  setInterval(function () { if (!document.hidden) carregar(true); }, 60000);   // a cada 1 min
+  $('atualizar').addEventListener('click', carregar);
+  setInterval(function () { if (!document.hidden) carregar(); }, 5 * 60 * 1000);
 
-  async function carregar(silencioso) {
+  // ---------- Dados ----------
+  async function carregar() {
+    $('atualizar').disabled = true;
     try {
-      const r = await Api.chamar('listarCarteira', { visao: 'PRODUCAO' }, { rapido: function () { carregar(true); } });
-      dados = r.itens.map(function (x) {
-        x.ehEng = !x.op;
-        x.st = Cronograma.status(x);
-        // Consulta mostra só o prazo do CLIENTE: "fora do crono." (atraso
-        // interno de departamento) aparece aqui como no prazo.
-        x.cat = Cronograma.categoria(x);
-        if (x.cat === 'FORA_CRONO') { x.cat = 'NO_PRAZO'; x.st = { cls: 'ok', label: 'NO PRAZO', fase: x.st.fase, diasAtraso: 0 }; }
-        return x;
-      });
-      desenhar();
+      const r = await Api.chamar('resumoBI', {}, { rapido: function () { carregar(); } });
+      desenharIndicadores(r);
+      desenharAtencao(r);
+      $('subtitulo').textContent = Fmt.hojeExtenso() + ' · dados atualizados às ' + Fmt.hora().slice(0, 5);
     } catch (e) {
-      if (!silencioso) Ui.erro(e);
+      Ui.erro(e);
+      if (!$('kpis').innerHTML) $('atencao').innerHTML = '<div class="vazio">Não foi possível carregar os dados. ' + Ui.esc(e.message) + '</div>';
+    } finally {
+      $('atualizar').disabled = false;
     }
   }
 
-  function aplicarFiltro() {
-    const busca = (window.innerWidth <= 760 ? $('#busca-mob') : $('#busca')).value.toLowerCase().trim();
-    return dados.filter(function (x) {
-      let ok = true;
-      if (filtro === 'EM PRODUÇÃO') ok = x.situacao === 'EM PRODUÇÃO';
-      if (filtro === 'VENCIDO') ok = x.cat === filtro;
-      if (filtro === 'ENGENHARIA') ok = x.ehEng;
-      const txt = (x.op + ' ' + x.pedido + ' ' + x.cliente + ' ' + x.codigo + ' ' + x.descricao).toLowerCase();
-      return ok && (!busca || txt.indexOf(busca) !== -1);
+  // Mesmas regras do PCP · Monitor e do BI antigo (js/cronograma.js):
+  // em produção = tem nº de OP · prazo vencido = passou o prazo do cliente ·
+  // fora do crono. = departamento atrás do cronograma.
+  function classificar(r) {
+    r.carteira.forEach(function (c) {
+      c._st = Cronograma.status(c);
+      c._cat = Cronograma.categoria(c);
     });
   }
-  $('#busca').addEventListener('input', desenharLista);
-  $('#busca-mob').addEventListener('input', desenharLista);
 
-  function conta(cat) { return dados.filter(function (x) { return x.cat === cat; }).length; }
-  function desenhar() {
+  function desenharIndicadores(r) {
+    classificar(r);
+    const cart = r.carteira;
+    const clientes = new Set(cart.map(function (c) { return c.cliente; })).size;
+    const prod = cart.filter(function (c) { return !!c.op; }).length;
+    const eng = cart.filter(function (c) { return !c.op; });
+    const n = function (cat) { return cart.filter(function (c) { return c._cat === cat; }).length; };
+    const venc = n('VENCIDO'), fcr = n('FORA_CRONO');
+    const pct = cart.length ? Math.round(prod / cart.length * 100) : 0;
+    const em7 = eng.filter(function (e) { const d = diasAte(e.prazo); return d !== null && d <= 7; }).length;
     const k = [
-      { f: 'TODAS', c: '#3b82f6', ic: 'i-tabela', n: dados.length, t: 'Carteira total', d: 'OPs + engenharia', m: 'Carteira' },
-      { f: 'EM PRODUÇÃO', c: '#22c55e', ic: 'i-fogo', n: dados.filter(function (x) { return !!x.op; }).length, t: 'Em produção', d: 'com OP aberta', m: 'Produção' },
-      { f: 'ENGENHARIA', c: '#a855f7', ic: 'i-clip', n: dados.filter(function (x) { return x.ehEng; }).length, t: 'Engenharia', d: 'itens sem OP', m: 'Engenharia' },
-      { f: 'VENCIDO', c: Cronograma.COR.VENCIDO, ic: 'i-alerta', n: conta('VENCIDO'), t: 'Prazo vencido', d: 'passou o prazo do cliente', m: 'Vencidas' }
+      { c: '#3b82f6', ic: 'i-tabela', rot: 'Carteira ativa', val: cart.length, det: clientes + ' cliente' + (clientes === 1 ? '' : 's') },
+      { c: '#22c55e', ic: 'i-relogio', rot: 'Em produção', val: prod, det: pct + '% da carteira' },
+      { c: '#a855f7', ic: 'i-clip', rot: 'Engenharia (sem OP)', val: eng.length, det: em7 + ' com prazo em 7 dias' },
+      { c: Cronograma.COR.VENCIDO, ic: 'i-alerta', rot: 'Prazo vencido', val: venc, det: fcr + ' fora do crono.' }
     ];
-    $('#cards').innerHTML = k.map(function (x) {
-      return '<button data-filtro="' + x.f + '" class="' + (filtro === x.f ? 'sel' : '') + '" style="--c:' + x.c + '"><span class="r">' + Ui.ic(x.ic) + x.t + '</span><b>' + x.n + '</b><small>' + x.d + '</small></button>';
+    $('kpis').innerHTML = k.map(function (x) {
+      return '<div class="kpi" style="--c:' + x.c + '"><div class="rot">' + Ui.ic(x.ic) + x.rot + '</div>' +
+             '<div class="val">' + x.val + '</div><div class="det">' + Ui.esc(x.det) + '</div></div>';
     }).join('');
-    $('#cards-mob').innerHTML = k.map(function (x) {
-      return '<button class="km' + (filtro === x.f ? ' sel' : '') + '" data-filtro="' + x.f + '" style="--c:' + x.c + '"><b>' + x.n + '</b> ' + x.m + '</button>';
+    $('kpis-mob').innerHTML = k.map(function (x, i) {
+      return '<span class="km' + (i === 3 && x.val > 0 ? ' piscando' : '') + '" style="--c:' + x.c + '">' + x.rot.replace(' (sem OP)', '') + ' <b>' + x.val + '</b></span>';
     }).join('');
-    desenharLista();
+    $('kpis').hidden = false;
+    $('kpis-mob').hidden = false;
   }
 
-  function corProcesso(x) {
-    return Cronograma.cor(x, x.cat);
+  // Prazo vencido (mais antigo primeiro) → fora do crono.
+  // Cada OP aparece uma vez só (a situação mais grave).
+  function desenharAtencao(r) {
+    const cart = r.carteira;
+    const grupo = function (cat, tag, rot, dias, mostraDias) {
+      return cart.filter(function (c) { return c._cat === cat; })
+        .sort(function (a, b) { return dias(b) - dias(a); })
+        .map(function (o) { const d = mostraDias ? dias(o) : 0; return { o: o, tag: tag, txt: rot + (d ? ' · ' + d + ' d' : '') }; });
+    };
+    const atraso = function (o) { return o._st.diasAtraso || 0; };
+    const linhas = grupo('VENCIDO', 't-verm', 'Prazo vencido', atraso, false)
+      .concat(grupo('FORA_CRONO', 't-lar', 'Fora do crono.', atraso, true));
+    const lista = linhas.slice(0, 10);
+    if (!lista.length) {
+      $('atencao').innerHTML = '<div class="vazio">' + Ui.ic('i-check') + '<br>Nenhuma OP com prazo vencido ou fora do cronograma. Tudo em dia.</div>';
+      return;
+    }
+    const proc = function (p) { return p ? p.charAt(0) + p.slice(1).toLowerCase() : '—'; };
+    const deveria = function (o) { return o._st.fase ? proc(o._st.fase.n) : '—'; };
+    $('atencao').innerHTML =
+      '<table class="tab so-desk"><thead><tr><th>OP</th><th>Cliente</th><th class="col-opc">Código</th><th class="col-opc">Liga</th>' +
+      '<th>Processo atual</th><th class="col-opc">Deveria estar</th><th class="num">Prazo</th><th>Situação</th></tr></thead><tbody>' +
+      lista.map(function (l) {
+        const o = l.o;
+        return '<tr><td><b>' + Ui.esc(o.op || '—') + '</b></td><td>' + Ui.esc(o.cliente) + '</td>' +
+               '<td class="col-opc mut">' + Ui.esc(o.codigo) + '</td><td class="col-opc">' + Ui.esc(o.liga) + '</td>' +
+               '<td>' + Ui.esc(proc(o.processo)) + '</td><td class="col-opc mut">' + Ui.esc(deveria(o)) + '</td>' +
+               '<td class="num">' + Ui.esc(String(o.prazo).slice(0, 5)) + '</td>' +
+               '<td><span class="tag ' + l.tag + '">' + Ui.esc(l.txt) + '</span></td></tr>';
+      }).join('') + '</tbody></table>' +
+      '<div class="lista-mob so-mob" style="padding:10px;gap:8px">' +
+      lista.map(function (l) {
+        const o = l.o;
+        return '<div class="cm"><div class="cm-top"><span class="op">' + Ui.esc(o.op || '—') + '</span>' +
+               '<span class="cli">' + Ui.esc(o.cliente) + '</span><span class="prazo' + (l.tag === 't-verm' ? ' atraso' : '') + '">' + Ui.esc(String(o.prazo).slice(0, 5)) + '</span></div>' +
+               '<div class="cm-desc">' + Ui.esc(o.descricao) + '<small>' + Ui.esc(proc(o.processo)) + ' · <span class="tag ' + l.tag + '">' + Ui.esc(l.txt) + '</span></small></div></div>';
+      }).join('') + '</div>';
   }
 
-  function classeLinha(x) {
-    if (x.cat === 'VENCIDO') return 'atr';
-    return x.ehEng ? 'eng' : '';
-  }
-
-  function desenharLista() {
-    const lista = aplicarFiltro();
-    const busca = $('#busca').value.trim() || $('#busca-mob').value.trim();
-    const txtInfo = 'Filtro: <b>' + ROTULO_FILTRO[filtro].charAt(0) + ROTULO_FILTRO[filtro].slice(1).toLowerCase() + '</b> · ' + lista.length + ' OP' + (lista.length === 1 ? '' : 's') + (busca ? ' · busca "' + Ui.esc(busca) + '"' : '');
-    $('#info').innerHTML = txtInfo;
-    $('#info-mob').innerHTML = txtInfo;
-    document.querySelectorAll('[data-qtd-imp]').forEach(function (el) {
-      el.textContent = (filtro === 'TODAS' && !busca ? 'todas · ' : 'filtradas · ') + lista.length;
-    });
-    $('#linhas').innerHTML = lista.map(function (x) {
-      return '<tr class="' + classeLinha(x) + '">' +
-        '<td><b>' + Ui.esc(semZeros(x.op) || '—') + '</b></td><td>' + Ui.esc(semZeros(x.pedido) || '—') + '</td><td>' + Ui.esc(x.cliente || '—') + '</td>' +
-        '<td class="cod">' + Ui.esc(x.codigo || '—') + '</td><td class="desc" title="' + Ui.esc(x.descricao) + '">' + Ui.esc(x.descricao || '—') + '</td>' +
-        '<td class="num">' + Ui.esc(x.qtdordem || '—') + '</td><td>' + Ui.esc(x.liga || '—') + '</td>' +
-        '<td class="prz' + (x.cat === 'VENCIDO' ? ' atr' : '') + '" title="' + Ui.esc(x.st.label) + '">' + Ui.esc(x.prazo ? x.prazo.slice(0, 5) : '—') + '</td>' +
-        '<td><span class="proc" style="--c:' + corProcesso(x) + '">' + Ui.esc(proc(x)) + '</span></td></tr>';
-    }).join('') || '<tr><td colspan="9"><div class="vazio">Nenhuma OP encontrada.</div></td></tr>';
-    $('#cartoes').innerHTML = lista.map(function (x) {
-      const situ = x.st.label;
-      return '<div class="cm"' + (classeLinha(x) ? ' style="border-left:3px solid ' + corProcesso(x) + '"' : '') + '>' +
-        '<div class="cm-top"><span class="op">' + Ui.esc(semZeros(x.op) || '—') + '</span><span class="cli">' + Ui.esc(x.cliente) + ' · ped. ' + Ui.esc(semZeros(x.pedido)) + '</span>' +
-        '<span class="prazo' + (x.cat === 'VENCIDO' ? ' atraso' : '') + '">' + Ui.esc(x.prazo ? x.prazo.slice(0, 5) : '—') + '</span></div>' +
-        '<div class="cm-desc">' + Ui.esc(x.descricao) + '<small>' + Ui.esc(x.codigo) + ' · ' + Ui.esc(x.liga) + ' · ' + Ui.esc(x.qtdordem) + ' pç</small></div>' +
-        '<div class="cm-rod"><span class="proc" style="--c:' + corProcesso(x) + '">' + Ui.esc(proc(x)) + '</span>' +
-        '<span class="situ" style="color:' + (COR_SITU[situ] || 'var(--texto-suave)') + '">' + Ui.esc(situ) + '</span></div></div>';
-    }).join('') || '<div class="vazio">Nenhuma OP encontrada.</div>';
-  }
-
-  document.addEventListener('click', function (ev) {
-    const f = ev.target.closest('[data-filtro]');
-    if (f) { filtro = f.dataset.filtro === filtro ? 'TODAS' : f.dataset.filtro; desenhar(); return; }
-    if (ev.target.closest('[data-imprimir]')) imprimirFiltroAtual();
-  });
-
-  // Impressão: o que está filtrado na tela (ou tudo) — MESMO layout do painel antigo.
-  function imprimirFiltroAtual() {
-    const lista = aplicarFiltro();
-    const rotulo = ROTULO_FILTRO[filtro] || filtro;
-    const busca = ($('#busca').value || $('#busca-mob').value).trim();
-    if (lista.length === 0) { Ui.toast('Nenhuma OP encontrada com o filtro atual — nada para imprimir.', 'aviso'); return; }
-    const e = Ui.esc;
-    const linhas = lista.map(function (x) {
-      return `<tr>
-      <td>${e(semZeros(x.op) || '-')}</td>
-      <td>${e(semZeros(x.pedido) || '-')}</td>
-      <td>${e(x.cliente || '-')}</td>
-      <td>${e(x.codigo || '-')}</td>
-      <td>${e(x.descricao || '-')}</td>
-      <td style="text-align:center">${e(x.qtdordem || '-')}</td>
-      <td>${e(x.liga || '-')}</td>
-      <td>${e(x.prazo || '-')}</td>
-      <td>${e(proc(x))}</td>
-    </tr>`;
+  // Páginas do usuário: liberadas primeiro (com o nível), bloqueadas no fim.
+  function desenharAtalhos() {
+    const liberadas = ctx.paginas.filter(function (p) { return p.id !== 'inicio' && p.nivel !== 'NENHUM'; });
+    const html = liberadas.map(function (p) {
+      const nv = '<span class="nv ' + (p.nivel === 'EDITAR' ? 'editar">EDITAR' : 'ver">VER') + '</span>';
+      const ic = Ui.ic(CONFIG.ICONES[p.id] || 'i-lista');
+      return CONFIG.PAGINAS_PRONTAS.indexOf(p.id) !== -1
+        ? '<li><a href="' + p.id + '.html">' + ic + Ui.esc(p.nome) + nv + '</a></li>'
+        : '<li><span class="bl" title="Em construção">' + ic + Ui.esc(p.nome) + ' <small class="mut">· em breve</small>' + nv + '</span></li>';
     }).join('');
-    const w = window.open('');
-    if (!w) { Ui.toast('O navegador bloqueou a janela de impressão. Libere pop-ups para este site.', 'erro'); return; }
-    w.document.write(`<html><head><title>CONSULTA PROMETALS — ${rotulo}</title>
-<style>
-  body{font-family:Arial;padding:20px;color:#111}
-  h2{font-size:16px;margin-bottom:2px}
-  .sub{font-size:10px;color:#555;margin-bottom:16px}
-  table{width:100%;border-collapse:collapse;margin-top:10px}
-  th,td{border:1px solid #ccc;padding:5px 6px;font-size:10px;text-align:left}
-  th{background:#efefef}
-</style></head>
-<body>
-  <h2>CONSULTA PROMETALS — ${rotulo}</h2>
-  <div class="sub">Emitido em: ${new Date().toLocaleString('pt-BR')} &nbsp;|&nbsp; Total: ${lista.length} OPs${busca ? ' &nbsp;|&nbsp; Busca: "' + e(busca) + '"' : ''}</div>
-  <table>
-    <thead><tr><th>OP</th><th>PEDIDO</th><th>CLIENTE</th><th>CÓDIGO</th><th>DESCRIÇÃO</th>
-    <th>QTD</th><th>LIGA</th><th>PRAZO</th><th>PROCESSO</th></tr></thead>
-    <tbody>${linhas}</tbody>
-  </table>
-  <script>window.onload=()=>window.print();<\/script>
-</body></html>`);
-    w.document.close();
+    $('atalhos').innerHTML = html || '<li class="vazio">Nenhuma página liberada ainda. Fale com o administrador.</li>';
   }
 
-  function semZeros(v) { return String(v === null || v === undefined ? '' : v).replace(/^0+(?=\d)/, ''); }
+  function diasAte(ddmmaaaa) {
+    const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(ddmmaaaa || '');
+    if (!m) return null;
+    const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+    return Math.round((new Date(+m[3], m[2] - 1, +m[1]) - hoje) / 86400000);
+  }
 });
 </script>
 </body>
