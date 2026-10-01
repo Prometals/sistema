@@ -411,12 +411,12 @@ Sessao.iniciarPagina('mapa').then(function (ctx) {
       (nPrazo ? '<h4 style="color:#ef4444">PRAZO VENCIDO (' + nPrazo + ')</h4>' : '') +
       todas.slice(0, nPrazo).map(function (x) {
         const dias = Math.floor((h - parseBR(x.prazo)) / 86400000);
-        return linha(x, '<span class="mut" style="font-size:11px">' + Ui.esc(x.processo || '-') + '</span><span style="color:#f59e0b">' + Ui.esc(x.prazo) + '</span><b style="color:#ef4444">' + dias + 'd</b>');
+        return linha(x, '<span class="mut" style="font-size:11px">' + Ui.esc(x.processo || '-') + '</span><span style="color:#f59e0b">' + Ui.esc(x.prazo) + '</span><b style="color:#ef4444">Prazo vencido</b>');
       }).join('') +
       (nFcr ? '<h4 style="color:#f97316">FORA DO CRONO. (' + nFcr + ')</h4>' : '') +
       todas.slice(nPrazo, nPrazo + nFcr).map(function (x) {
         const st = statusOP(x);
-        return linha(x, '<span style="color:#f97316;font-size:11px;white-space:nowrap">' + Ui.esc(st.fase ? st.fase.n : '-') + ' ← planejado</span><span class="mut" style="font-size:11px">' + Ui.esc(x.processo || '-') + '</span><span style="color:#f97316">' + Ui.esc(x.prazo) + '</span><b style="color:#f97316">' + st.diasAtraso + 'd</b>');
+        return linha(x, '<span style="color:#f97316;font-size:11px;white-space:nowrap">' + Ui.esc(st.fase ? st.fase.n : '-') + ' ← planejado</span><span class="mut" style="font-size:11px">' + Ui.esc(x.processo || '-') + '</span><span style="color:#f97316">' + Ui.esc(x.prazo) + '</span><b style="color:#f97316">Fora do crono.</b>');
       }).join('') + '</div>';
     renderDiaVazio();
   }
@@ -460,7 +460,7 @@ Sessao.iniciarPagina('mapa').then(function (ctx) {
       const st = statusOP(x);
       const dias = Math.floor((h - parseBR(x.prazo)) / 86400000);
       const real = String(x.processo || '').trim() || '-';
-      const txt = st.cls === 'bad' ? dias + 'd prazo vencido' : st.diasAtraso + 'd fora do crono.';
+      const txt = st.cls === 'bad' ? 'Prazo vencido' : 'Fora do crono.';
       return '<div class="at ' + st.cls + '" data-op="' + x.id + '"><div class="t"><span>' + Ui.esc(rotulo(x)) + '</span><em>' + txt + '</em></div>' +
         '<div>' + Ui.esc(x.descricao) + '</div><div>' + Ui.esc(real) + ' → ' + Ui.esc(st.fase ? st.fase.n : '-') + '</div></div>';
     }).join('') : '<div class="mut" style="font-size:12px">Nenhuma OP com prazo vencido ou fora do crono.</div>';
