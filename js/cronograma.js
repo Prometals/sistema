@@ -99,11 +99,11 @@ const Cronograma = (function () {
       // Ainda não chegou a hora de começar (pela conta reversa)
       const inicio = ['ENGENHARIA', 'VALIDAÇÃO TÉCNICA'].indexOf(real) !== -1 || idxReal === -1;
       return inicio ? { cls: 'future', label: 'AGUARDANDO INÍCIO', fase: null, diasAtraso: 0 }
-                    : { cls: 'ok', label: 'ADIANTADO', fase: validas[0] || null, diasAtraso: 0 };
+                    : { cls: 'future', label: 'ADIANTADO', fase: validas[0] || null, diasAtraso: 0 };
     }
     const idxPlan = validas.findIndex(function (f) { return f.n === fase.n; });
     if (idxReal === -1 || idxReal === idxPlan) return { cls: 'ok', label: 'NO PRAZO', fase: fase, diasAtraso: 0 };
-    if (idxReal > idxPlan) return { cls: 'ok', label: 'ADIANTADO', fase: fase, diasAtraso: 0 };
+    if (idxReal > idxPlan) return { cls: 'future', label: 'ADIANTADO', fase: fase, diasAtraso: 0 };   // azul
     const diasAtraso = validas.slice(idxReal, idxPlan).reduce(function (s, f) { return s + f.d; }, 0);
     return { cls: 'late', label: 'FORA DO CRONO.', fase: fase, diasAtraso: diasAtraso };
   }
