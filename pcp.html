@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="css/sistema.css">
 <style>
 /* ---------- específico desta página ---------- */
-.kc { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 14px; }
+.kc { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; }
 .kc button { display: flex; align-items: center; gap: 12px; background: var(--painel); border: 1px solid var(--linha); border-left: 4px solid var(--c); border-radius: 12px; padding: 12px 16px; cursor: pointer; text-align: left; }
 .kc button b { font-size: 24px; font-variant-numeric: tabular-nums; }
 .kc button span { font-size: 11px; font-weight: 800; letter-spacing: .6px; color: var(--texto-suave); text-transform: uppercase; flex: 1; }
@@ -169,7 +169,7 @@ Sessao.iniciarPagina('pcp').then(function (ctx) {
   if (!ctx.podeEditar) document.querySelectorAll('[data-editar]').forEach(function (b) { b.hidden = true; });
   $('#barra-mob').hidden = !ctx.podeEditar;
   $('#legenda').innerHTML =
-    '<span><i style="background:#ef4444"></i>Prazo vencido (cliente)</span><span><i style="background:#f97316"></i>Fora do crono. (departamento)</span><span><i style="background:#eab308"></i>Sem movimentação (4+ dias)</span>' +
+    '<span><i style="background:#ef4444"></i>Prazo vencido (cliente)</span><span><i style="background:#f97316"></i>Fora do crono. (departamento)</span>' +
     '<span><i style="background:#a855f7"></i>Engenharia (sem OP)</span><span><i style="background:#22c55e"></i>Campos verdes vieram do cadastro</span>' +
     '<span><i style="background:var(--destaque)"></i>Alterada, ainda não salva</span><span><i style="background:#eab308;border-radius:50%"></i>Sem BOM</span>';
 
@@ -212,7 +212,7 @@ Sessao.iniciarPagina('pcp').then(function (ctx) {
     return dados.filter(function (x) {
       let ok = true;
       if (filtro === 'EM PRODUÇÃO') ok = x.situacao === 'EM PRODUÇÃO';
-      if (filtro === 'VENCIDO' || filtro === 'FORA_CRONO' || filtro === 'SEM_MOV') ok = x.cat === filtro;
+      if (filtro === 'VENCIDO' || filtro === 'FORA_CRONO') ok = x.cat === filtro;
       const txt = (x.op + ' ' + x.pedido + ' ' + x.cliente + ' ' + x.codigo + ' ' + x.descricao).toLowerCase();
       return ok && (!busca || txt.indexOf(busca) !== -1);
     });
@@ -228,15 +228,14 @@ Sessao.iniciarPagina('pcp').then(function (ctx) {
   }
 
   // EM PRODUÇÃO = tem nº de OP · PRAZO VENCIDO = passou o prazo do cliente ·
-  // FORA DO CRONO. = departamento atrás do cronograma · SEM MOVIMENTAÇÃO = 4+ dias parada.
+  // FORA DO CRONO. = departamento atrás do cronograma.
   function conta(cat) { return dados.filter(function (x) { return x.cat === cat; }).length; }
   function desenharCards() {
     const k = [
       { f: 'TODAS', c: '#3b82f6', ic: 'i-tabela', n: dados.length, t: 'Carteira total', m: 'Carteira' },
       { f: 'EM PRODUÇÃO', c: '#22c55e', ic: 'i-fogo', n: dados.filter(function (x) { return !!x.op; }).length, t: 'Em produção', m: 'Produção' },
       { f: 'VENCIDO', c: Cronograma.COR.VENCIDO, ic: 'i-alerta', n: conta('VENCIDO'), t: 'Prazo vencido', m: 'Vencidas' },
-      { f: 'FORA_CRONO', c: Cronograma.COR.FORA_CRONO, ic: 'i-cal', n: conta('FORA_CRONO'), t: 'Fora do crono.', m: 'Fora crono.' },
-      { f: 'SEM_MOV', c: Cronograma.COR.SEM_MOV, ic: 'i-relogio', n: conta('SEM_MOV'), t: 'Sem movimentação', m: 'Sem mov.' }
+      { f: 'FORA_CRONO', c: Cronograma.COR.FORA_CRONO, ic: 'i-cal', n: conta('FORA_CRONO'), t: 'Fora do crono.', m: 'Fora crono.' }
     ];
     $('#cards').innerHTML = k.map(function (x) {
       return '<button data-filtro="' + x.f + '" class="' + (filtro === x.f ? 'sel' : '') + '" style="--c:' + x.c + '"><b>' + x.n + '</b><span>' + x.t + '</span>' + Ui.ic(x.ic) + '</button>';
@@ -248,7 +247,6 @@ Sessao.iniciarPagina('pcp').then(function (ctx) {
 
   function classeLinha(x) {
     if (x.cat === 'VENCIDO') return 'atr';
-    if (x.cat === 'SEM_MOV') return 'par';
     if (x.cat === 'FORA_CRONO') return 'fcr';
     if (x.ehEng) return 'eng';
     return '';
