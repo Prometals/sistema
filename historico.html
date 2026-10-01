@@ -234,7 +234,7 @@ Sessao.iniciarPagina('historico').then(function (ctx) {
   function botoesCorrida(c, curto) {
     if (c.status === 'CANCELADA') return '<span class="tag-c"' + (curto ? ' style="grid-column:1/-1;text-align:center"' : '') + '>CANCELADA · moldes devolvidos</span>';
     return '<button class="btn2" data-reimprimir="' + e(c.id_corrida) + '">' + Ui.ic('i-imp') + (curto ? 'Reimprimir' : 'Reimprimir romaneio') + '</button>' +
-      (ctx.podeEditar ? '<button class="btn2 perigo" data-cancelar="' + e(c.id_corrida) + '">' + (curto ? 'Cancelar' : 'Cancelar corrida') + '</button>' : '');
+      (ctx.podeEditar ? '<button class="btn2 perigo" data-cancelar="' + e(c.id_corrida) + '">' + Ui.ic('i-x') + (curto ? 'Cancelar' : 'Cancelar corrida') + '</button>' : '');
   }
 
   function acaoItem(c, it, curto) {
