@@ -79,11 +79,8 @@ html.tema-claro .ci { background: #f1f5f9; }
 .ci .k { white-space: nowrap; text-align: right; font-weight: 800; font-size: 13px; }
 .ci .k small { display: block; font-weight: 600; color: var(--texto-suave); font-size: 11px; }
 .ci .x, .ord-l .x { border: 0; background: transparent; color: var(--texto-suave); font-size: 18px; cursor: pointer; }
-.cor-acoes { padding: 12px; border-top: 1px solid var(--linha); display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.cor-acoes .btn2 { justify-content: center; }
-.cor-acoes .btn2:disabled { cursor: not-allowed; opacity: .5; }
-.cor-acoes .fechar { grid-column: 1 / -1; background: #16a34a; border-color: #16a34a; color: #fff; height: 42px; }
-.nota { font-size: 11px; color: var(--texto-suave); text-align: center; padding: 0 12px 12px; }
+.acoes-pagina .btn2:disabled { cursor: not-allowed; opacity: .45; }
+.nota { font-size: 11px; color: var(--texto-suave); text-align: center; padding: 12px; border-top: 1px solid var(--linha); }
 
 /* celular: resumo da corrida fixo no topo */
 .cor-mob { position: sticky; top: -16px; z-index: 5; background: var(--painel); border: 1px solid var(--linha); border-radius: 12px; padding: 10px 12px; margin-bottom: 10px; display: grid; gap: 7px; }
@@ -132,6 +129,9 @@ body.acima .cor-mob .l b.kg { color: #ef4444; }
     <div><h1>Planejamento de Fusão</h1><p>Monte a corrida por liga · o romaneio sai na ordem em que as OPs entram</p></div>
     <div class="acoes-pagina so-desk">
       <a class="btn2" href="historico.html" id="lk-hist" hidden style="text-decoration:none"><svg class="i"><use href="#i-hist"/></svg>Histórico de corridas</a>
+      <button class="btn2" data-imprimir disabled><svg class="i"><use href="#i-imp"/></svg><span class="rot">Romaneio</span></button>
+      <button class="btn2" id="bt-limpar" disabled><svg class="i"><use href="#i-x"/></svg>Limpar corrida</button>
+      <button class="btn2 fechar" data-fechar data-editar disabled><svg class="i"><use href="#i-check"/></svg><span class="rot">Fechar corrida</span></button>
     </div>
   </div>
 
@@ -162,11 +162,6 @@ body.acima .cor-mob .l b.kg { color: #ef4444; }
       <div class="cor-itens">
         <div class="tit"><span>Ordem do romaneio</span><span>arraste para reordenar</span></div>
         <div id="itens-corrida"><div class="nada">Nenhum molde adicionado</div></div>
-      </div>
-      <div class="cor-acoes">
-        <button class="btn2" data-imprimir disabled><svg class="i"><use href="#i-imp"/></svg><span class="rot">Romaneio</span></button>
-        <button class="btn2" id="bt-limpar" disabled>Limpar</button>
-        <button class="btn2 fechar" data-fechar data-editar disabled><svg class="i"><use href="#i-check"/></svg><span class="rot">Fechar corrida</span></button>
       </div>
       <div class="nota" id="nota">Ao fechar, os moldes saem do saldo das OPs. Erro? Estorno no Histórico de Corridas.</div>
     </aside>
@@ -291,7 +286,7 @@ Sessao.iniciarPagina('fusao').then(function (ctx) {
     const ligas = Object.keys(cont).sort();
     if (atual && ligas.indexOf(atual) === -1) ligas.push(atual);   // mantém a liga escolhida mesmo se zerou
     const html = '<option value="">Selecione a liga</option>' + ligas.map(function (l) {
-      return '<option value="' + Ui.esc(l) + '">Liga: ' + Ui.esc(l) + ' · ' + (cont[l] || 0) + ' OP' + (cont[l] === 1 ? '' : 's') + '</option>';
+      return '<option value="' + Ui.esc(l) + '">Liga: ' + Ui.esc(l) + '</option>';
     }).join('');
     ['#fLiga', '#fLiga-mob'].forEach(function (s) { $(s).innerHTML = html; $(s).value = atual; });
   }
