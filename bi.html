@@ -21,7 +21,7 @@ main.conteudo { padding: 0 !important; height: 100vh; overflow: hidden; position
 .marca { display: flex; align-items: baseline; gap: 12px; }
 .marca b { font-size: 24px; letter-spacing: 2px; } .marca span { color: var(--destaque); font-weight: 800; font-size: 18px; letter-spacing: 1.5px; }
 .hk { display: flex; gap: 0; }
-.hk div { padding: 0 26px; text-align: center; border-left: 1px solid var(--linha); }
+.hk div { padding: 0 20px; text-align: center; border-left: 1px solid var(--linha); }
 .hk div:first-child { border-left: 0; }
 .hk b { display: block; font-size: 32px; line-height: 1; font-variant-numeric: tabular-nums; }
 .hk span { font-size: 11px; font-weight: 700; color: var(--texto-suave); letter-spacing: 1px; }
@@ -67,7 +67,7 @@ table.tv-t.alto td { padding: 16px 12px; font-size: 19px; }
 table.tv-t td { padding: 10px 12px; border-bottom: 1px solid var(--linha); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 table.tv-t .num { text-align: right; } .dias { color: #f87171; font-weight: 800; font-size: 18px; }
 .aviso-d { color: #fbbf24; font-weight: 800; }
-html.tema-claro .dias { color: #b91c1c; } html.tema-claro .aviso-d { color: #a16207; }
+html.tema-claro .dias { color: #b91c1c; } .dias.fcr { color: #fb923c; } html.tema-claro .dias.fcr { color: #c2410c; } html.tema-claro .aviso-d { color: #a16207; }
 .sem { text-align: center; color: var(--texto-suave); padding: 30px 0 !important; font-size: 18px !important; }
 .mut { color: var(--texto-suave); }
 .k4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
@@ -86,7 +86,7 @@ html.tema-claro .dias { color: #b91c1c; } html.tema-claro .aviso-d { color: #a16
 .carregando-tv { position: absolute; inset: 0; display: grid; place-items: center; font-size: 22px; color: var(--texto-suave); }
 </style>
 </head>
-<body>
+<body class="sem-escala">
 
 <!-- Dashboard BI — TV da fábrica (1920×1080, usuário tv-fabrica).
      Portado do Dashboard_BI antigo. Mudanças aprovadas: sem menu lateral;
@@ -102,8 +102,9 @@ html.tema-claro .dias { color: #b91c1c; } html.tema-claro .aviso-d { color: #a16
       <div class="hk">
         <div><b id="hTotal">—</b><span>CARTEIRA</span></div>
         <div><b id="hProd" style="color:#14b8a6">—</b><span>EM PRODUÇÃO</span></div>
-        <div><b id="hAtr" style="color:#ef4444">—</b><span>ATRASADAS</span></div>
-        <div><b id="hPar" style="color:#eab308">—</b><span>PARADAS</span></div>
+        <div><b id="hAtr" style="color:#ef4444">—</b><span>PRAZO VENCIDO</span></div>
+        <div><b id="hFcr" style="color:#f97316">—</b><span>FORA DO CRONO.</span></div>
+        <div><b id="hPar" style="color:#eab308">—</b><span>SEM MOVIMENTAÇÃO</span></div>
       </div>
       <div class="dir">
         <div class="bts">
@@ -124,7 +125,7 @@ html.tema-claro .dias { color: #b91c1c; } html.tema-claro .aviso-d { color: #a16
         <div class="bx cheio"><h4>OPs POR PROCESSO</h4><div id="bProc" class="barras"></div></div>
         <div class="bx"><h4>SAÚDE DO CRONOGRAMA</h4><div class="saude" id="saude"></div></div>
       </div>
-      <div class="bx"><h4>TOP 10 — MAIS ATRASADAS · rolagem automática</h4>
+      <div class="bx"><h4>TOP 10 — PRAZO VENCIDO <span style="color:#ef4444">●</span> E FORA DO CRONO. <span style="color:#f97316">●</span> · rolagem automática</h4>
         <div class="rola"><table class="tv-t"><colgroup><col style="width:8%"><col style="width:8%"><col style="width:18%"><col style="width:12%"><col style="width:30%"><col style="width:14%"><col style="width:10%"></colgroup>
           <thead><tr><th>OP</th><th>PEDIDO</th><th>CLIENTE</th><th>CÓDIGO</th><th>DESCRIÇÃO</th><th>PROCESSO</th><th class="num">DIAS ATRASO</th></tr></thead>
           <tbody id="tbAtrasadas"></tbody></table></div>
@@ -318,14 +319,13 @@ Sessao.iniciarPagina('bi').then(function (ctx) {
   rodape();
 
   // Classifica a carteira com as MESMAS regras do PCP · Monitor e da Visão geral:
-  // em produção = tem nº de OP · atrasada = cronograma · parada = 4+ dias sem movimentar.
+  // prazo vencido = cliente · fora do crono. = departamento · sem movimentação = 4+ dias parada.
   function preparar(r) {
     const cart = r.carteira.map(function (c) {
       c._st = Cronograma.status(c);
-      c._atr = Cronograma.categoria(c) === 'ATRASADO';
-      c._par = Cronograma.parada(c);
-      // Para os gráficos: item sem OP conta como ENGENHARIA (igual ao BI antigo)
-      c._proc = !c.op ? 'ENGENHARIA' : String(c.processo || 'SEM MOVIMENTAÇÃO').replace(/ - INICIADO| - FINALIZADO/g, '').trim() || 'SEM MOVIMENTAÇÃO';
+      c._cat = Cronograma.categoria(c);
+      // Sem nº de OP = ENGENHARIA · com OP e sem apontamento = PLANEJAMENTO
+      c._proc = !c.op ? 'ENGENHARIA' : String(c.processo || '').replace(/ - INICIADO| - FINALIZADO/g, '').trim() || 'PLANEJAMENTO';
       c._diasProc = diasDesde(c.ultima);
       return c;
     });
@@ -337,11 +337,13 @@ Sessao.iniciarPagina('bi').then(function (ctx) {
       bruto: r, carteira: cart,
       processos: processos,
       gargalos: processos.slice(0, 10),
-      atrasadas: cart.filter(function (c) { return c._atr; }).sort(function (a, b) { return (b._st.diasAtraso || 0) - (a._st.diasAtraso || 0); }),
-      paradas: cart.filter(function (c) { return c._par; }),
+      atrasadas: porAtraso(cart.filter(function (c) { return c._cat === 'VENCIDO'; })),
+      foraCrono: porAtraso(cart.filter(function (c) { return c._cat === 'FORA_CRONO'; })),
+      paradas: cart.filter(function (c) { return c._cat === 'SEM_MOV'; }),
       engenharia: r.engenharia || []
     };
   }
+  function porAtraso(l) { return l.sort(function (a, b) { return (b._st.diasAtraso || 0) - (a._st.diasAtraso || 0); }); }
   function diasDesde(txt) {
     const d = Cronograma.parseBR(String(txt || '').split(' ')[0]);
     if (!d) return 0;
@@ -355,6 +357,7 @@ Sessao.iniciarPagina('bi').then(function (ctx) {
     $('hTotal').textContent = cart.length;
     $('hProd').textContent = cart.filter(function (c) { return !!c.op; }).length;
     $('hAtr').textContent = d.atrasadas.length;
+    $('hFcr').textContent = d.foraCrono.length;
     $('hPar').textContent = d.paradas.length;
     telaSaude(d); telaGargalos(d); telaEngenharia(d); telaClientes(d);
   }
@@ -377,7 +380,8 @@ Sessao.iniciarPagina('bi').then(function (ctx) {
     $('bProc').innerHTML = barras(d.processos.slice(0, 10).map(function (p) { return { nome: p.nome, n: p.n, dica: p.n + ' OPs' }; }), 3);
     const grupos = [
       { rot: 'No prazo', cor: '#16a34a', n: 0, t: ['NO PRAZO'] },
-      { rot: 'Atrasadas', cor: '#dc2626', n: 0, t: ['ATRASADO', 'PRAZO VENCIDO'] },
+      { rot: 'Prazo vencido', cor: '#dc2626', n: 0, t: ['PRAZO VENCIDO'] },
+      { rot: 'Fora do crono.', cor: '#ea580c', n: 0, t: ['FORA DO CRONO.'] },
       { rot: 'Sem movimentação', cor: '#ca8a04', n: 0, t: ['SEM MOVIMENTAÇÃO'] },
       { rot: 'Adiantadas', cor: '#2563eb', n: 0, t: ['ADIANTADO'] }
     ];
@@ -396,11 +400,12 @@ Sessao.iniciarPagina('bi').then(function (ctx) {
         return '<div data-grupo="' + e(g.rot) + '"><i style="background:' + g.cor + '"></i>' + e(g.rot) + '<b>' + g.n + '</b><small>' + pct(g.n) + '</small></div>';
       }).join('') + '</div>' +
       (fora ? '<div class="nota">' + fora + ' OP' + (fora > 1 ? 's' : '') + ' aguardando início ou sem prazo (fora da barra)</div>' : '');
-    $('tbAtrasadas').innerHTML = d.atrasadas.slice(0, 10).map(function (x) {
+    // Prazo vencido primeiro (vermelho), depois fora do crono. (laranja)
+    $('tbAtrasadas').innerHTML = d.atrasadas.concat(d.foraCrono).slice(0, 10).map(function (x) {
       return '<tr><td><b>' + e(x.op || '—') + '</b></td><td>' + e(x.pedido || '—') + '</td><td>' + e(x.cliente || '—') + '</td>' +
         '<td class="mut">' + e(x.codigo || '—') + '</td><td>' + e(x.descricao || '—') + '</td><td>' + e(x._proc) + '</td>' +
-        '<td class="num dias">' + (x._st.diasAtraso || 0) + 'd</td></tr>';
-    }).join('') || semLinhas(7, 'Nenhuma OP atrasada.');
+        '<td class="num dias' + (x._cat === 'FORA_CRONO' ? ' fcr' : '') + '" title="' + e(x._st.label) + '">' + (x._st.diasAtraso || 0) + 'd</td></tr>';
+    }).join('') || semLinhas(7, 'Nenhuma OP com prazo vencido ou fora do cronograma.');
   }
 
   // TELA 2 — gargalos (ranking + OPs desses processos, mais tempo parado primeiro)
