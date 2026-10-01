@@ -381,7 +381,7 @@ html body .btn2.so-icone .n.vazio { display: none; }
 /* Cor pelo ASSUNTO do ícone (igual em todas as páginas).
    data-ic é colocado pelo ui.js com o nome do ícone. */
 html body .btn2.so-icone:not(.travar) { background: var(--painel); border-color: var(--borda); color: var(--texto); }
-html body .btn2.so-icone[data-ic="i-imp"]   { background: #2563eb; border-color: #2563eb; color: #fff; } /* imprimir / PDF */
+html body .btn2.so-icone[data-ic="i-imp"]   { background: #1e3a5f; border-color: #2b5285; color: #cfe0f5; } /* imprimir / PDF */
 html body .btn2.so-icone[data-ic="i-xls"]   { background: #1d6f42; border-color: #1d6f42; color: #fff; } /* Excel */
 html body .btn2.so-icone[data-ic="i-check"] { background: #16a34a; border-color: #16a34a; color: #fff; } /* salvar / confirmar */
 html body .btn2.so-icone[data-ic="i-mais"]  { background: var(--destaque); border-color: var(--destaque); color: #fff; } /* novo / adicionar */
