@@ -149,3 +149,64 @@ const Fmt = {
     return h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite';
   }
 };
+
+// ============================================================
+// Botões só com ícone (vale para o sistema inteiro).
+// Todo botão .btn2 que tem ícone esconde o texto; o texto vira
+// a dica que aparece ao passar o mouse (title) e o nome lido
+// pelo leitor de tela (aria-label). O contador (.n) vira uma
+// bolinha no canto do ícone.
+// Para manter o texto num botão específico: class="btn2 com-texto".
+// ============================================================
+(function () {
+  function rotulo(b) {
+    let t = '';
+    b.childNodes.forEach(function (n) {
+      if (n.nodeType === 3) t += n.textContent;
+      else if (n.nodeType === 1 && n.tagName.toLowerCase() !== 'svg' && !n.classList.contains('n')) t += n.textContent;
+    });
+    return t.replace(/\s+/g, ' ').trim();
+  }
+
+  function ajustar(b) {
+    if (b.classList.contains('com-texto') || b.closest('.bloqueio')) return;
+    const ic = b.firstElementChild;
+    if (!ic || ic.tagName.toLowerCase() !== 'svg') return;
+    const r = rotulo(b) || b.getAttribute('aria-label') || b.title;
+    if (!r) return;
+    b.classList.add('so-icone');
+    const n = b.querySelector('.n');
+    const qtd = n ? n.textContent.trim() : '';
+    // Na bolinha vai só o número ("todas · 8" → 8); o texto todo fica na dica.
+    const num = (qtd.match(/\d+/g) || []).pop() || '';
+    const vazio = !num || num === '0';
+    if (n) { n.classList.toggle('vazio', vazio); if (n.dataset.num !== num) n.dataset.num = num; }
+    const dica = r + (vazio ? '' : ' (' + qtd + ')');
+    // Se a página já escreveu uma dica própria, ela é mantida.
+    if (!b.title || b.dataset.dicaAuto === b.title) {
+      b.title = dica;
+      b.dataset.dicaAuto = dica;
+    }
+    b.setAttribute('aria-label', dica);
+  }
+
+  function varrer() {
+    document.querySelectorAll('.btn2').forEach(ajustar);
+  }
+
+  let agendado = false;
+  function agendar() {
+    if (agendado) return;
+    agendado = true;
+    requestAnimationFrame(function () { agendado = false; varrer(); });
+  }
+
+  function iniciar() {
+    varrer();
+    // Botões criados ou renomeados depois (janelas, painéis, "Salvando…").
+    new MutationObserver(agendar).observe(document.body, { childList: true, subtree: true, characterData: true });
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', iniciar);
+  else iniciar();
+})();
