@@ -136,8 +136,7 @@ html.tema-claro .cd { color: #1d4ed8; }
      Sem a aba Gantt e sem Prioridade (aprovado no mockup). -->
 <main class="conteudo">
   <div class="tit-pagina">
-    <div><h1>Mapa · Calendário</h1><p>Planejamento mestre por prazo · cronograma reverso (25 dias úteis SFK/CRK/DRF, 20 demais)</p></div>
-    <div class="acoes-pagina so-desk"><button class="btn2 pri" data-imprimir><svg class="i"><use href="#i-imp"/></svg>Imprimir</button></div>
+    <div><h1>Mapa · Calendário</h1><p>Planejamento mestre por prazo</p></div>
   </div>
 
   <!-- computador -->
@@ -146,9 +145,10 @@ html.tema-claro .cd { color: #1d4ed8; }
       <div class="cx ctl">
         <div class="l1">
           <select id="fDepto"><option value="">Todos os departamentos</option></select>
-          <label class="per-f" title="Período"><svg class="i"><use href="#i-cal"/></svg><input type="date" id="fIni" aria-label="De"><span>até</span><input type="date" id="fFim" aria-label="Até"></label>
+          <label class="per-f" title="Período: mostra só as OPs com prazo entre estas datas"><svg class="i"><use href="#i-cal"/></svg><input type="date" id="fIni" aria-label="De"><span>até</span><input type="date" id="fFim" aria-label="Até"></label>
           <button class="btn2" id="btAtr" title="Atrasadas: prazo vencido e fora do crono."><svg class="i"><use href="#i-alerta"/></svg>Atrasadas</button>
           <button class="btn2" id="btLimpar" title="Limpar filtros e voltar ao mês atual"><svg class="i"><use href="#i-x"/></svg>Limpar</button>
+          <button class="btn2" data-imprimir title="Imprimir o que está filtrado"><svg class="i"><use href="#i-imp"/></svg>Imprimir</button>
           <span class="per-rot" id="periodo"></span>
         </div>
         <div class="f"><svg class="i"><use href="#i-busca"/></svg><input id="busca" placeholder="Buscar OP, pedido, código, descrição ou liga…" autocomplete="off"></div>
@@ -258,6 +258,8 @@ Sessao.iniciarPagina('mapa').then(function (ctx) {
     const faseDia = fasePlanejadaParaDia(cron, dia);
     if (faseDia && faseDia.n === depto) return true;
     if (op.processo === depto && dia >= cron.ini && dia <= cron.prazo) return true;
+    // prazo já vencido e a OP está no depto: aparece de hoje em diante (igual à visão sem filtro)
+    if (op.processo === depto && hoje() >= cron.prazo && dia >= hoje()) return true;
     const faseFutura = cron.fases.find(function (f) { return f.n === depto; });
     if (faseFutura && faseFutura.ini >= dia && faseFutura.ini <= add(dia, 60)) return true;
     return false;
@@ -273,7 +275,12 @@ Sessao.iniciarPagina('mapa').then(function (ctx) {
   function bateBusca(x) {
     return !filtBusca || (String(x.op) + String(x.pedido) + String(x.codigo) + String(x.descricao) + String(x.liga)).toUpperCase().indexOf(filtBusca) !== -1;
   }
-  function listaCal() { return OPS.filter(function (x) { return (!filtDepto || x.processo === filtDepto) && bateBusca(x); }); }
+  // Filtros do usuário: departamento + busca e, com porPrazo, o período De/Até
+  // aplicado ao PRAZO da OP (só entram as OPs com prazo dentro do período).
+  function noPeriodo(x) { const p = parseBR(x.prazo); return !!p && p >= dtIni && p <= dtFim; }
+  function listaCal(porPrazo) {
+    return OPS.filter(function (x) { return (!filtDepto || x.processo === filtDepto) && bateBusca(x) && (!porPrazo || noPeriodo(x)); });
+  }
 
   function popularFiltros() {
     const base = new Set(OPS.map(function (x) { return x.processo; }).filter(function (p) { return p && p !== 'SEM MOVIMENTAÇÃO'; }));
@@ -297,7 +304,7 @@ Sessao.iniciarPagina('mapa').then(function (ctx) {
 
   // 1 dia = vista do dia · até 62 dias = calendário (com os nº das OPs se até 14 dias) · mais = resumo por mês
   function renderCal() {
-    const lista = listaCal();
+    const lista = listaCal(!soAtrasadas);
     $('#btAtr').classList.toggle('ativo', soAtrasadas);
     $('#periodo').textContent = soAtrasadas ? 'ATRASADAS' : rotuloPeriodo();
     if (soAtrasadas) renderVistaAtrasadas(lista);
@@ -348,10 +355,8 @@ Sessao.iniciarPagina('mapa').then(function (ctx) {
     lista.forEach(function (x) {
       const cron = cronograma(x); if (!cron) return;
       let fase = fasePlanejadaParaDia(cron, dia);
-      if (!fase && ehHojeOuDepois && h >= cron.prazo) {
-        const real = String(x.processo || '').trim();
-        if (real && ORDEM_DEPTOS.indexOf(real) !== -1) fase = { n: real };
-      }
+      const real = String(x.processo || '').trim();
+      if (!fase && (nDias() === 1 || (ehHojeOuDepois && h >= cron.prazo)) && ORDEM_DEPTOS.indexOf(real) !== -1) fase = { n: real };
       if (!fase) return;
       (grupos[fase.n] = grupos[fase.n] || []).push(x);
     });
@@ -495,29 +500,24 @@ Sessao.iniciarPagina('mapa').then(function (ctx) {
     });
   }
 
-  // ---------- Impressão (segue a vista — MESMO layout do painel antigo) ----------
+  // ---------- Impressão: imprime EXATAMENTE o que está filtrado na tela ----------
+  // Usa a mesma lista do calendário (departamento + busca) e, por ordem:
+  //   1) botão Atrasadas ligado → a lista de atrasadas da tela
+  //   2) um dia clicado no calendário → só as OPs daquele dia (painel da direita)
+  //   3) senão → as OPs com PRAZO dentro do período De/Até
   function imprimir() {
-    const h = hoje();
-    const lista = OPS.filter(function (x) { return !filtDepto || x.processo === filtDepto || opPertenceAoDepto(x, filtDepto, h); });
-    const sufixo = filtDepto ? ' — ' + filtDepto : '';
-    const naFase = function (x, ini, fim) {
-      const cron = cronograma(x); if (!cron) return false;
-      return cron.fases.some(function (f) { return f.n !== 'BUFFER' && f.ini <= fim && f.fim >= ini; }) || (h >= cron.prazo && fim >= h);
-    };
     const mobil = window.innerWidth <= 760;
-    if (!mobil && soAtrasadas) return imprimirLista(buildListaAtrasadas(lista), 'Atrasadas' + sufixo);
-    const dia = mobil ? diaMob : diaSelecionado;
-    if (dia && (mobil || nDias() === 1)) {
-      const ops = filtDepto ? lista.filter(function (x) { return opPertenceAoDepto(x, filtDepto, dia); }) : lista.filter(function (x) {
-        const cron = cronograma(x); if (!cron) return false;
-        return cron.fases.some(function (f) { return f.n !== 'BUFFER' && dia >= f.ini && dia < f.fim; }) || (h >= cron.prazo && dia >= h);
-      });
-      return imprimirLista(ops, 'OPs do Dia ' + fmtBR(dia) + sufixo);
-    }
-    const fim = new Date(dtFim.getFullYear(), dtFim.getMonth(), dtFim.getDate(), 23, 59, 59);
+    const lista = listaCal(!mobil && !soAtrasadas);
+    const sufixo = (filtDepto ? ' — ' + filtDepto : '') + (filtBusca ? ' — busca "' + filtBusca + '"' : '');
+    if (mobil) return imprimirLista(opsDoDia(lista, diaMob), 'OPs do Dia ' + fmtBR(diaMob) + sufixo);
+    if (soAtrasadas) return imprimirLista(buildListaAtrasadas(lista), 'Atrasadas' + sufixo);
+    const dia = nDias() > 1 && diaSelecionado && diaSelecionado >= dtIni && diaSelecionado <= dtFim ? diaSelecionado : null;
+    if (dia) return imprimirLista(opsDoDia(lista, dia), 'OPs do Dia ' + fmtBR(dia) + sufixo);
+    // Período: todas as OPs com prazo dentro de De/Até
+    const ops = lista;
     const r = rotuloPeriodo();
-    const titulo = /DIAS$/.test(r) ? 'OPs de ' + fmtBR(dtIni) + ' a ' + fmtBR(dtFim) : /^ANO/.test(r) ? 'OPs do Ano ' + dtIni.getFullYear() : 'OPs de ' + r.charAt(0) + r.slice(1).toLowerCase();
-    imprimirLista(lista.filter(function (x) { return naFase(x, dtIni, fim); }), titulo + sufixo);
+    const titulo = 'OPs com prazo ' + (nDias() === 1 ? 'em ' + fmtBR(dtIni) : /DIAS$/.test(r) ? 'de ' + fmtBR(dtIni) + ' a ' + fmtBR(dtFim) : /^ANO/.test(r) ? 'no ano de ' + dtIni.getFullYear() : 'em ' + r.charAt(0) + r.slice(1).toLowerCase());
+    imprimirLista(ops, titulo + sufixo);
   }
 
   function imprimirLista(lista, titulo) {
@@ -625,7 +625,12 @@ Sessao.iniciarPagina('mapa').then(function (ctx) {
     const op = ev.target.closest('[data-op]');
     if (op) { ev.stopPropagation(); abrirModal(op.dataset.op); return; }
     const dia = ev.target.closest('[data-dia]');
-    if (dia) { diaSelecionado = new Date(Number(dia.dataset.dia)); renderCal(); return; }
+    if (dia) {
+      // clicar de novo no mesmo dia desmarca (volta a valer o período inteiro)
+      const d = new Date(Number(dia.dataset.dia));
+      diaSelecionado = diaSelecionado && sameDay(d, diaSelecionado) && nDias() > 1 ? null : d;
+      renderCal(); return;
+    }
     const mes = ev.target.closest('[data-mes]');
     if (mes) {
       const p = mes.dataset.mes.split('-');
