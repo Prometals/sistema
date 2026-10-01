@@ -175,6 +175,10 @@ const Fmt = {
     const r = rotulo(b) || b.getAttribute('aria-label') || b.title;
     if (!r) return;
     b.classList.add('so-icone');
+    // Nome do ícone (ex.: i-imp) → a cor do botão segue o assunto.
+    const u = ic.querySelector('use');
+    const nome = u ? (u.getAttribute('href') || u.getAttribute('xlink:href') || '').replace('#', '') : '';
+    if (b.dataset.ic !== nome) b.dataset.ic = nome;
     const n = b.querySelector('.n');
     const qtd = n ? n.textContent.trim() : '';
     // Na bolinha vai só o número ("todas · 8" → 8); o texto todo fica na dica.
@@ -203,8 +207,9 @@ const Fmt = {
 
   function iniciar() {
     varrer();
-    // Botões criados ou renomeados depois (janelas, painéis, "Salvando…").
-    new MutationObserver(agendar).observe(document.body, { childList: true, subtree: true, characterData: true });
+    // Botões criados ou renomeados depois (janelas, painéis, "Salvando…")
+    // e ícones trocados (ex.: Editar ↔ Travar no PCP).
+    new MutationObserver(agendar).observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['href'] });
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', iniciar);
