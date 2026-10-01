@@ -56,6 +56,8 @@ table.tab td.desc { max-width: 260px; overflow: hidden; text-overflow: ellipsis;
 .in-valor.sem-valor input::placeholder { color: #dc2626; font-weight: 600; }
 .in-valor.salvando { opacity: .6; }
 .in-valor.travado { background: transparent; }
+.in-valor.sem-pedido { opacity: .55; border-style: dotted; }
+.in-valor.sem-pedido input { color: var(--texto-suave); }
 .chip-sv { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border: 1px dashed #dc2626; color: #dc2626; border-radius: 8px; font-size: 12px; font-weight: 700; background: transparent; cursor: pointer; white-space: nowrap; font-family: inherit; }
 .chip-sv.on { background: #dc2626; color: #fff; border-style: solid; }
 .chip-sv svg { width: 14px; height: 14px; }
@@ -210,6 +212,9 @@ Sessao.iniciarPagina('comercial').then(function (ctx) {
   function atrasoPrazo(v) { if (!v) return 0; const h = new Date(); h.setHours(0, 0, 0, 0); const d = Math.floor((h - dt(v)) / 86400000); return d > 0 ? d : 0; }
   function valorNum(v) { const n = Number(v); return v === '' || v === null || v === undefined || isNaN(n) ? 0 : n; }
   function temValor(x) { return valorNum(x.valorop) > 0; }
+  // Sem pedido = ainda não vendida: valor travado em zero e fora dos totais
+  function valorDe(x) { return temPedido(x) ? valorNum(x.valorop) : 0; }
+  function faltaValor(x) { return temPedido(x) && !temValor(x); }
   const temOP = function (x) { return !!(x.op && x.op !== '-'); };
   const temPedido = function (x) { return !!(x.pedido && x.pedido !== '-'); };
   const ehEng = function (x) { return !temOP(x) && temPedido(x); };
@@ -218,8 +223,12 @@ Sessao.iniciarPagina('comercial').then(function (ctx) {
   const aguardando = function (x) { return x.status === 'AGUARDANDO_FATURAMENTO'; };
   function hojeZero() { const h = new Date(); h.setHours(0, 0, 0, 0); return h; }
   function hojeBR() { const h = new Date(); return String(h.getDate()).padStart(2, '0') + '/' + String(h.getMonth() + 1).padStart(2, '0') + '/' + h.getFullYear(); }
-  function fimSemana() { const f = hojeZero(); f.setDate(f.getDate() + 6); return f; }
-  const naSemana = function (x) { if (!x.previsao || !ehCarteira(x)) return false; const d = dt(x.previsao); return d >= hojeZero() && d <= fimSemana(); };
+  // Semana fixa de SEGUNDA a SEXTA (a fábrica não trabalha sábado/domingo).
+  // Previsão que cair no sábado ou domingo conta na sexta da mesma semana.
+  function inicioSemana() { const d = hojeZero(); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return d; }   // segunda
+  function sextaSemana() { const d = inicioSemana(); d.setDate(d.getDate() + 4); return d; }
+  function fimSemana() { const d = inicioSemana(); d.setDate(d.getDate() + 6); return d; }   // domingo (cai na sexta)
+  const naSemana = function (x) { if (!x.previsao || !ehCarteira(x)) return false; const d = dt(x.previsao); return d >= inicioSemana() && d <= fimSemana(); };
   const noDia = function (x) { return x.previsao === hojeBR() && ehCarteira(x); };
   const noMes = function (x, mes) { return !!x.previsao && ehCarteira(x) && (mes === 'TODOS' || x.previsao.substring(3, 10) === mes); };
   const atrasado = function (x) { return atrasoPrazo(x.prazo) > 0 && temPedido(x); };
@@ -242,7 +251,7 @@ Sessao.iniciarPagina('comercial').then(function (ctx) {
   }
   function paraBR(iso) { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || ''); return m ? m[3] + '/' + m[2] + '/' + m[1] : ''; }
   const processoLimpo = function (x) { return String(x.processo || '-').replace(' - INICIADO', '').replace(' - FINALIZADO', ''); };
-  const soma = function (lista) { return lista.reduce(function (s, x) { return s + valorNum(x.valorop); }, 0); };
+  const soma = function (lista) { return lista.reduce(function (s, x) { return s + valorDe(x); }, 0); };
   const plural = function (n, s, p) { return n + ' ' + (n === 1 ? s : p); };
 
   // Meses da previsão (o antigo montava uma vez; aqui refaz mantendo a escolha)
@@ -270,7 +279,7 @@ Sessao.iniciarPagina('comercial').then(function (ctx) {
       if (modo === 'FAT_MES') ok = ok && !!x.previsao && ehCarteira(x);
       if (modo === 'FAT_SEMANA') ok = ok && naSemana(x);
       if (modo === 'FAT_DIA') ok = ok && noDia(x);
-      if (semValor) ok = ok && !temValor(x);
+      if (semValor) ok = ok && faltaValor(x);
       return ok;
     });
     return ordenar(lista);
@@ -306,7 +315,7 @@ Sessao.iniciarPagina('comercial').then(function (ctx) {
     };
     let tituloMes = 'Faturável total', detMes = 'com previsão';
     if (mes !== 'TODOS') { const p = mes.split('/'); tituloMes = 'Faturável ' + NOMES_MES[parseInt(p[0], 10)] + '/' + p[1]; detMes = 'previsão ' + mes; }
-    const ini = hojeZero(), fim = fimSemana();
+    const ini = inicioSemana(), fim = sextaSemana();
     const dm = function (d) { return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0'); };
     return [
       { m: 'PRONTO', c: '#16a34a', ic: 'i-pacote', rot: 'Pronto p/ faturar', val: plural(l.pronto.length, 'OP', 'OPs'), qtd: moeda(soma(l.pronto)) + ' · chegou da expedição', alerta: l.pronto.length > 0, mob: l.pronto.length, mobRot: 'Pronto p/ faturar' },
@@ -330,7 +339,7 @@ Sessao.iniciarPagina('comercial').then(function (ctx) {
     $('#cards-mob').innerHTML = k.map(function (x) {
       return '<button class="km' + (modo === x.m ? ' sel' : '') + (x.pisca ? ' piscando' : '') + '" data-modo="' + x.m + '" style="--c:' + x.c + '"><b>' + Ui.esc(x.mob) + '</b>' + Ui.esc(x.mobRot) + '</button>';
     }).join('');
-    const nSv = base.filter(function (x) { return !temValor(x); }).length;
+    const nSv = base.filter(faltaValor).length;
     $('#chip-sv span').textContent = 'Sem valor · ' + nSv;
     $('#chip-sv').classList.toggle('on', semValor);
   }
@@ -351,6 +360,10 @@ Sessao.iniciarPagina('comercial').then(function (ctx) {
     return mob ? '' : '<span class="mut">' + (ehEng(x) ? 'Engenharia' : 'Em produção') + '</span>';
   }
   function htmlValor(x) {
+    if (!temPedido(x)) {
+      return '<label class="in-valor travado sem-pedido" title="Sem pedido: o valor libera quando o PCP lançar o pedido"><span>R$</span>' +
+        '<input value="0,00" disabled></label>';
+    }
     const v = valorCampo(x);
     const trava = ctx.podeEditar ? '' : ' disabled';
     return '<label class="in-valor' + (temValor(x) ? '' : ' sem-valor') + (ctx.podeEditar ? '' : ' travado') + '"><span>R$</span>' +
@@ -491,6 +504,7 @@ Sessao.iniciarPagina('comercial').then(function (ctx) {
 
   // ---------- Valor da OP (grava ao sair do campo) ----------
   async function salvarValor(x, el) {
+    if (!temPedido(x)) return;   // sem pedido: valor travado em zero
     const caixa = el.closest('.in-valor');
     const n = lerValor(el.value);
     const antes = valorCampo(x);
