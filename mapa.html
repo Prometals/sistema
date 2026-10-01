@@ -23,8 +23,6 @@
 html body .btn2.so-icone.ativo { background: #dc2626; border-color: #dc2626; color: #fff; }
 .at.late { background: rgba(249,115,22,.08); border-color: rgba(249,115,22,.4); }
 .at.late .t em { color: #fb923c; }
-.at.warn { background: rgba(234,179,8,.08); border-color: rgba(234,179,8,.4); }
-.at.warn .t em { color: #fbbf24; }
 .nav { display: flex; align-items: center; border: 1px solid var(--borda); border-radius: 10px; overflow: hidden; }
 .nav button { height: 36px; min-width: 36px; padding: 0 12px; border: 0; background: transparent; cursor: pointer; font-weight: 700; }
 .nav button:hover { background: var(--hover); }
@@ -149,15 +147,15 @@ html.tema-claro .cd { color: #1d4ed8; }
         <div class="l1">
           <select id="fDepto"><option value="">Todos os departamentos</option></select>
           <label class="per-f" title="Período"><svg class="i"><use href="#i-cal"/></svg><input type="date" id="fIni" aria-label="De"><span>até</span><input type="date" id="fFim" aria-label="Até"></label>
-          <button class="btn2" id="btAtr" title="Atrasadas: prazo vencido, fora do crono. e sem movimentação"><svg class="i"><use href="#i-alerta"/></svg>Atrasadas</button>
+          <button class="btn2" id="btAtr" title="Atrasadas: prazo vencido e fora do crono."><svg class="i"><use href="#i-alerta"/></svg>Atrasadas</button>
           <button class="btn2" id="btLimpar" title="Limpar filtros e voltar ao mês atual"><svg class="i"><use href="#i-x"/></svg>Limpar</button>
           <span class="per-rot" id="periodo"></span>
         </div>
         <div class="f"><svg class="i"><use href="#i-busca"/></svg><input id="busca" placeholder="Buscar OP, pedido, código, descrição ou liga…" autocomplete="off"></div>
       </div>
       <div class="cx" id="grade"><div class="carregando">Carregando o cronograma…</div></div>
-      <div class="leg"><span><i class="ok"></i>No prazo / realizado</span><span><i class="bad"></i>Prazo vencido</span><span><i class="late"></i>Fora do crono.</span><span><i class="warn"></i>Sem movimentação</span><span><i class="future"></i>Adiantado / futuro</span></div>
-      <div class="cx fx"><div class="fx-cab">Prazo vencido · fora do crono. · sem movimentação <span id="atCont"></span></div><div class="fx-l" id="atLista"></div></div>
+      <div class="leg"><span><i class="ok"></i>No prazo / realizado</span><span><i class="bad"></i>Prazo vencido</span><span><i class="late"></i>Fora do crono.</span><span><i class="future"></i>Adiantado / futuro</span></div>
+      <div class="cx fx"><div class="fx-cab">Prazo vencido · fora do crono. <span id="atCont"></span></div><div class="fx-l" id="atLista"></div></div>
     </div>
     <aside class="cx lado">
       <div class="cab"><b id="ladoTit">Selecione um dia</b><small id="ladoSub">Clique em uma data no calendário</small></div>
@@ -380,8 +378,8 @@ Sessao.iniciarPagina('mapa').then(function (ctx) {
         return cron.fases.some(function (f) { return f.n !== 'BUFFER' && f.ini <= fim && f.fim >= ini; }) || (h >= cron.prazo && fim >= h);
       });
       const n = function (cls) { return ops.filter(function (x) { return statusOP(x).cls === cls; }).length; };
-      const venc = n('bad'), fcr = n('late'), sem = n('warn');
-      const cor = venc ? '#ef4444' : fcr ? '#f97316' : sem ? '#eab308' : '#22c55e';
+      const venc = n('bad'), fcr = n('late');
+      const cor = venc ? '#ef4444' : fcr ? '#f97316' : '#22c55e';
       html += '<div class="' + (h.getMonth() === m.getMonth() && h.getFullYear() === m.getFullYear() ? 'atual' : '') + '" data-mes="' + m.getFullYear() + '-' + m.getMonth() + '">' +
         '<i>' + meses[m.getMonth()] + ' ' + String(m.getFullYear()).slice(2) + '</i><b style="color:' + cor + '">' + ops.length + '</b><small>OPs</small>' +
         (venc ? '<small style="color:#ef4444">' + venc + ' prazo vencido</small>' : '') +
@@ -391,18 +389,18 @@ Sessao.iniciarPagina('mapa').then(function (ctx) {
     renderDiaVazio();
   }
 
-  // 1) prazo vencido (mais antigo primeiro) · 2) fora do crono. · 3) sem movimentação
+  // 1) prazo vencido (mais antigo primeiro) · 2) fora do crono.
   function buildListaAtrasadas(lista) {
     const porPrazo = function (a, b) { return parseBR(a.prazo) - parseBR(b.prazo); };
     const de = function (cls) { return lista.filter(function (x) { return statusOP(x).cls === cls; }).sort(porPrazo); };
-    return de('bad').concat(de('late'), de('warn'));
+    return de('bad').concat(de('late'));
   }
 
   function renderVistaAtrasadas(lista) {
     const h = hoje();
     $('#periodo').textContent = 'ATRASADAS';
     const todas = buildListaAtrasadas(lista);
-    if (!todas.length) { $('#grade').innerHTML = '<div class="msg">Nenhuma OP com prazo vencido, fora do crono. ou sem movimentação</div>'; renderDiaVazio(); return; }
+    if (!todas.length) { $('#grade').innerHTML = '<div class="msg">Nenhuma OP com prazo vencido ou fora do crono.</div>'; renderDiaVazio(); return; }
     const nPrazo = todas.filter(function (x) { return statusOP(x).cls === 'bad'; }).length;
     const nFcr = todas.filter(function (x) { return statusOP(x).cls === 'late'; }).length;
     const linha = function (x, extra) {
@@ -419,10 +417,6 @@ Sessao.iniciarPagina('mapa').then(function (ctx) {
       todas.slice(nPrazo, nPrazo + nFcr).map(function (x) {
         const st = statusOP(x);
         return linha(x, '<span style="color:#f97316;font-size:11px;white-space:nowrap">' + Ui.esc(st.fase ? st.fase.n : '-') + ' ← planejado</span><span class="mut" style="font-size:11px">' + Ui.esc(x.processo || '-') + '</span><span style="color:#f97316">' + Ui.esc(x.prazo) + '</span><b style="color:#f97316">' + st.diasAtraso + 'd</b>');
-      }).join('') +
-      (todas.length > nPrazo + nFcr ? '<h4 style="color:#eab308">SEM MOVIMENTAÇÃO (' + (todas.length - nPrazo - nFcr) + ')</h4>' : '') +
-      todas.slice(nPrazo + nFcr).map(function (x) {
-        return linha(x, '<span class="mut" style="font-size:11px">' + Ui.esc(x.processo || '-') + '</span><span>' + Ui.esc(x.prazo) + '</span><b style="color:#eab308">' + Cronograma.diasParada(x) + 'd parada</b>');
       }).join('') + '</div>';
     renderDiaVazio();
   }
@@ -466,10 +460,10 @@ Sessao.iniciarPagina('mapa').then(function (ctx) {
       const st = statusOP(x);
       const dias = Math.floor((h - parseBR(x.prazo)) / 86400000);
       const real = String(x.processo || '').trim() || '-';
-      const txt = st.cls === 'bad' ? dias + 'd prazo vencido' : st.cls === 'late' ? st.diasAtraso + 'd fora do crono.' : Cronograma.diasParada(x) + 'd parada';
+      const txt = st.cls === 'bad' ? dias + 'd prazo vencido' : st.diasAtraso + 'd fora do crono.';
       return '<div class="at ' + st.cls + '" data-op="' + x.id + '"><div class="t"><span>' + Ui.esc(rotulo(x)) + '</span><em>' + txt + '</em></div>' +
         '<div>' + Ui.esc(x.descricao) + '</div><div>' + Ui.esc(real) + ' → ' + Ui.esc(st.fase ? st.fase.n : '-') + '</div></div>';
-    }).join('') : '<div class="mut" style="font-size:12px">Nenhuma OP com prazo vencido, fora do crono. ou sem movimentação</div>';
+    }).join('') : '<div class="mut" style="font-size:12px">Nenhuma OP com prazo vencido ou fora do crono.</div>';
   }
 
   // ---------- Detalhe da OP ----------
@@ -573,7 +567,7 @@ Sessao.iniciarPagina('mapa').then(function (ctx) {
     lista.forEach(function (x) { if (cronograma(x)) cont[statusOP(x).cls]++; });
     $('#mobKpi').innerHTML =
       '<span class="km" style="--c:#22c55e"><b>' + cont.ok + '</b> No prazo</span><span class="km' + (cont.bad ? ' piscando' : '') + '" style="--c:#ef4444"><b>' + cont.bad + '</b> Vencidas</span>' +
-      '<span class="km" style="--c:#f97316"><b>' + cont.late + '</b> Fora crono.</span><span class="km" style="--c:#eab308"><b>' + cont.warn + '</b> Sem mov.</span><span class="km" style="--c:#3b82f6"><b>' + cont.future + '</b> Futuro</span>';
+      '<span class="km" style="--c:#f97316"><b>' + cont.late + '</b> Fora crono.</span><span class="km" style="--c:#3b82f6"><b>' + cont.future + '</b> Futuro</span>';
     const dow = h.getDay() || 7;
     const seg = add(h, -dow + 1 + semanaMob * 7);
     $('#mobMes').textContent = seg.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }).toUpperCase();
