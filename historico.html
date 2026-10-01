@@ -38,8 +38,8 @@ html.tema-claro .corr .btn2.perigo, html.tema-claro .cm-corr .btn2.perigo { colo
 .corr .tab-wrap { overflow-x: auto; }
 table.tab td.desc { max-width: 320px; overflow: hidden; text-overflow: ellipsis; }
 .seq { display: inline-grid; place-items: center; width: 24px; height: 22px; border-radius: 6px; background: var(--painel-2); font-weight: 800; font-size: 12px; flex: none; }
-.bt-est { height: 28px; padding: 0 10px; border-radius: 7px; border: 1px solid var(--borda); background: transparent; font-size: 12px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; }
-.bt-est svg { width: 14px; height: 14px; }
+.bt-est { height: 28px; min-width: 32px; justify-content: center; padding: 0 8px; border-radius: 7px; border: 1px solid var(--borda); background: transparent; font-size: 12px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; }
+.bt-est svg { width: 16px; height: 16px; }
 .est-info { font-size: 11px; color: #f59e0b; display: block; margin-top: 2px; font-weight: 600; }
 tr.estornado td { opacity: .5; text-decoration: line-through; }
 tr.estornado td:last-child { text-decoration: none; }
@@ -240,7 +240,7 @@ Sessao.iniciarPagina('historico').then(function (ctx) {
   function acaoItem(c, it, curto) {
     if (it.moldes_liquido <= 0) return '<span class="mut" style="font-size:' + (curto ? '11' : '12') + 'px">' + (curto ? 'estornado' : 'Estornado') + '</span>';
     if (c.status === 'CANCELADA' || !ctx.podeEditar) return '';
-    return '<button class="bt-est" data-estornar="' + e(c.id_corrida) + '|' + e(it.id_item) + '">' + (curto ? '' : Ui.ic('i-volta')) + 'Estornar</button>';
+    return '<button class="bt-est" data-estornar="' + e(c.id_corrida) + '|' + e(it.id_item) + '" title="Estornar moldes" aria-label="Estornar moldes">' + Ui.ic('i-volta') + '</button>';
   }
 
   function blocoDesk(g) {
