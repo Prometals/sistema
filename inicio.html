@@ -79,12 +79,12 @@ Sessao.iniciarPagina('inicio').then(function (ctx) {
   }
 
   // Mesmas regras do PCP · Monitor e do BI antigo (js/cronograma.js):
-  // em produção = tem nº de OP · atrasada = pelo cronograma · parada = 4+ dias sem movimentar.
+  // em produção = tem nº de OP · prazo vencido = passou o prazo do cliente ·
+  // fora do crono. = departamento atrás do cronograma · sem movimentação = 4+ dias parada.
   function classificar(r) {
     r.carteira.forEach(function (c) {
       c._st = Cronograma.status(c);
-      c._atr = Cronograma.categoria(c) === 'ATRASADO';
-      c._par = Cronograma.parada(c);
+      c._cat = Cronograma.categoria(c);
     });
   }
 
@@ -94,15 +94,15 @@ Sessao.iniciarPagina('inicio').then(function (ctx) {
     const clientes = new Set(cart.map(function (c) { return c.cliente; })).size;
     const prod = cart.filter(function (c) { return !!c.op; }).length;
     const eng = cart.filter(function (c) { return !c.op; });
-    const atr = cart.filter(function (c) { return c._atr; }).length;
-    const par = cart.filter(function (c) { return c._par; }).length;
+    const n = function (cat) { return cart.filter(function (c) { return c._cat === cat; }).length; };
+    const venc = n('VENCIDO'), fcr = n('FORA_CRONO'), sem = n('SEM_MOV');
     const pct = cart.length ? Math.round(prod / cart.length * 100) : 0;
     const em7 = eng.filter(function (e) { const d = diasAte(e.prazo); return d !== null && d <= 7; }).length;
     const k = [
       { c: '#3b82f6', ic: 'i-tabela', rot: 'Carteira ativa', val: cart.length, det: clientes + ' cliente' + (clientes === 1 ? '' : 's') },
       { c: '#22c55e', ic: 'i-relogio', rot: 'Em produção', val: prod, det: pct + '% da carteira' },
       { c: '#a855f7', ic: 'i-clip', rot: 'Engenharia (sem OP)', val: eng.length, det: em7 + ' com prazo em 7 dias' },
-      { c: '#ef4444', ic: 'i-alerta', rot: 'Atrasadas', val: atr, det: par + ' parada' + (par === 1 ? '' : 's') + ' há 4+ dias' }
+      { c: Cronograma.COR.VENCIDO, ic: 'i-alerta', rot: 'Prazo vencido', val: venc, det: fcr + ' fora do crono. · ' + sem + ' sem movimentação' }
     ];
     $('kpis').innerHTML = k.map(function (x) {
       return '<div class="kpi" style="--c:' + x.c + '"><div class="rot">' + Ui.ic(x.ic) + x.rot + '</div>' +
@@ -115,18 +115,22 @@ Sessao.iniciarPagina('inicio').then(function (ctx) {
     $('kpis-mob').hidden = false;
   }
 
-  // Atrasadas pelo cronograma (mais atrasada primeiro) + paradas, sem repetir OP.
+  // Prazo vencido (mais antigo primeiro) → sem movimentação → fora do crono.
+  // Cada OP aparece uma vez só (a situação mais grave).
   function desenharAtencao(r) {
     const cart = r.carteira;
-    const linhas = cart.filter(function (c) { return c._atr; })
-      .sort(function (a, b) { return b._st.diasAtraso - a._st.diasAtraso; })
-      .map(function (o) { return { o: o, tag: 't-verm', txt: (o._st.label === 'PRAZO VENCIDO' ? 'Prazo vencido' : 'Atrasada') + (o._st.diasAtraso ? ' · ' + o._st.diasAtraso + ' d' : '') }; })
-      .concat(cart.filter(function (c) { return c._par && !c._atr; })
-        .sort(function (a, b) { return Cronograma.diasParada(b) - Cronograma.diasParada(a); })
-        .map(function (o) { return { o: o, tag: 't-amar', txt: 'Parada · ' + Cronograma.diasParada(o) + ' d' }; }));
+    const grupo = function (cat, tag, rot, dias) {
+      return cart.filter(function (c) { return c._cat === cat; })
+        .sort(function (a, b) { return dias(b) - dias(a); })
+        .map(function (o) { const d = dias(o); return { o: o, tag: tag, txt: rot + (d ? ' · ' + d + ' d' : '') }; });
+    };
+    const atraso = function (o) { return o._st.diasAtraso || 0; };
+    const linhas = grupo('VENCIDO', 't-verm', 'Prazo vencido', atraso)
+      .concat(grupo('SEM_MOV', 't-amar', 'Sem movimentação', Cronograma.diasParada))
+      .concat(grupo('FORA_CRONO', 't-lar', 'Fora do crono.', atraso));
     const lista = linhas.slice(0, 10);
     if (!lista.length) {
-      $('atencao').innerHTML = '<div class="vazio">' + Ui.ic('i-check') + '<br>Nenhuma OP atrasada ou parada. Tudo em dia.</div>';
+      $('atencao').innerHTML = '<div class="vazio">' + Ui.ic('i-check') + '<br>Nenhuma OP com prazo vencido, parada ou fora do cronograma. Tudo em dia.</div>';
       return;
     }
     const proc = function (p) { return p ? p.charAt(0) + p.slice(1).toLowerCase() : '—'; };
