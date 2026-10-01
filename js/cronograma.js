@@ -11,10 +11,9 @@
 //     domingo, e vê em qual fase a OP DEVERIA estar hoje.
 //   - Compara com o processo REAL: atrás da fase planejada = FORA DO CRONO.
 //   - Passou o prazo do cliente = PRAZO VENCIDO.
-//   - Tem OP e 4+ dias sem apontamento = SEM MOVIMENTAÇÃO.
 //
 // Uso:  Cronograma.status(op)    → { cls, label, fase, diasAtraso }
-//       Cronograma.categoria(op) → 'VENCIDO' | 'SEM_MOV' | 'FORA_CRONO' | 'NO_PRAZO' | 'OUTROS'
+//       Cronograma.categoria(op) → 'VENCIDO' | 'FORA_CRONO' | 'NO_PRAZO' | 'OUTROS'
 //       Cronograma.cor(op)       → cor do chip do processo
 //       op precisa ter: prazo ('dd/mm/aaaa'), liga, processo, op, ultima, abertura
 // ============================================================
@@ -80,7 +79,6 @@ const Cronograma = (function () {
 
   // Situação da OP — UMA etiqueta, a mais grave vence:
   //   PRAZO VENCIDO     passou o prazo do CLIENTE (atraso de verdade)
-  //   SEM MOVIMENTAÇÃO  tem nº de OP e está 4+ dias sem apontamento novo
   //   FORA DO CRONO.    o departamento passou do tempo combinado no
   //                     cronograma, mas o prazo do cliente ainda dá
   //   NO PRAZO / ADIANTADO   em dia com o cronograma
@@ -93,7 +91,6 @@ const Cronograma = (function () {
     const prazo = parseBR(op.prazo);
     if (h > prazo) return { cls: 'bad', label: 'PRAZO VENCIDO', fase: null, diasAtraso: Math.floor((h - prazo) / 86400000) };
     let fase = fasePlanejadaParaDia(cron, h);
-    if (parada(op)) return { cls: 'warn', label: 'SEM MOVIMENTAÇÃO', fase: fase, diasAtraso: 0, diasParada: diasParada(op) };
     const validas = cron.fases.filter(function (f) { return f.n !== 'BUFFER'; });
     const real = limpar(op.processo) || (op.op ? 'PLANEJAMENTO' : 'ENGENHARIA');
     const idxReal = validas.findIndex(function (f) { return f.n.toUpperCase() === real; });
@@ -111,19 +108,18 @@ const Cronograma = (function () {
     return { cls: 'late', label: 'FORA DO CRONO.', fase: fase, diasAtraso: diasAtraso };
   }
 
-  // 'VENCIDO' | 'SEM_MOV' | 'FORA_CRONO' | 'NO_PRAZO' | 'OUTROS'
+  // 'VENCIDO' | 'FORA_CRONO' | 'NO_PRAZO' | 'OUTROS'
   function categoria(op) {
     const l = status(op).label;
     if (l === 'PRAZO VENCIDO') return 'VENCIDO';
-    if (l === 'SEM MOVIMENTAÇÃO') return 'SEM_MOV';
     if (l === 'FORA DO CRONO.') return 'FORA_CRONO';
     if (l === 'NO PRAZO' || l === 'ADIANTADO') return 'NO_PRAZO';
     return 'OUTROS';
   }
 
   // Cores e nomes iguais em todas as telas
-  const COR = { VENCIDO: '#ef4444', SEM_MOV: '#eab308', FORA_CRONO: '#f97316', NO_PRAZO: '#22c55e', ENG: '#a855f7', NEUTRO: '#64748b' };
-  const ROTULO = { VENCIDO: 'Prazo vencido', SEM_MOV: 'Sem movimentação', FORA_CRONO: 'Fora do crono.', NO_PRAZO: 'No prazo' };
+  const COR = { VENCIDO: '#ef4444', FORA_CRONO: '#f97316', NO_PRAZO: '#22c55e', ENG: '#a855f7', NEUTRO: '#64748b' };
+  const ROTULO = { VENCIDO: 'Prazo vencido', FORA_CRONO: 'Fora do crono.', NO_PRAZO: 'No prazo' };
   // Cor do "chip" do processo: alerta primeiro; senão engenharia (roxo),
   // em produção em dia (verde) ou aguardando (cinza).
   function cor(op, cat) {
@@ -140,7 +136,8 @@ const Cronograma = (function () {
     const u = op.ultima && op.ultima !== '-' ? parseBR(String(op.ultima).split(' ')[0]) : null;
     return u || parseBR(op.abertura);
   }
-  // Sem movimentação: tem nº de OP e 4+ dias sem apontamento novo.
+  // "Parada": tem nº de OP e 4+ dias sem apontamento novo (só informativo;
+  // não entra na situação).
   function parada(op) {
     if (!op.op) return false;
     const d = refParada(op);
