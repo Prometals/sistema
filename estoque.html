@@ -339,7 +339,7 @@ Sessao.iniciarPagina('estoque').then(function (ctx) {
         '<div class="extra"></div></div>';
     }).join('') + '</div>' +
       '<div class="resumo" id="op-resumo"></div>' + btConfirmar('bt-retirar', 'CONFIRMAR RETIRADA');
-  }
+   }
   function itemDe(cod) { return op.estr ? op.estr.itens.find(function (i) { return i.cod_insumo === cod; }) : null; }
 
   // Marca no cartão: saldo insuficiente (bloqueia) e acima do previsto (pede motivo)
