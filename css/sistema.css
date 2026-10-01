@@ -115,6 +115,8 @@ table.tab tr:hover td { background: var(--hover); }
 .t-verm { background: var(--card-vermelho); color: var(--card-vermelho-t); }
 .t-amar { background: var(--card-amarelo); color: var(--card-amarelo-t); }
 .t-azul { background: var(--card-azul); color: var(--card-azul-t); }
+.t-lar { background: var(--card-laranja); color: var(--card-laranja-t); }
+html:not(.tema-claro) .t-lar { background: rgba(249,115,22,.14); color: #fdba74; }
 html:not(.tema-claro) .t-verm { background: rgba(248,113,113,.14); color: #fca5a5; }
 html:not(.tema-claro) .t-amar { background: rgba(251,191,36,.14); color: #fcd34d; }
 html:not(.tema-claro) .t-azul { background: rgba(96,165,250,.14); color: #93c5fd; }
@@ -353,11 +355,11 @@ body > main.conteudo { margin: 56px 0 0 248px; }
    ============================================================ */
 :root { --escala: .9; }
 @media (min-width: 761px) {
-  body:not(.kiosque) { zoom: var(--escala); }
+  body:not(.kiosque):not(.sem-escala) { zoom: var(--escala); }
   /* altura da tela compensada pela escala (senão sobra faixa embaixo) */
-  body:not(.kiosque) .app { height: calc(100vh / var(--escala)); }
-  body:not(.kiosque) .login { min-height: calc(100vh / var(--escala)); }
-  body:not(.kiosque) .modal-caixa .corpo { max-height: calc(100vh / var(--escala) - 170px); }
+  body:not(.kiosque):not(.sem-escala) .app { height: calc(100vh / var(--escala)); }
+  body:not(.kiosque):not(.sem-escala) .login { min-height: calc(100vh / var(--escala)); }
+  body:not(.kiosque):not(.sem-escala) .modal-caixa .corpo { max-height: calc(100vh / var(--escala) - 170px); }
 }
 
 /* ============================================================
