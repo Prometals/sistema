@@ -343,3 +343,19 @@ body > main.conteudo { margin: 56px 0 0 248px; }
 }
 /* janelas: sem rolagem lateral (a vertical continua quando a lista é longa) */
 .modal-caixa .corpo { overflow-x: hidden; }
+
+/* ============================================================
+   Escala do sistema no computador
+   Deixa tudo (letras, ícones, espaços) um pouco menor por igual,
+   para caber mais informação sem estourar. Para ajustar, mude só
+   o número de --escala: 1 = 100% · .9 = 90% · .85 = 85%.
+   No celular não muda nada. O terminal do refugo (kiosque) fica igual.
+   ============================================================ */
+:root { --escala: .9; }
+@media (min-width: 761px) {
+  body:not(.kiosque) { zoom: var(--escala); }
+  /* altura da tela compensada pela escala (senão sobra faixa embaixo) */
+  body:not(.kiosque) .app { height: calc(100vh / var(--escala)); }
+  body:not(.kiosque) .login { min-height: calc(100vh / var(--escala)); }
+  body:not(.kiosque) .modal-caixa .corpo { max-height: calc(100vh / var(--escala) - 170px); }
+}
