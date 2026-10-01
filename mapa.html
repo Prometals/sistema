@@ -14,6 +14,17 @@
 .ctl { padding: 10px; display: grid; gap: 10px; margin-bottom: 14px; }
 .ctl .l1 { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 .ctl select { height: 38px; width: auto; padding: 0 10px; }
+/* período: 📅 de [data] até [data] */
+.per-f { display: flex; align-items: center; gap: 6px; border: 1px solid var(--borda); border-radius: 10px; padding: 0 6px 0 10px; height: 38px; background: var(--painel); }
+.per-f svg { width: 16px; height: 16px; color: var(--texto-suave); flex: none; }
+.per-f input[type=date] { height: 34px; border: 0; background: transparent; width: auto; padding: 0 2px; }
+.per-f span { color: var(--texto-suave); font-size: 12px; }
+.per-rot { font-weight: 800; color: var(--destaque); letter-spacing: .5px; }
+html body .btn2.so-icone.ativo { background: #dc2626; border-color: #dc2626; color: #fff; }
+.at.late { background: rgba(249,115,22,.08); border-color: rgba(249,115,22,.4); }
+.at.late .t em { color: #fb923c; }
+.at.warn { background: rgba(234,179,8,.08); border-color: rgba(234,179,8,.4); }
+.at.warn .t em { color: #fbbf24; }
 .nav { display: flex; align-items: center; border: 1px solid var(--borda); border-radius: 10px; overflow: hidden; }
 .nav button { height: 36px; min-width: 36px; padding: 0 12px; border: 0; background: transparent; cursor: pointer; font-weight: 700; }
 .nav button:hover { background: var(--hover); }
@@ -34,7 +45,7 @@
 .cal .c.hoje .n { background: var(--destaque); color: #fff; border-radius: 6px; padding: 1px 6px; align-self: flex-start; }
 .pips { display: flex; flex-wrap: wrap; gap: 3px; }
 .pip { width: 9px; height: 9px; border-radius: 2px; }
-.ok { --s: #22c55e; } .bad { --s: #ef4444; } .warn { --s: #eab308; } .future { --s: #3b82f6; }
+.ok { --s: #22c55e; } .bad { --s: #ef4444; } .late { --s: #f97316; } .warn { --s: #eab308; } .future { --s: #3b82f6; }
 .pip { background: var(--s); }
 .cnt { font-size: 10.5px; color: var(--texto-suave); font-weight: 700; margin-top: auto; }
 .chips { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; }
@@ -121,8 +132,9 @@ html.tema-claro .cd { color: #1d4ed8; }
 
 <!-- Mapa · Calendário — planejamento mestre por prazo (cronograma reverso).
      Lógica igual ao mapa_planejamento.html antigo: filtro por depto,
-     vistas Mês/Semana/Dia/Ano/Atrasadas, painel do dia, faixa de
-     atrasadas, detalhe com cronograma, impressão pela vista.
+     período De/Até (1 dia = vista do dia · até 62 dias = calendário ·
+     mais que isso = resumo por mês), botão Atrasadas, limpar, painel do
+     dia, faixa de atrasadas, detalhe com cronograma, impressão pelo período.
      Sem a aba Gantt e sem Prioridade (aprovado no mockup). -->
 <main class="conteudo">
   <div class="tit-pagina">
@@ -136,14 +148,16 @@ html.tema-claro .cd { color: #1d4ed8; }
       <div class="cx ctl">
         <div class="l1">
           <select id="fDepto"><option value="">Todos os departamentos</option></select>
-          <select id="fVista"><option value="mes">Mês</option><option value="semana">Semana</option><option value="dia">Dia</option><option value="ano">Ano</option><option value="atrasadas">Atrasadas</option></select>
-          <div class="nav"><button data-nav="-1" title="Anterior">‹</button><span class="per" id="periodo"></span><button data-nav="0">Hoje</button><button data-nav="1" title="Próximo">›</button></div>
+          <label class="per-f" title="Período"><svg class="i"><use href="#i-cal"/></svg><input type="date" id="fIni" aria-label="De"><span>até</span><input type="date" id="fFim" aria-label="Até"></label>
+          <button class="btn2" id="btAtr" title="Atrasadas: prazo vencido, fora do crono. e sem movimentação"><svg class="i"><use href="#i-alerta"/></svg>Atrasadas</button>
+          <button class="btn2" id="btLimpar" title="Limpar filtros e voltar ao mês atual"><svg class="i"><use href="#i-x"/></svg>Limpar</button>
+          <span class="per-rot" id="periodo"></span>
         </div>
         <div class="f"><svg class="i"><use href="#i-busca"/></svg><input id="busca" placeholder="Buscar OP, pedido, código, descrição ou liga…" autocomplete="off"></div>
       </div>
       <div class="cx" id="grade"><div class="carregando">Carregando o cronograma…</div></div>
-      <div class="leg"><span><i class="ok"></i>No prazo / realizado</span><span><i class="bad"></i>Atrasado</span><span><i class="warn"></i>Sem movimentação</span><span><i class="future"></i>Adiantado / futuro</span></div>
-      <div class="cx fx"><div class="fx-cab">OPs atrasadas / com gargalo <span id="atCont"></span></div><div class="fx-l" id="atLista"></div></div>
+      <div class="leg"><span><i class="ok"></i>No prazo / realizado</span><span><i class="bad"></i>Prazo vencido</span><span><i class="late"></i>Fora do crono.</span><span><i class="warn"></i>Sem movimentação</span><span><i class="future"></i>Adiantado / futuro</span></div>
+      <div class="cx fx"><div class="fx-cab">Prazo vencido · fora do crono. · sem movimentação <span id="atCont"></span></div><div class="fx-l" id="atLista"></div></div>
     </div>
     <aside class="cx lado">
       <div class="cab"><b id="ladoTit">Selecione um dia</b><small id="ladoSub">Clique em uma data no calendário</small></div>
@@ -198,7 +212,14 @@ Sessao.iniciarPagina('mapa').then(function (ctx) {
 
   // ---------- Estado ----------
   let OPS = [];
-  let calOffset = 0, diaSelecionado = null, filtDepto = '', filtVista = 'mes', filtBusca = '';
+  let dtIni, dtFim, soAtrasadas = false, diaSelecionado = null, filtDepto = '', filtBusca = '';
+  const isoDe = function (d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+  const deIso = function (v) { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v || ''); return m ? new Date(+m[1], m[2] - 1, +m[3]) : null; };
+  function periodoMes(ano, mes) {
+    dtIni = new Date(ano, mes, 1); dtFim = new Date(ano, mes + 1, 0);
+    $('#fIni').value = isoDe(dtIni); $('#fFim').value = isoDe(dtFim);
+  }
+  periodoMes(hoje().getFullYear(), hoje().getMonth());
   let semanaMob = 0, diaMob = hoje();
 
   carregarDados();
@@ -209,16 +230,16 @@ Sessao.iniciarPagina('mapa').then(function (ctx) {
       const r = await Api.chamar('listarCarteira', { visao: 'PRODUCAO' }, { rapido: function () {
         if (!document.querySelector('.modal-fundo')) carregarDados(true);
       } });
-      // Mesma preparação do painel antigo: item sem OP conta como ENGENHARIA
+      // Sem nº de OP = ENGENHARIA · com OP e sem apontamento = PLANEJAMENTO
       OPS = r.itens.map(function (x) {
         const semOP = !x.op;
-        const processoRaw = x.processo === 'SEM MOVIMENTAÇÃO' ? '' : x.processo;
+        const proc = x.processo && x.processo !== 'SEM MOVIMENTAÇÃO' ? x.processo : (semOP ? 'ENGENHARIA' : 'PLANEJAMENTO');
         return {
           id: x.id_item, op: x.op, pedido: x.pedido, cliente: x.cliente, codigo: x.codigo, descricao: x.descricao,
           liga: x.liga, prazo: x.prazo, qtdordem: x.qtdordem,
-          processo: semOP ? 'ENGENHARIA' : (processoRaw || 'SEM MOVIMENTAÇÃO'),
-          processoReal: processoRaw || 'ENGENHARIA',
-          ultima: x.ultima && x.ultima !== '-' ? x.ultima : null
+          processo: semOP ? 'ENGENHARIA' : proc,
+          ultima: x.ultima && x.ultima !== '-' ? x.ultima : null,
+          abertura: x.abertura || ''
         };
       });
       popularFiltros();
@@ -266,15 +287,25 @@ Sessao.iniciarPagina('mapa').then(function (ctx) {
   }
 
   // ---------- Calendário ----------
+  const DIA = 86400000;
+  const nDias = function () { return Math.round((dtFim - dtIni) / DIA) + 1; };
+  function rotuloPeriodo() {
+    if (sameDay(dtIni, dtFim)) return dtIni.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase();
+    const mesInteiro = dtIni.getDate() === 1 && sameDay(dtFim, new Date(dtIni.getFullYear(), dtIni.getMonth() + 1, 0));
+    if (mesInteiro) return dtIni.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }).toUpperCase();
+    if (dtIni.getDate() === 1 && dtIni.getMonth() === 0 && dtFim.getDate() === 31 && dtFim.getMonth() === 11 && dtIni.getFullYear() === dtFim.getFullYear()) return 'ANO ' + dtIni.getFullYear();
+    return nDias() + ' DIAS';
+  }
+
+  // 1 dia = vista do dia · até 62 dias = calendário (com os nº das OPs se até 14 dias) · mais = resumo por mês
   function renderCal() {
     const lista = listaCal();
-    const nav = ['mes', 'semana', 'dia'].indexOf(filtVista) !== -1 || filtVista === 'ano';
-    document.querySelectorAll('[data-nav]').forEach(function (b) { b.hidden = !nav; });
-    if (filtVista === 'atrasadas') renderVistaAtrasadas(lista);
-    else if (filtVista === 'semana') renderCalSemana(lista);
-    else if (filtVista === 'dia') renderCalDia(lista);
-    else if (filtVista === 'ano') renderCalAno(lista);
-    else renderCalMes(lista);
+    $('#btAtr').classList.toggle('ativo', soAtrasadas);
+    $('#periodo').textContent = soAtrasadas ? 'ATRASADAS' : rotuloPeriodo();
+    if (soAtrasadas) renderVistaAtrasadas(lista);
+    else if (nDias() === 1) renderCalDia(lista, dtIni);
+    else if (nDias() > 62) renderResumoMeses(lista);
+    else renderCalPeriodo(lista, nDias() <= 14);
     renderAtrasadas();
   }
 
@@ -282,47 +313,35 @@ Sessao.iniciarPagina('mapa').then(function (ctx) {
     return ['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB', 'DOM'].map(function (d) { return '<div class="h">' + d + '</div>'; }).join('');
   }
 
-  function renderCalMes(lista) {
+  function renderCalPeriodo(lista, detalhado) {
     const h = hoje();
-    const mes = new Date(h.getFullYear(), h.getMonth() + calOffset, 1);
-    $('#periodo').textContent = mes.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }).toUpperCase();
-    const ultDia = new Date(mes.getFullYear(), mes.getMonth() + 1, 0).getDate();
-    const firstDow = mes.getDay() || 7;
+    const ini = add(dtIni, -((dtIni.getDay() || 7) - 1));       // segunda-feira da 1ª semana
+    const fim = add(dtFim, 7 - (dtFim.getDay() || 7));          // domingo da última semana
     let html = cabecalhoSemana();
-    for (let i = 1; i < firstDow; i++) html += '<div class="c vz"></div>';
-    for (let d = 1; d <= ultDia; d++) {
-      const dt = new Date(mes.getFullYear(), mes.getMonth(), d);
+    for (let dt = new Date(ini); dt <= fim; dt = add(dt, 1)) {
+      dt.setHours(0, 0, 0, 0);
+      if (dt < dtIni || dt > dtFim) { html += '<div class="c vz"></div>'; continue; }
       const ops = opsDoDia(lista, dt);
-      const pips = ops.map(function (x) { const cls = h > dt ? 'ok' : statusOP(x).cls; return '<i class="pip ' + cls + '" title="OP ' + Ui.esc(rotulo(x)) + '"></i>'; }).join('');
-      html += '<div class="c' + (sameDay(dt, h) ? ' hoje' : '') + (fds(dt) ? ' fds' : '') + (diaSelecionado && sameDay(dt, diaSelecionado) ? ' sel' : '') + '" data-dia="' + dt.getTime() + '">' +
-        '<span class="n">' + d + '</span><div class="pips">' + pips + '</div>' + (ops.length ? '<span class="cnt">' + ops.length + ' OP' + (ops.length > 1 ? 's' : '') + '</span>' : '') + '</div>';
-    }
-    $('#grade').innerHTML = '<div class="cal">' + html + '</div>';
-    if (diaSelecionado) renderDia(diaSelecionado, lista); else renderDiaVazio();
-  }
-
-  function renderCalSemana(lista) {
-    const h = hoje(); const dow = h.getDay() || 7;
-    const seg = add(h, -dow + 1 + calOffset * 7);
-    $('#periodo').textContent = 'SEMANA ' + fmtShort(seg) + ' – ' + fmtShort(add(seg, 6));
-    let html = cabecalhoSemana();
-    for (let i = 0; i < 7; i++) {
-      const dt = add(seg, i); dt.setHours(0, 0, 0, 0);
-      const ops = opsDoDia(lista, dt);
-      const chips = ops.slice(0, 28).map(function (x) {
-        return '<span class="chip ' + statusOP(x).cls + '" data-op="' + x.id + '" title="' + Ui.esc(x.codigo + ' — ' + x.descricao) + '">' + Ui.esc(rotulo(x)) + '</span>';
-      }).join('');
-      html += '<div class="c' + (sameDay(dt, h) ? ' hoje' : '') + (fds(dt) ? ' fds' : '') + (diaSelecionado && sameDay(dt, diaSelecionado) ? ' sel' : '') + '" style="min-height:130px" data-dia="' + dt.getTime() + '">' +
-        '<span class="n">' + fmtShort(dt) + '</span><div class="chips">' + chips + (ops.length > 28 ? '<span class="mais">+' + (ops.length - 28) + ' OPs</span>' : '') + '</div>' +
+      const num = dt.getDate() === 1 || sameDay(dt, dtIni) || detalhado ? fmtShort(dt) : String(dt.getDate());
+      let miolo;
+      if (detalhado) {
+        miolo = '<div class="chips">' + ops.slice(0, 28).map(function (x) {
+          return '<span class="chip ' + statusOP(x).cls + '" data-op="' + x.id + '" title="' + Ui.esc(x.codigo + ' — ' + x.descricao) + '">' + Ui.esc(rotulo(x)) + '</span>';
+        }).join('') + (ops.length > 28 ? '<span class="mais">+' + (ops.length - 28) + ' OPs</span>' : '') + '</div>';
+      } else {
+        miolo = '<div class="pips">' + ops.map(function (x) { const cls = h > dt ? 'ok' : statusOP(x).cls; return '<i class="pip ' + cls + '" title="OP ' + Ui.esc(rotulo(x)) + '"></i>'; }).join('') + '</div>';
+      }
+      html += '<div class="c' + (sameDay(dt, h) ? ' hoje' : '') + (fds(dt) ? ' fds' : '') + (diaSelecionado && sameDay(dt, diaSelecionado) ? ' sel' : '') + '"' +
+        (detalhado ? ' style="min-height:130px"' : '') + ' data-dia="' + dt.getTime() + '"><span class="n">' + num + '</span>' + miolo +
         (ops.length ? '<span class="cnt">' + ops.length + ' OP' + (ops.length > 1 ? 's' : '') + '</span>' : '') + '</div>';
     }
     $('#grade').innerHTML = '<div class="cal">' + html + '</div>';
-    if (diaSelecionado) renderDia(diaSelecionado, lista); else renderDiaVazio();
+    if (diaSelecionado && diaSelecionado >= dtIni && diaSelecionado <= dtFim) renderDia(diaSelecionado, lista); else renderDiaVazio();
   }
 
-  function renderCalDia(lista) {
-    const h = hoje(); const dia = add(h, calOffset); dia.setHours(0, 0, 0, 0);
-    $('#periodo').textContent = dia.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase();
+  function renderCalDia(lista, dia) {
+    const h = hoje();
+    dia = new Date(dia); dia.setHours(0, 0, 0, 0);
     diaSelecionado = dia;
     if (fds(dia)) { $('#grade').innerHTML = '<div class="msg">Fim de semana — sem produção planejada</div>'; renderDia(dia, lista); return; }
     // Agrupa pelo departamento planejado; OP com cronograma todo no passado aparece hoje no depto onde está
@@ -333,7 +352,7 @@ Sessao.iniciarPagina('mapa').then(function (ctx) {
       let fase = fasePlanejadaParaDia(cron, dia);
       if (!fase && ehHojeOuDepois && h >= cron.prazo) {
         const real = String(x.processo || '').trim();
-        if (real && real !== 'SEM MOVIMENTAÇÃO' && ORDEM_DEPTOS.indexOf(real) !== -1) fase = { n: real };
+        if (real && ORDEM_DEPTOS.indexOf(real) !== -1) fase = { n: real };
       }
       if (!fase) return;
       (grupos[fase.n] = grupos[fase.n] || []).push(x);
@@ -347,42 +366,45 @@ Sessao.iniciarPagina('mapa').then(function (ctx) {
     renderDia(dia, lista);
   }
 
-  function renderCalAno(lista) {
-    const h = hoje(); const ano = h.getFullYear() + calOffset;
-    $('#periodo').textContent = String(ano);
+  // Período longo: um cartão por mês (clique abre o mês)
+  function renderResumoMeses(lista) {
+    const h = hoje();
     const meses = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
     let html = '';
-    for (let m = 0; m < 12; m++) {
-      const ini = new Date(ano, m, 1); const fim = new Date(ano, m + 1, 0, 23, 59, 59);
+    for (let m = new Date(dtIni.getFullYear(), dtIni.getMonth(), 1); m <= dtFim; m = new Date(m.getFullYear(), m.getMonth() + 1, 1)) {
+      const ini = m < dtIni ? dtIni : m;
+      const fimMes = new Date(m.getFullYear(), m.getMonth() + 1, 0, 23, 59, 59);
+      const fim = fimMes > dtFim ? new Date(dtFim.getFullYear(), dtFim.getMonth(), dtFim.getDate(), 23, 59, 59) : fimMes;
       const ops = lista.filter(function (x) {
         const cron = cronograma(x); if (!cron) return false;
         return cron.fases.some(function (f) { return f.n !== 'BUFFER' && f.ini <= fim && f.fim >= ini; }) || (h >= cron.prazo && fim >= h);
       });
-      const atr = ops.filter(function (x) { return statusOP(x).cls === 'bad'; }).length;
-      const warn = ops.filter(function (x) { return statusOP(x).cls === 'warn'; }).length;
-      const cor = atr ? '#ef4444' : warn ? '#f59e0b' : '#22c55e';
-      html += '<div class="' + (h.getMonth() === m && h.getFullYear() === ano ? 'atual' : '') + '" data-mes="' + m + '"><i>' + meses[m] + '</i><b style="color:' + cor + '">' + ops.length + '</b><small>OPs</small>' +
-        (atr ? '<small style="color:#ef4444">' + atr + ' atrasada' + (atr > 1 ? 's' : '') + '</small>' : '') + '</div>';
+      const n = function (cls) { return ops.filter(function (x) { return statusOP(x).cls === cls; }).length; };
+      const venc = n('bad'), fcr = n('late'), sem = n('warn');
+      const cor = venc ? '#ef4444' : fcr ? '#f97316' : sem ? '#eab308' : '#22c55e';
+      html += '<div class="' + (h.getMonth() === m.getMonth() && h.getFullYear() === m.getFullYear() ? 'atual' : '') + '" data-mes="' + m.getFullYear() + '-' + m.getMonth() + '">' +
+        '<i>' + meses[m.getMonth()] + ' ' + String(m.getFullYear()).slice(2) + '</i><b style="color:' + cor + '">' + ops.length + '</b><small>OPs</small>' +
+        (venc ? '<small style="color:#ef4444">' + venc + ' prazo vencido</small>' : '') +
+        (fcr ? '<small style="color:#f97316">' + fcr + ' fora do crono.</small>' : '') + '</div>';
     }
     $('#grade').innerHTML = '<div class="ano">' + html + '</div>';
     renderDiaVazio();
   }
 
-  // 1) prazo vencido (mais antigo primeiro) · 2) atrasadas no depto com prazo ainda não vencido
+  // 1) prazo vencido (mais antigo primeiro) · 2) fora do crono. · 3) sem movimentação
   function buildListaAtrasadas(lista) {
-    const h = hoje();
-    const porPrazo = lista.filter(function (x) { const p = parseBR(x.prazo); return p && p < h; }).sort(function (a, b) { return parseBR(a.prazo) - parseBR(b.prazo); });
-    const porDepto = lista.filter(function (x) { const p = parseBR(x.prazo); if (!p || p < h) return false; return statusOP(x).cls === 'bad'; })
-      .sort(function (a, b) { return parseBR(a.prazo) - parseBR(b.prazo); });
-    return porPrazo.concat(porDepto);
+    const porPrazo = function (a, b) { return parseBR(a.prazo) - parseBR(b.prazo); };
+    const de = function (cls) { return lista.filter(function (x) { return statusOP(x).cls === cls; }).sort(porPrazo); };
+    return de('bad').concat(de('late'), de('warn'));
   }
 
   function renderVistaAtrasadas(lista) {
     const h = hoje();
     $('#periodo').textContent = 'ATRASADAS';
     const todas = buildListaAtrasadas(lista);
-    if (!todas.length) { $('#grade').innerHTML = '<div class="msg">Nenhuma OP atrasada</div>'; renderDiaVazio(); return; }
-    const nPrazo = todas.filter(function (x) { const p = parseBR(x.prazo); return p && p < h; }).length;
+    if (!todas.length) { $('#grade').innerHTML = '<div class="msg">Nenhuma OP com prazo vencido, fora do crono. ou sem movimentação</div>'; renderDiaVazio(); return; }
+    const nPrazo = todas.filter(function (x) { return statusOP(x).cls === 'bad'; }).length;
+    const nFcr = todas.filter(function (x) { return statusOP(x).cls === 'late'; }).length;
     const linha = function (x, extra) {
       return '<div class="la" data-op="' + x.id + '"><span class="o">' + Ui.esc(rotulo(x)) + '</span><span class="cd">' + Ui.esc(x.codigo || '-') + '</span>' +
         '<span class="d">' + Ui.esc(x.descricao || '-') + '</span>' + extra + '</div>';
@@ -393,10 +415,14 @@ Sessao.iniciarPagina('mapa').then(function (ctx) {
         const dias = Math.floor((h - parseBR(x.prazo)) / 86400000);
         return linha(x, '<span class="mut" style="font-size:11px">' + Ui.esc(x.processo || '-') + '</span><span style="color:#f59e0b">' + Ui.esc(x.prazo) + '</span><b style="color:#ef4444">' + dias + 'd</b>');
       }).join('') +
-      (todas.length > nPrazo ? '<h4 style="color:#f59e0b">ATRASADAS NO DEPARTAMENTO (' + (todas.length - nPrazo) + ')</h4>' : '') +
-      todas.slice(nPrazo).map(function (x) {
+      (nFcr ? '<h4 style="color:#f97316">FORA DO CRONO. (' + nFcr + ')</h4>' : '') +
+      todas.slice(nPrazo, nPrazo + nFcr).map(function (x) {
         const st = statusOP(x);
-        return linha(x, '<span style="color:#f59e0b;font-size:11px;white-space:nowrap">' + Ui.esc(st.fase ? st.fase.n : '-') + ' ← planejado</span><span class="mut" style="font-size:11px">' + Ui.esc(x.processo || '-') + '</span><span style="color:#f59e0b">' + Ui.esc(x.prazo) + '</span>');
+        return linha(x, '<span style="color:#f97316;font-size:11px;white-space:nowrap">' + Ui.esc(st.fase ? st.fase.n : '-') + ' ← planejado</span><span class="mut" style="font-size:11px">' + Ui.esc(x.processo || '-') + '</span><span style="color:#f97316">' + Ui.esc(x.prazo) + '</span><b style="color:#f97316">' + st.diasAtraso + 'd</b>');
+      }).join('') +
+      (todas.length > nPrazo + nFcr ? '<h4 style="color:#eab308">SEM MOVIMENTAÇÃO (' + (todas.length - nPrazo - nFcr) + ')</h4>' : '') +
+      todas.slice(nPrazo + nFcr).map(function (x) {
+        return linha(x, '<span class="mut" style="font-size:11px">' + Ui.esc(x.processo || '-') + '</span><span>' + Ui.esc(x.prazo) + '</span><b style="color:#eab308">' + Cronograma.diasParada(x) + 'd parada</b>');
       }).join('') + '</div>';
     renderDiaVazio();
   }
@@ -427,23 +453,23 @@ Sessao.iniciarPagina('mapa').then(function (ctx) {
       '<div class="ds">' + Ui.esc(x.descricao) + '</div><div class="gr">' +
       '<span>Planejado: <b>' + Ui.esc(fase ? fase.n : '-') + '</b></span><span>Atual: <b>' + Ui.esc(real) + '</b></span>' +
       '<span>Prazo: <b style="color:' + corPrazo + '">' + Ui.esc(String(x.prazo).slice(0, 5)) + '</b></span><span>No depto: <b>' + diasNoDept + 'd</b></span>' +
-      (st.diasAtraso > 0 ? '<span style="grid-column:1/-1">Atraso no processo: <b style="color:#ef4444">' + st.diasAtraso + ' dias</b></span>' : '') + '</div></div>';
+      (st.diasAtraso > 0 ? '<span style="grid-column:1/-1">' + (st.cls === 'bad' ? 'Prazo vencido há' : 'Atraso no processo:') + ' <b style="color:var(--s)">' + st.diasAtraso + ' dias</b></span>' : '') + '</div></div>';
   }
 
   // ---------- Faixa de atrasadas (atraso no cronograma OU prazo vencido) ----------
   function renderAtrasadas() {
     const h = hoje();
     const lista = OPS.filter(function (x) { return !filtDepto || x.processo === filtDepto; });
-    const atr = lista.filter(function (x) { return statusOP(x).cls === 'bad' || parseBR(x.prazo) < h; })
-      .sort(function (a, b) { return parseBR(a.prazo) - parseBR(b.prazo); });
+    const atr = buildListaAtrasadas(lista);
     $('#atCont').textContent = atr.length + ' OPs';
     $('#atLista').innerHTML = atr.length ? atr.map(function (x) {
       const st = statusOP(x);
       const dias = Math.floor((h - parseBR(x.prazo)) / 86400000);
       const real = String(x.processo || '').trim() || '-';
-      return '<div class="at" data-op="' + x.id + '"><div class="t"><span>' + Ui.esc(rotulo(x)) + '</span><em>' + (dias > 0 ? dias + 'd atraso' : st.diasAtraso + 'd') + '</em></div>' +
+      const txt = st.cls === 'bad' ? dias + 'd prazo vencido' : st.cls === 'late' ? st.diasAtraso + 'd fora do crono.' : Cronograma.diasParada(x) + 'd parada';
+      return '<div class="at ' + st.cls + '" data-op="' + x.id + '"><div class="t"><span>' + Ui.esc(rotulo(x)) + '</span><em>' + txt + '</em></div>' +
         '<div>' + Ui.esc(x.descricao) + '</div><div>' + Ui.esc(real) + ' → ' + Ui.esc(st.fase ? st.fase.n : '-') + '</div></div>';
-    }).join('') : '<div class="mut" style="font-size:12px">Nenhuma OP atrasada</div>';
+    }).join('') : '<div class="mut" style="font-size:12px">Nenhuma OP com prazo vencido, fora do crono. ou sem movimentação</div>';
   }
 
   // ---------- Detalhe da OP ----------
@@ -485,28 +511,19 @@ Sessao.iniciarPagina('mapa').then(function (ctx) {
       return cron.fases.some(function (f) { return f.n !== 'BUFFER' && f.ini <= fim && f.fim >= ini; }) || (h >= cron.prazo && fim >= h);
     };
     const mobil = window.innerWidth <= 760;
-    if (!mobil && filtVista === 'atrasadas') return imprimirLista(buildListaAtrasadas(lista), 'Atrasadas' + sufixo);
+    if (!mobil && soAtrasadas) return imprimirLista(buildListaAtrasadas(lista), 'Atrasadas' + sufixo);
     const dia = mobil ? diaMob : diaSelecionado;
-    if (dia) {
+    if (dia && (mobil || nDias() === 1)) {
       const ops = filtDepto ? lista.filter(function (x) { return opPertenceAoDepto(x, filtDepto, dia); }) : lista.filter(function (x) {
         const cron = cronograma(x); if (!cron) return false;
         return cron.fases.some(function (f) { return f.n !== 'BUFFER' && dia >= f.ini && dia < f.fim; }) || (h >= cron.prazo && dia >= h);
       });
       return imprimirLista(ops, 'OPs do Dia ' + fmtBR(dia) + sufixo);
     }
-    if (filtVista === 'semana') {
-      const dow = h.getDay() || 7; const seg = add(h, -dow + 1 + calOffset * 7); const fim = add(seg, 7);
-      const ops = filtDepto ? lista.filter(function (x) { for (let i = 0; i < 7; i++) { if (opPertenceAoDepto(x, filtDepto, add(seg, i))) return true; } return false; })
-        : lista.filter(function (x) { const cron = cronograma(x); if (!cron) return false; return cron.fases.some(function (f) { return f.n !== 'BUFFER' && f.ini < fim && f.fim > seg; }) || (h >= cron.prazo && fim > h); });
-      return imprimirLista(ops, 'OPs da Semana ' + fmtBR(seg) + ' – ' + fmtBR(add(fim, -1)) + sufixo);
-    }
-    if (filtVista === 'ano') {
-      const ano = h.getFullYear() + calOffset;
-      return imprimirLista(lista.filter(function (x) { return naFase(x, new Date(ano, 0, 1), new Date(ano, 11, 31)); }), 'OPs do Ano ' + ano + sufixo);
-    }
-    const mes = new Date(h.getFullYear(), h.getMonth() + calOffset, 1);
-    const mesFim = new Date(h.getFullYear(), h.getMonth() + calOffset + 1, 0);
-    imprimirLista(lista.filter(function (x) { return naFase(x, mes, mesFim); }), 'OPs de ' + mes.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }) + sufixo);
+    const fim = new Date(dtFim.getFullYear(), dtFim.getMonth(), dtFim.getDate(), 23, 59, 59);
+    const r = rotuloPeriodo();
+    const titulo = /DIAS$/.test(r) ? 'OPs de ' + fmtBR(dtIni) + ' a ' + fmtBR(dtFim) : /^ANO/.test(r) ? 'OPs do Ano ' + dtIni.getFullYear() : 'OPs de ' + r.charAt(0) + r.slice(1).toLowerCase();
+    imprimirLista(lista.filter(function (x) { return naFase(x, dtIni, fim); }), titulo + sufixo);
   }
 
   function imprimirLista(lista, titulo) {
@@ -517,7 +534,7 @@ Sessao.iniciarPagina('mapa').then(function (ctx) {
       const inicio = cron ? fmtBR(cron.ini) : '-';
       const diasPrazo = parseBR(x.prazo) ? Math.floor((parseBR(x.prazo) - h) / 86400000) : null;
       const diasNoDept = x.ultima ? (function () { const d = parseBR(x.ultima); return d ? contaDU(d, h) : 0; })() : 0;
-      const cor = st.label === 'ADIANTADO' ? '#1d4ed8' : st.cls === 'bad' ? '#b91c1c' : st.cls === 'warn' ? '#ca8a04' : '#166634';
+      const cor = st.label === 'ADIANTADO' ? '#1d4ed8' : st.cls === 'bad' ? '#b91c1c' : st.cls === 'late' ? '#c2410c' : st.cls === 'warn' ? '#ca8a04' : '#166634';
       return `<tr>
       <td>${e(x.op || '-')}</td><td>${e(x.pedido || '-')}</td><td>${e(x.cliente || '-')}</td>
       <td><strong>${e(x.codigo || '-')}</strong></td><td>${e(x.descricao || '-')}</td>
@@ -552,11 +569,11 @@ Sessao.iniciarPagina('mapa').then(function (ctx) {
   function renderMob() {
     const h = hoje();
     const lista = listaCal();
-    const cont = { ok: 0, bad: 0, warn: 0, future: 0 };
+    const cont = { ok: 0, bad: 0, late: 0, warn: 0, future: 0 };
     lista.forEach(function (x) { if (cronograma(x)) cont[statusOP(x).cls]++; });
     $('#mobKpi').innerHTML =
-      '<span class="km" style="--c:#22c55e"><b>' + cont.ok + '</b> No prazo</span><span class="km' + (cont.bad ? ' piscando' : '') + '" style="--c:#ef4444"><b>' + cont.bad + '</b> Atrasadas</span>' +
-      '<span class="km" style="--c:#eab308"><b>' + cont.warn + '</b> Sem mov.</span><span class="km" style="--c:#3b82f6"><b>' + cont.future + '</b> Futuro</span>';
+      '<span class="km" style="--c:#22c55e"><b>' + cont.ok + '</b> No prazo</span><span class="km' + (cont.bad ? ' piscando' : '') + '" style="--c:#ef4444"><b>' + cont.bad + '</b> Vencidas</span>' +
+      '<span class="km" style="--c:#f97316"><b>' + cont.late + '</b> Fora crono.</span><span class="km" style="--c:#eab308"><b>' + cont.warn + '</b> Sem mov.</span><span class="km" style="--c:#3b82f6"><b>' + cont.future + '</b> Futuro</span>';
     const dow = h.getDay() || 7;
     const seg = add(h, -dow + 1 + semanaMob * 7);
     $('#mobMes').textContent = seg.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }).toUpperCase();
@@ -576,16 +593,32 @@ Sessao.iniciarPagina('mapa').then(function (ctx) {
 
   // ---------- Eventos ----------
   $('#fDepto').addEventListener('change', aplicarFiltros);
-  $('#fVista').addEventListener('change', aplicarFiltros);
   function aplicarFiltros() {
     filtDepto = $('#fDepto').value;
-    const nova = $('#fVista').value;
-    if (nova !== filtVista) diaSelecionado = null;   // limpa o dia ao trocar de vista
-    filtVista = nova;
-    calOffset = 0;
     renderCal();
     renderMob();
   }
+  // Período: se "De" ficar depois de "Até", troca os dois de lugar
+  function mudouPeriodo() {
+    let a = deIso($('#fIni').value), b = deIso($('#fFim').value);
+    if (!a && !b) return;
+    a = a || b; b = b || a;
+    if (a > b) { const t = a; a = b; b = t; }
+    dtIni = a; dtFim = b;
+    $('#fIni').value = isoDe(a); $('#fFim').value = isoDe(b);
+    soAtrasadas = false; diaSelecionado = null;
+    renderCal();
+  }
+  $('#fIni').addEventListener('change', mudouPeriodo);
+  $('#fFim').addEventListener('change', mudouPeriodo);
+  $('#btAtr').addEventListener('click', function () { soAtrasadas = !soAtrasadas; diaSelecionado = null; renderCal(); });
+  $('#btLimpar').addEventListener('click', function () {
+    periodoMes(hoje().getFullYear(), hoje().getMonth());
+    soAtrasadas = false; diaSelecionado = null;
+    filtDepto = ''; $('#fDepto').value = '';
+    filtBusca = ''; $('#busca').value = '';
+    renderCal(); renderMob();
+  });
   $('#busca').addEventListener('input', function () { filtBusca = $('#busca').value.toUpperCase(); renderCal(); });
   $('#buscaMob').addEventListener('input', function () { filtBusca = $('#buscaMob').value.toUpperCase(); renderMob(); });
   $('#btDeptoMob').addEventListener('click', function () {
@@ -601,12 +634,9 @@ Sessao.iniciarPagina('mapa').then(function (ctx) {
     if (dia) { diaSelecionado = new Date(Number(dia.dataset.dia)); renderCal(); return; }
     const mes = ev.target.closest('[data-mes]');
     if (mes) {
-      const h = hoje(); const ano = h.getFullYear() + calOffset;
-      calOffset = Number(mes.dataset.mes) - h.getMonth() + (ano - h.getFullYear()) * 12;
-      $('#fVista').value = 'mes'; filtVista = 'mes'; renderCal(); return;
+      const p = mes.dataset.mes.split('-');
+      periodoMes(Number(p[0]), Number(p[1])); diaSelecionado = null; renderCal(); return;
     }
-    const nav = ev.target.closest('[data-nav]');
-    if (nav) { const n = Number(nav.dataset.nav); calOffset = n === 0 ? 0 : calOffset + n; renderCal(); return; }
     const dm = ev.target.closest('[data-dia-mob]');
     if (dm) { diaMob = new Date(Number(dm.dataset.diaMob)); renderMob(); return; }
     const sm = ev.target.closest('[data-semana]');
