@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="css/sistema.css">
 <style>
 /* ---------- específico desta página ---------- */
-.cards-g { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 14px; }
+.cards-g { display: grid; grid-template-columns: repeat(7, 1fr); gap: 12px; margin-bottom: 14px; }
 .cf { background: var(--painel); border: 1px solid var(--linha); border-radius: 12px; padding: 12px 14px; cursor: pointer; position: relative; overflow: hidden; text-align: left; font: inherit; color: inherit; }
 .cf::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--c); }
 .cf.sel { border-color: var(--c); box-shadow: 0 0 0 1px var(--c) inset; }
@@ -44,6 +44,8 @@ tr.alterada td:first-child { box-shadow: inset 3px 0 0 var(--destaque); }
 tr.sel td { background: color-mix(in srgb, #3b82f6 9%, transparent); }
 .atraso { color: #f87171; font-weight: 700; }
 html.tema-claro .atraso { color: #b91c1c; }
+.fcr-t { color: #fb923c; font-weight: 700; }
+html.tema-claro .fcr-t { color: #c2410c; }
 .btn2.salvar { background: #16a34a; border-color: #16a34a; color: #fff; }
 .btn2 .n { background: rgba(255,255,255,.25); border-radius: 999px; padding: 0 7px; font-size: 11px; margin-left: 2px; white-space: nowrap; }
 .btn2.imp .n { background: var(--painel-2); }
@@ -54,7 +56,7 @@ html.tema-claro .atraso { color: #b91c1c; }
 .cm .chk { width: 18px; height: 18px; flex: none; }
 .lista-mob { padding-bottom: 90px; }
 
-@media (max-width: 1100px) { .cards-g { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 1100px) { .cards-g { grid-template-columns: repeat(4, 1fr); } }
 </style>
 </head>
 <body>
@@ -95,7 +97,8 @@ html.tema-claro .atraso { color: #b91c1c; }
       <span><i style="background:var(--destaque)"></i>Alterada, ainda não salva</span>
       <span><i style="background:#3b82f6"></i>Selecionada para impressão</span>
       <span><i style="border:1px dashed #dc2626"></i>Sem previsão</span>
-      <span><b class="atraso">05/10</b> atrasada (cronograma, mesma regra do PCP)</span>
+      <span><b class="atraso">05/10</b> prazo vencido</span>
+      <span><b class="fcr-t">05/10</b> fora do crono. (departamento)</span>
       <span>Atualização automática a cada 1 min</span>
     </div>
   </div>
@@ -130,7 +133,7 @@ Sessao.iniciarPagina('gerencial').then(function (ctx) {
   const PROCESSOS = ['VALIDAÇÃO TÉCNICA', 'ENGENHARIA', 'PLANEJAMENTO', 'FILA DE PRODUÇÃO', 'MODELAÇÃO',
     'MOLDAGEM', 'PINTURA', 'FUSÃO', 'REBARBAÇÃO', 'TRATAMENTO TÉRMICO', 'JATEAMENTO',
     'USINAGEM', 'BALANCEAMENTO EXTERNO', 'INSPEÇÃO FINAL', 'EXPEDIÇÃO'];
-  const ROTULO = { TODOS: 'Carteira total', PRODUCAO: 'Em produção', SEM_PREVISAO: 'Sem previsão', ATRASADAS: 'OPs atrasadas', ENGENHARIA: 'Engenharia' };
+  const ROTULO = { TODOS: 'Carteira total', PRODUCAO: 'Em produção', SEM_PREVISAO: 'Sem previsão', VENCIDO: 'Prazo vencido', FORA_CRONO: 'Fora do crono.', SEM_MOV: 'Sem movimentação', ENGENHARIA: 'Engenharia' };
 
   let base = [];
   let modo = 'TODOS';
@@ -154,7 +157,8 @@ Sessao.iniciarPagina('gerencial').then(function (ctx) {
       } });
       base = r.itens.map(function (x) {
         x.ehEng = !x.op;
-        x.atrasada = Cronograma.categoria(x) === 'ATRASADO';
+        x.st = Cronograma.status(x);
+        x.cat = Cronograma.categoria(x);
         return x;
       });
       const ids = new Set(base.map(function (x) { return x.id_item; }));
@@ -182,7 +186,7 @@ Sessao.iniciarPagina('gerencial').then(function (ctx) {
       let ok = true;
       if (modo === 'ENGENHARIA') ok = x.ehEng;
       if (modo === 'SEM_PREVISAO') ok = !x.ehEng && !x.previsao;
-      if (modo === 'ATRASADAS') ok = x.atrasada;
+      if (modo === 'VENCIDO' || modo === 'FORA_CRONO' || modo === 'SEM_MOV') ok = x.cat === modo;
       if (modo === 'PRODUCAO') ok = x.situacao === 'EM PRODUÇÃO';
       if (data) ok = ok && x.prazo === prazoBR;
       if (busca) ok = ok && (String(x.op) + String(x.pedido) + String(x.cliente) + String(x.codigo) + String(x.descricao) + String(x.processo || '')).toUpperCase().indexOf(busca) !== -1;
@@ -194,13 +198,16 @@ Sessao.iniciarPagina('gerencial').then(function (ctx) {
   }
 
   // ---------- Desenho ----------
+  function conta(cat) { return base.filter(function (x) { return x.cat === cat; }).length; }
   function desenhar() {
     const semPrev = base.filter(function (x) { return !x.ehEng && !x.previsao; }).length;
     const k = [
       { m: 'TODOS', c: '#3b82f6', ic: 'i-tabela', n: base.length, d: 'OPs + itens em engenharia', mob: 'Carteira' },
       { m: 'PRODUCAO', c: '#22c55e', ic: 'i-fogo', n: base.filter(function (x) { return x.situacao === 'EM PRODUÇÃO'; }).length, d: 'com processo iniciado', mob: 'Produção' },
       { m: 'SEM_PREVISAO', c: '#eab308', ic: 'i-relogio', n: semPrev, d: 'OPs sem data de previsão', mob: 'Sem previsão', pisca: semPrev > 0 },
-      { m: 'ATRASADAS', c: '#ef4444', ic: 'i-alerta', n: base.filter(function (x) { return x.atrasada; }).length, d: 'fora do cronograma', mob: 'Atrasadas' },
+      { m: 'VENCIDO', c: Cronograma.COR.VENCIDO, ic: 'i-alerta', n: conta('VENCIDO'), d: 'passou o prazo do cliente', mob: 'Vencidas' },
+      { m: 'FORA_CRONO', c: Cronograma.COR.FORA_CRONO, ic: 'i-cal', n: conta('FORA_CRONO'), d: 'departamento atrasado', mob: 'Fora crono.' },
+      { m: 'SEM_MOV', c: Cronograma.COR.SEM_MOV, ic: 'i-relogio', n: conta('SEM_MOV'), d: '4+ dias parada', mob: 'Sem mov.' },
       { m: 'ENGENHARIA', c: '#a855f7', ic: 'i-clip', n: base.filter(function (x) { return x.ehEng; }).length, d: 'itens sem OP', mob: 'Engenharia' }
     ];
     $('#cards').innerHTML = k.map(function (x) {
@@ -215,9 +222,11 @@ Sessao.iniciarPagina('gerencial').then(function (ctx) {
 
   function opcoesProcesso(atual) {
     const lista = PROCESSOS.map(function (p) { return '<option' + (p === atual ? ' selected' : '') + '>' + Ui.esc(p) + '</option>'; }).join('');
-    // Processo fora da lista (ex.: SEM MOVIMENTAÇÃO) aparece selecionado, igual ao antigo
+    // Processo fora da lista aparece selecionado, igual ao antigo
     return lista + (atual && PROCESSOS.indexOf(atual) === -1 ? '<option selected>' + Ui.esc(atual) + '</option>' : '');
   }
+
+  function corPrazo(x) { return x.cat === 'VENCIDO' ? ' atraso' : x.cat === 'FORA_CRONO' ? ' fcr-t' : ''; }
 
   function desenharLista() {
     const lista = aplicarFiltro();
@@ -230,7 +239,7 @@ Sessao.iniciarPagina('gerencial').then(function (ctx) {
         '<td><b>' + Ui.esc(x.op || '—') + '</b></td><td>' + Ui.esc(x.pedido || '—') + '</td><td>' + Ui.esc(x.cliente || '—') + '</td>' +
         '<td class="mut">' + Ui.esc(x.codigo || '—') + '</td><td class="desc" title="' + Ui.esc(x.descricao) + '">' + Ui.esc(x.descricao || '—') + '</td>' +
         '<td><select class="in' + ('processo' in ed ? ' mudou' : '') + '" data-campo="processo"' + dis + '>' + opcoesProcesso(procAtual(x)) + '</select></td>' +
-        '<td class="num' + (x.atrasada ? ' atraso' : '') + '">' + Ui.esc(x.prazo ? x.prazo.slice(0, 5) : '—') + '</td>' +
+        '<td class="num' + corPrazo(x) + '" title="' + Ui.esc(x.st.label) + '">' + Ui.esc(x.prazo ? x.prazo.slice(0, 5) : '—') + '</td>' +
         '<td><input type="date" class="in' + ('previsao' in ed ? ' mudou' : '') + (!x.ehEng && !prev ? ' vazio' : '') + '" data-campo="previsao" value="' + Ui.esc(prev) + '"' + dis + '></td></tr>';
     }).join('') || '<tr><td colspan="9"><div class="vazio">Nenhuma OP encontrada.</div></td></tr>';
 
@@ -240,7 +249,7 @@ Sessao.iniciarPagina('gerencial').then(function (ctx) {
       const alterada = 'processo' in ed || 'previsao' in ed;
       return '<div class="cm' + (alterada ? ' alterada' : '') + (selecionadas.has(x.id_item) ? ' sel' : '') + '" data-id="' + Ui.esc(x.id_item) + '">' +
         '<div class="cm-top"><input type="checkbox" class="chk" data-sel' + (selecionadas.has(x.id_item) ? ' checked' : '') + '><span class="op">' + Ui.esc(x.op || '—') + '</span>' +
-        '<span class="cli">' + Ui.esc(x.cliente) + ' · ped. ' + Ui.esc(x.pedido || '—') + '</span><span class="prazo' + (x.atrasada ? ' atraso' : '') + '">' + Ui.esc(x.prazo ? x.prazo.slice(0, 5) : '—') + '</span></div>' +
+        '<span class="cli">' + Ui.esc(x.cliente) + ' · ped. ' + Ui.esc(x.pedido || '—') + '</span><span class="prazo' + corPrazo(x) + '">' + Ui.esc(x.prazo ? x.prazo.slice(0, 5) : '—') + '</span></div>' +
         '<div class="cm-desc">' + Ui.esc(x.descricao) + '<small>' + Ui.esc(x.codigo) + ' · ' + Ui.esc(x.liga || '—') + '</small></div>' +
         '<div class="cm-campos"><label>Processo<select class="in' + ('processo' in ed ? ' mudou' : '') + '" data-campo="processo"' + dis + '>' + opcoesProcesso(procAtual(x)) + '</select></label>' +
         '<label>Previsão<input type="date" class="in' + ('previsao' in ed ? ' mudou' : '') + (!x.ehEng && !prev ? ' vazio' : '') + '" data-campo="previsao" value="' + Ui.esc(prev) + '"' + dis + '></label></div></div>';
