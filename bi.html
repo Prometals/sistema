@@ -21,7 +21,7 @@ main.conteudo { padding: 0 !important; height: 100vh; overflow: hidden; position
 .marca { display: flex; align-items: baseline; gap: 12px; }
 .marca b { font-size: 24px; letter-spacing: 2px; } .marca span { color: var(--destaque); font-weight: 800; font-size: 18px; letter-spacing: 1.5px; }
 .hk { display: flex; gap: 0; }
-.hk div { padding: 0 20px; text-align: center; border-left: 1px solid var(--linha); }
+.hk div { padding: 0 26px; text-align: center; border-left: 1px solid var(--linha); }
 .hk div:first-child { border-left: 0; }
 .hk b { display: block; font-size: 32px; line-height: 1; font-variant-numeric: tabular-nums; }
 .hk span { font-size: 11px; font-weight: 700; color: var(--texto-suave); letter-spacing: 1px; }
@@ -93,7 +93,7 @@ html.tema-claro .dias { color: #b91c1c; } .dias.fcr { color: #fb923c; } html.tem
      sai a tela "Prioridade gerencial" e os 6 cards da Saúde (repetiam o
      cabeçalho); 4 telas em rotação (Saúde, Gargalos, Engenharia, Clientes);
      saúde do cronograma numa barra única com %; top 3 processos em laranja.
-     Atrasada / parada = js/cronograma.js (mesmos números do PCP, Consulta,
+     Prazo vencido / fora do crono. = js/cronograma.js (mesmos números do PCP, Consulta,
      Gerencial e Visão geral). Tempo de cada tela: ?seg=20 na URL. -->
 <main class="conteudo">
   <div class="tv" id="tv">
@@ -104,7 +104,6 @@ html.tema-claro .dias { color: #b91c1c; } .dias.fcr { color: #fb923c; } html.tem
         <div><b id="hProd" style="color:#14b8a6">—</b><span>EM PRODUÇÃO</span></div>
         <div><b id="hAtr" style="color:#ef4444">—</b><span>PRAZO VENCIDO</span></div>
         <div><b id="hFcr" style="color:#f97316">—</b><span>FORA DO CRONO.</span></div>
-        <div><b id="hPar" style="color:#eab308">—</b><span>SEM MOVIMENTAÇÃO</span></div>
       </div>
       <div class="dir">
         <div class="bts">
@@ -319,7 +318,7 @@ Sessao.iniciarPagina('bi').then(function (ctx) {
   rodape();
 
   // Classifica a carteira com as MESMAS regras do PCP · Monitor e da Visão geral:
-  // prazo vencido = cliente · fora do crono. = departamento · sem movimentação = 4+ dias parada.
+  // prazo vencido = cliente · fora do crono. = departamento.
   function preparar(r) {
     const cart = r.carteira.map(function (c) {
       c._st = Cronograma.status(c);
@@ -339,7 +338,6 @@ Sessao.iniciarPagina('bi').then(function (ctx) {
       gargalos: processos.slice(0, 10),
       atrasadas: porAtraso(cart.filter(function (c) { return c._cat === 'VENCIDO'; })),
       foraCrono: porAtraso(cart.filter(function (c) { return c._cat === 'FORA_CRONO'; })),
-      paradas: cart.filter(function (c) { return c._cat === 'SEM_MOV'; }),
       engenharia: r.engenharia || []
     };
   }
@@ -358,7 +356,6 @@ Sessao.iniciarPagina('bi').then(function (ctx) {
     $('hProd').textContent = cart.filter(function (c) { return !!c.op; }).length;
     $('hAtr').textContent = d.atrasadas.length;
     $('hFcr').textContent = d.foraCrono.length;
-    $('hPar').textContent = d.paradas.length;
     telaSaude(d); telaGargalos(d); telaEngenharia(d); telaClientes(d);
   }
 
@@ -382,7 +379,6 @@ Sessao.iniciarPagina('bi').then(function (ctx) {
       { rot: 'No prazo', cor: '#16a34a', n: 0, t: ['NO PRAZO'] },
       { rot: 'Prazo vencido', cor: '#dc2626', n: 0, t: ['PRAZO VENCIDO'] },
       { rot: 'Fora do crono.', cor: '#ea580c', n: 0, t: ['FORA DO CRONO.'] },
-      { rot: 'Sem movimentação', cor: '#ca8a04', n: 0, t: ['SEM MOVIMENTAÇÃO'] },
       { rot: 'Adiantadas', cor: '#2563eb', n: 0, t: ['ADIANTADO'] }
     ];
     let fora = 0;
