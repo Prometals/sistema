@@ -119,14 +119,14 @@ Sessao.iniciarPagina('inicio').then(function (ctx) {
   // Cada OP aparece uma vez só (a situação mais grave).
   function desenharAtencao(r) {
     const cart = r.carteira;
-    const grupo = function (cat, tag, rot, dias, mostraDias) {
+    const grupo = function (cat, tag, rot, dias) {
       return cart.filter(function (c) { return c._cat === cat; })
         .sort(function (a, b) { return dias(b) - dias(a); })
-        .map(function (o) { const d = mostraDias ? dias(o) : 0; return { o: o, tag: tag, txt: rot + (d ? ' · ' + d + ' d' : '') }; });
+        .map(function (o) { return { o: o, tag: tag, txt: rot }; });
     };
     const atraso = function (o) { return o._st.diasAtraso || 0; };
-    const linhas = grupo('VENCIDO', 't-verm', 'Prazo vencido', atraso, false)
-      .concat(grupo('FORA_CRONO', 't-lar', 'Fora do crono.', atraso, true));
+    const linhas = grupo('VENCIDO', 't-verm', 'Prazo vencido', atraso)
+      .concat(grupo('FORA_CRONO', 't-lar', 'Fora do crono.', atraso));
     const lista = linhas.slice(0, 10);
     if (!lista.length) {
       $('atencao').innerHTML = '<div class="vazio">' + Ui.ic('i-check') + '<br>Nenhuma OP com prazo vencido ou fora do cronograma. Tudo em dia.</div>';
