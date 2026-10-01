@@ -148,8 +148,8 @@ html.tema-claro .cd { color: #1d4ed8; }
           <label class="per-f" title="Período: o calendário mostra o planejamento destes dias; imprimir e Excel levam as OPs com prazo entre estas datas"><svg class="i"><use href="#i-cal"/></svg><input type="date" id="fIni" aria-label="De"><span>até</span><input type="date" id="fFim" aria-label="Até"></label>
           <button class="btn2" id="btAtr" title="Atrasadas: prazo vencido e fora do crono."><svg class="i"><use href="#i-alerta"/></svg>Atrasadas</button>
           <button class="btn2" id="btLimpar" title="Limpar filtros e voltar ao mês atual"><svg class="i"><use href="#i-x"/></svg>Limpar</button>
-          <button class="btn2" data-imprimir title="Imprimir: OPs com prazo no período (com os filtros)"><svg class="i"><use href="#i-imp"/></svg>Imprimir</button>
-          <button class="btn2" data-excel title="Excel: OPs com prazo no período (com os filtros)"><svg class="i"><use href="#i-xls"/></svg>Excel</button>
+          <button class="btn2" data-imprimir title="Imprimir: OPs com prazo no período + atrasadas (com os filtros)"><svg class="i"><use href="#i-imp"/></svg>Imprimir</button>
+          <button class="btn2" data-excel title="Excel: OPs com prazo no período + atrasadas (com os filtros)"><svg class="i"><use href="#i-xls"/></svg>Excel</button>
           <span class="per-rot" id="periodo"></span>
         </div>
         <div class="f"><svg class="i"><use href="#i-busca"/></svg><input id="busca" placeholder="Buscar OP, pedido, código, descrição ou liga…" autocomplete="off"></div>
@@ -506,7 +506,7 @@ Sessao.iniciarPagina('mapa').then(function (ctx) {
 
   // ---------- Impressão e Excel: leem o PRAZO ----------
   //   botão Atrasadas ligado → a lista de atrasadas da tela
-  //   senão → OPs com PRAZO dentro do período De/Até
+  //   senão → OPs com PRAZO dentro do período De/Até + TODAS as atrasadas
   //   (sempre com o departamento e a busca escolhidos)
   //   celular → OPs do dia escolhido na faixa
   function selecaoRelatorio() {
@@ -516,7 +516,11 @@ Sessao.iniciarPagina('mapa').then(function (ctx) {
     if (soAtrasadas) return { ops: buildListaAtrasadas(listaCal(false)), titulo: 'Atrasadas' + sufixo };
     const r = rotuloPeriodo();
     const titulo = 'OPs com prazo ' + (nDias() === 1 ? 'em ' + fmtBR(dtIni) : /DIAS$/.test(r) ? 'de ' + fmtBR(dtIni) + ' a ' + fmtBR(dtFim) : /^ANO/.test(r) ? 'no ano de ' + dtIni.getFullYear() : 'em ' + r.charAt(0) + r.slice(1).toLowerCase());
-    return { ops: listaCal(true), titulo: titulo + sufixo };
+    // Atrasadas (prazo vencido e fora do crono.) SEMPRE entram no plano,
+    // mesmo com prazo fora do período.
+    const ops = listaCal(true), ids = new Set(ops.map(function (x) { return x.id; }));
+    buildListaAtrasadas(listaCal(false)).forEach(function (x) { if (!ids.has(x.id)) { ids.add(x.id); ops.push(x); } });
+    return { ops: ops, titulo: titulo + ' + atrasadas' + sufixo };
   }
   function imprimir() {
     const sel = selecaoRelatorio();
