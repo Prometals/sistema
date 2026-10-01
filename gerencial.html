@@ -90,7 +90,7 @@ html.tema-claro .fcr-t { color: #c2410c; }
     <select id="fDepto" title="Departamento"><option value="">Todos os departamentos</option></select>
     <label class="per-f" title="Prazo: de / até"><svg class="i"><use href="#i-cal"/></svg><input type="date" id="fIni" aria-label="Prazo de"><span>até</span><input type="date" id="fFim" aria-label="Prazo até"></label>
     <div class="f-busca"><svg class="i"><use href="#i-busca"/></svg><input id="busca" placeholder="Buscar OP / Pedido / Cliente / Código / Processo" autocomplete="off"></div>
-    <button class="btn2" id="btLimpar" title="Limpar filtros"><svg class="i"><use href="#i-x"/></svg>Limpar</button>
+    <button class="btn2" id="btLimpar" title="Limpar filtros e seleção"><svg class="i"><use href="#i-x"/></svg>Limpar</button>
     <span class="info" id="info"></span>
   </div>
 
@@ -348,6 +348,7 @@ Sessao.iniciarPagina('gerencial').then(function (ctx) {
   $('#btLimpar').addEventListener('click', function () {
     $('#fDepto').value = ''; $('#fIni').value = ''; $('#fFim').value = '';
     $('#busca').value = ''; $('#busca-mob').value = ''; modo = 'TODOS';
+    selecionadas.clear();   // limpa também as OPs marcadas (ordem de prioridade)
     desenhar();
   });
   $('#bt-prazo-mob').addEventListener('click', function () {
