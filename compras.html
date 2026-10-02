@@ -17,7 +17,11 @@
 .kq.alerta b { color: var(--c); }
 .kq.piscando { animation: pisca 1.8s infinite; }
 .km { cursor: pointer; border: 0; font: inherit; color: inherit; }
-.cp { display: grid; grid-template-columns: 1fr 350px; gap: 14px; align-items: start; }
+.cp { display: grid; grid-template-columns: 1fr; gap: 14px; align-items: start; }
+.cx-lista { max-height: 60vh; overflow: auto; margin: -16px -18px 0; }
+.cx-filtro { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+.cx-filtro button { height: 30px; border: 1px solid var(--borda); border-radius: 8px; background: transparent; font: inherit; font-size: 12px; font-weight: 700; color: var(--texto-suave); padding: 0 10px; cursor: pointer; }
+.cx-filtro button.on { border-color: var(--destaque); color: var(--destaque); }
 .cp > * { min-width: 0; }
 .bx { background: var(--painel); border: 1px solid var(--linha); border-radius: 14px; overflow: hidden; }
 .bx-cab { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--linha); flex-wrap: wrap; }
@@ -135,7 +139,7 @@ td.op-n { font-weight: 800; white-space: nowrap; }
      mudar, pisca de novo. Entrada e inventário ficam no Insumos. -->
 <main class="conteudo">
   <div class="tit-pagina">
-    <div><h1>Compras</h1><p>O que precisa comprar · por insumo ou por OP</p></div>
+    <div><h1>Compras</h1><p>O que precisa comprar · por insumo ou por OP · de OP e sem OP</p></div>
     <div class="acoes-pagina so-desk">
       <button class="btn2" data-imprimir-compras title="Imprimir a lista do que está na tela"><svg class="i"><use href="#i-imp"/></svg>Imprimir</button>
       <button class="btn2" data-excel-compras title="Baixar a lista em Excel (.xlsx)"><svg class="i"><use href="#i-xls"/></svg>Excel</button>
@@ -152,7 +156,7 @@ td.op-n { font-weight: 800; white-space: nowrap; }
         <button type="button" class="tg-falta on" id="bSoFalta" title="Mostrar só o que falta / mostrar tudo">Só o que falta</button>
         <span class="filtro-on" id="filtro-ins"></span>
         <div class="dir">
-          <select id="fCat" title="Categorias"><option value="LF">Luva e filtro</option><option value="TODAS">Todos</option></select>
+          <select id="fCat" title="De OP = luva e filtro (consumo das OPs) · Sem OP = outros (manutenção, retirada sem OP)"><option value="TODAS">Todos</option><option value="OP">De OP (luva e filtro)</option><option value="SEM">Sem OP (outros)</option></select>
           <select id="fOrd" title="Ordem"><option value="urg">Precisa comprar primeiro</option><option value="cod">Código</option></select>
         </div></div>
       <div class="tab-wrap so-desk">
@@ -162,14 +166,6 @@ td.op-n { font-weight: 800; white-space: nowrap; }
       <div class="lista-tab so-mob" id="lista-tab"></div>
       <div class="rod-tab" id="rod-tab"></div>
     </section>
-    <aside class="bx so-desk">
-      <div class="bx-cab"><h3>Caixas (embalagem)</h3><span class="s">aparecem quando o PCP abre a OP · dê ✔ Ciente</span><span class="filtro-on" id="filtro-sc"></span></div>
-      <div id="solic"><div class="carregando">Carregando…</div></div>
-    </aside>
-
-    <!-- celular: caixas -->
-    <div class="info-mob so-mob" id="info-mob"></div>
-    <div class="lista-mob so-mob" id="cartoes"></div>
     <div class="barra-mob so-mob">
       <button class="ic" data-imprimir-compras title="Imprimir"><svg class="i"><use href="#i-imp"/></svg></button>
       <button class="ic" data-excel-compras title="Excel"><svg class="i"><use href="#i-xls"/></svg></button>
@@ -191,6 +187,8 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
 
   let painel = { indicadores: {}, insumos: [], solicitacoes: [] };
   let modo = '';              // filtro dos cards: RUPTURA | ABAIXO | SEM_CIENTE | SEMANA
+  const CATS_FILTRO = { TODAS: 'TODAS', OP: ['LUVA', 'FILTRO'], SEM: ['OUTROS'] };
+  const NOME_CAT = { TODAS: 'Todos', OP: 'De OP (luva e filtro)', SEM: 'Sem OP (outros)' };
   let visao = 'INS';          // tabela: INS (por insumo) | OP (por OP)
   let soFalta = true;         // mostra só o que falta
   const abertos = {};         // insumos com a linha de OPs aberta
@@ -199,15 +197,15 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
   // Recalcula a cada 60 s (não atrapalha quem está digitando ou com janela aberta)
   setInterval(function () {
     const f = document.activeElement;
-    if (document.hidden || document.querySelector('.modal-fundo') || (f && f.closest && f.closest('#solic'))) return;
+    if (document.hidden || document.querySelector('.modal-fundo')) return;
     carregar(true);
   }, 60000);
 
   async function carregar(silencioso) {
     try {
-      painel = await Api.chamar('painelCompras', { categorias: $('#fCat').value === 'TODAS' ? 'TODAS' : ['LUVA', 'FILTRO'] }, { rapido: function () {
+      painel = await Api.chamar('painelCompras', { categorias: CATS_FILTRO[$('#fCat').value] }, { rapido: function () {
         const f = document.activeElement;
-        if (!document.querySelector('.modal-fundo') && !(f && f.closest && f.closest('#solic'))) carregar(true);
+        if (!document.querySelector('.modal-fundo')) carregar(true);
       } });
       desenhar();
     } catch (err) {
@@ -258,10 +256,10 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
     if ($('#fOrd').value === 'cod') l.sort(function (a, b) { return a.cod_insumo.localeCompare(b.cod_insumo); });
     return l;
   }
-  function solicitacoesFiltradas() {
+  function solicitacoesFiltradas(f) {
     let l = painel.solicitacoes;
-    if (modo === 'SEM_CIENTE') l = l.filter(semCiente);
-    if (modo === 'SEMANA') l = l.filter(nestaSemana);
+    if (f === 'SEM_CIENTE') l = l.filter(semCiente);
+    if (f === 'SEMANA') l = l.filter(nestaSemana);
     // sem ciente primeiro, depois quem precisa comprar antes
     return l.slice().sort(function (a, b) {
       return (semCiente(b) - semCiente(a)) || ((comprarAteDe(a) || 0) - (comprarAteDe(b) || 0));
@@ -281,15 +279,14 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
       { m: 'SEMANA', c: '#3b82f6', n: nSemana, s: '"comprar até" nos próximos 7 dias', mob: 'Esta semana', neutro: true }
     ];
     $('#cards').innerHTML = k.map(function (x) {
-      return '<button class="kq' + (x.n > 0 && !x.neutro ? ' alerta' : '') + (x.pisca ? ' piscando' : '') + (modo === x.m ? ' sel' : '') + '" data-modo="' + x.m + '" style="--c:' + x.c + '">' +
+      return '<button class="kq' + (x.n > 0 && !x.neutro ? ' alerta' : '') + (x.pisca ? ' piscando' : '') + (modo === x.m ? ' sel' : '') + '" ' + (MODOS_SC[x.m] ? 'data-caixas' : 'data-modo') + '="' + x.m + '" style="--c:' + x.c + '"' + (MODOS_SC[x.m] ? ' title="Abrir a lista de caixas"' : '') + '>' +
         '<span class="l">' + ROTULO[x.m] + '</span><b>' + e(x.n || 0) + '</b><span class="s">' + e(x.s) + '</span></button>';
     }).join('');
     $('#cards-mob').innerHTML = k.map(function (x) {
-      return '<button class="km' + (x.pisca ? ' piscando' : '') + (modo === x.m ? ' sel' : '') + '" data-modo="' + x.m + '" style="--c:' + x.c + '"><b>' + e(x.n || 0) + '</b> ' + x.mob + '</button>';
+      return '<button class="km' + (x.pisca ? ' piscando' : '') + (modo === x.m ? ' sel' : '') + '" ' + (MODOS_SC[x.m] ? 'data-caixas' : 'data-modo') + '="' + x.m + '" style="--c:' + x.c + '"><b>' + e(x.n || 0) + '</b> ' + x.mob + '</button>';
     }).join('');
     desenharTabela();
-    desenharSolicitacoes();
-    desenharCartoes();
+    redesenharCaixas();
   }
 
   // ---------- Conta por OP ----------
@@ -401,7 +398,7 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
         '<small>' + (pq ? pq.txt + (pq.cls === 'op' ? ' (' + e(opsTexto(i.cod_insumo)) + ')' : '') + ' · ' : '') + 'tem ' + n(i.saldo) + ' · vai usar ' + n(i.vai_sair) + ' · mín. ' + n(i.minimo) + '</small></div>';
     }).join('') || '<div class="vazio">' + (soFalta && !modo ? '✅ Nada para comprar.' : 'Nenhum insumo neste filtro.') + '</div>';
     const nComprar = painel.insumos.filter(function (i) { return i.sugerido > 0; }).length;
-    $('#rod-tab').textContent = l.length + ' insumo' + (l.length === 1 ? '' : 's') + ' na lista · ' + nComprar + ' para comprar · clique no insumo para ver as OPs';
+    $('#rod-tab').textContent = l.length + ' insumo' + (l.length === 1 ? '' : 's') + ' na lista · ' + nComprar + ' para comprar' + ($('#fCat').value === 'SEM' ? ' · itens sem OP: compra pelo estoque mínimo' : ' · clique no insumo para ver as OPs');
   }
 
   function desenharPorOP() {
@@ -449,26 +446,41 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
   }
   const podeCiente = function (s) { return ctx.podeEditar && semCiente(s); };
 
-  function desenharSolicitacoes() {
-    const l = solicitacoesFiltradas();
-    $('#filtro-sc').innerHTML = MODOS_SC[modo] ? 'Filtro: ' + ROTULO[modo] + '<button type="button" data-modo="' + modo + '">limpar</button>' : '';
-    $('#solic').innerHTML = l.map(function (s) {
-      return '<div class="sc' + (semCiente(s) ? ' pisca' : urgente(s) ? ' urg' : '') + '" data-sc="' + e(s.id_solicitacao) + '"><b>' + e(s.cod_insumo) + ' · ' + e(s.descricao) + '</b>' + tagSolic(s) +
-        '<small>' + e(detalheSolic(s)) + '</small><div class="datas">' + datasSolic(s) + '</div>' +
-        '<div class="rod"><span>' + e(cienteTexto(s)) + '</span>' +
-        (podeCiente(s) ? '<button type="button" class="btn2 verde" data-ciente="' + e(s.id_solicitacao) + '"><svg class="i"><use href="#i-check"/></svg>Ciente</button>' : '') + '</div></div>';
-    }).join('') || '<div class="vazio">' + (modo ? 'Nenhuma caixa neste filtro.' : 'Nenhuma caixa em aberto.') + '</div>';
+  function caixaHtml(s) {
+    return '<div class="sc' + (semCiente(s) ? ' pisca' : urgente(s) ? ' urg' : '') + '" data-sc="' + e(s.id_solicitacao) + '"><b>' + e(s.cod_insumo) + ' · ' + e(s.descricao) + '</b>' + tagSolic(s) +
+      '<small>' + e(detalheSolic(s)) + '</small><div class="datas">' + datasSolic(s) + '</div>' +
+      '<div class="rod"><span>' + e(cienteTexto(s)) + '</span>' +
+      (podeCiente(s) ? '<button type="button" class="btn2 verde" data-ciente="' + e(s.id_solicitacao) + '"><svg class="i"><use href="#i-check"/></svg>Ciente</button>' : '') + '</div></div>';
   }
 
-  // Celular: caixas (sem ciente primeiro); a tabela de insumos/OPs fica acima
-  function desenharCartoes() {
-    const sc = MODOS_INS[modo] ? [] : solicitacoesFiltradas();
-    $('#info-mob').textContent = 'Caixas (embalagem) · ' + sc.length + (MODOS_SC[modo] ? ' · ' + ROTULO[modo] + ' · toque de novo para limpar' : ' · sem ciente primeiro');
-    $('#cartoes').innerHTML = sc.map(function (s) {
-      const u = usoDe(s), c = comprarAteDe(s);
-      return '<div class="cm' + (semCiente(s) ? ' pisca' : urgente(s) ? ' urg' : '') + '" data-sc-mob="' + e(s.id_solicitacao) + '"><div class="cm-top"><span class="op">' + e(s.cod_insumo) + '</span><span class="cli">OP ' + e(s.op) + '</span>' + tagSolic(s) + '</div>' +
-        '<div class="cm-desc">' + e(titulo(s.cliente)) + ' · ' + n(s.qtd) + ' ' + e(String(s.unidade || '').toLowerCase()) + '<small>usar em ' + (u ? dataBR(u) : '—') + ' · comprar até ' + (c ? dataBR(c) : '—') + '</small></div></div>';
-    }).join('') || '<div class="vazio">' + (MODOS_INS[modo] ? 'Filtro de insumos ligado (tabela acima).' : 'Nenhuma caixa neste filtro.') + '</div>';
+  // ---------- Pop-up das caixas (card "Caixas sem ciente" / "Comprar esta semana") ----------
+  let cxAberta = null;   // { filtro, caixa } enquanto o pop-up está aberto
+  const FILTROS_CX = [{ f: 'SEM_CIENTE', t: 'Sem ciente' }, { f: 'SEMANA', t: 'Comprar esta semana' }, { f: '', t: 'Todas em aberto' }];
+  function redesenharCaixas() {
+    if (!cxAberta) return;
+    const l = solicitacoesFiltradas(cxAberta.filtro);
+    cxAberta.caixa.querySelector('.cx-filtro').innerHTML = FILTROS_CX.map(function (x) {
+      return '<button type="button" data-cxf="' + x.f + '"' + (x.f === cxAberta.filtro ? ' class="on"' : '') + '>' + x.t + ' (' + solicitacoesFiltradas(x.f).length + ')</button>';
+    }).join('');
+    cxAberta.caixa.querySelector('.cx-lista').innerHTML = l.map(caixaHtml).join('') ||
+      '<div class="vazio">' + (cxAberta.filtro === 'SEM_CIENTE' ? '✅ Todas as caixas já têm ciente.' : 'Nenhuma caixa neste filtro.') + '</div>';
+  }
+  function abrirCaixas(filtro) {
+    Ui.janela({
+      titulo: 'Caixas (embalagem)', subtitulo: 'Aparecem quando o PCP abre a OP · dê ✔ Ciente (se a data de uso mudar, pede de novo)',
+      largura: 620, corpo: '<div class="cx-filtro"></div><div class="cx-lista"></div>', enterConfirma: false,
+      botoes: [{ texto: 'Imprimir', classe: 'esq', valor: 'imp' }, { texto: 'Fechar', valor: null }],
+      antesDeFechar: function (v) { if (v === 'imp') { imprimirCaixas(); return false; } return true; }
+    }).then(function () { cxAberta = null; });
+    const l = document.querySelectorAll('.modal-fundo .modal-caixa');
+    cxAberta = { filtro: filtro, caixa: l[l.length - 1] };
+    cxAberta.caixa.addEventListener('click', function (ev) {
+      const fb = ev.target.closest('[data-cxf]');
+      if (fb) { cxAberta.filtro = fb.dataset.cxf; redesenharCaixas(); return; }
+      const ci = ev.target.closest('[data-ciente]');
+      if (ci) darCiente(ci.dataset.ciente, ci);
+    });
+    redesenharCaixas();
   }
 
   // ---------- Eventos ----------
@@ -487,10 +499,8 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
       desenharTabela();
       return;
     }
-    const scm = ev.target.closest('[data-sc-mob]');
-    if (scm) { verSolicMob(scm.dataset.scMob); return; }
-    const ci = ev.target.closest('[data-ciente]');
-    if (ci) darCiente(ci.dataset.ciente, ci);
+    const cx = ev.target.closest('[data-caixas]');
+    if (cx) abrirCaixas(cx.dataset.caixas);
   });
   $('#fCat').addEventListener('change', function () { carregar(); });
   $('#fOrd').addEventListener('change', function () { desenharTabela(); });
@@ -514,19 +524,6 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
     }
   }
 
-  // Celular: uma caixa por vez numa janela
-  function verSolicMob(id) {
-    const s = painel.solicitacoes.find(function (x) { return x.id_solicitacao === id; });
-    if (!s) return;
-    const corpo = '<p style="margin:0 0 10px">' + e(detalheSolic(s)) + '</p>' +
-      '<div class="sc" style="padding:0;border:0"><div class="datas">' + datasSolic(s) + '</div></div>' +
-      '<p class="mut" style="margin:10px 0 0;font-size:12.5px">' + e(cienteTexto(s)) + '</p>';
-    const botoes = [{ texto: 'Voltar', valor: null }];
-    if (podeCiente(s)) botoes.push({ texto: '✔ Ciente', classe: 'verde', valor: 'ciente' });
-    Ui.janela({ titulo: s.cod_insumo + ' · OP ' + s.op, subtitulo: s.descricao, largura: 460, corpo: corpo, botoes: botoes })
-      .then(function (v) { if (v === 'ciente') darCiente(s.id_solicitacao); });
-  }
-
   // ---------- Relatório de compras: imprimir e Excel ----------
   // Sai o que está na tela: o filtro do card (Ruptura / Abaixo do mínimo),
   // a categoria e a ordem escolhidas. Sem filtro, sai a categoria inteira.
@@ -538,7 +535,15 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
     });
   }
   function tituloRelatorio() {
-    return (visao === 'OP' ? 'COMPRAS POR OP — ' : 'LISTA DE COMPRAS — ') + (MODOS_INS[modo] ? ROTULO[modo].toUpperCase() : ($('#fCat').value === 'TODAS' ? 'TODOS OS INSUMOS' : 'LUVA E FILTRO')) + (soFalta && !modo ? ' (SÓ O QUE FALTA)' : '');
+    return visao === 'OP' ? 'O QUE COMPRAR — POR OP' : 'O QUE COMPRAR — POR INSUMO';
+  }
+  // Linha com os filtros usados (vai no topo da impressão)
+  function filtrosTexto() {
+    const f = ['Visão: ' + (visao === 'OP' ? 'Por OP' : 'Por insumo'), 'Categoria: ' + NOME_CAT[$('#fCat').value],
+      'Só o que falta: ' + (soFalta && !MODOS_INS[modo] ? 'sim' : 'não')];
+    if (MODOS_INS[modo]) f.push('Filtro do card: ' + ROTULO[modo]);
+    if (visao === 'INS') f.push('Ordem: ' + ($('#fOrd').value === 'cod' ? 'código' : 'precisa comprar primeiro'));
+    return f.join(' · ');
   }
   document.addEventListener('click', function (ev) {
     if (ev.target.closest('[data-imprimir-compras]')) imprimirCompras();
@@ -557,13 +562,15 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
 <style>
   body{font-family:Arial;padding:20px;color:#111}
   h2{font-size:16px;margin-bottom:2px}
-  .sub{font-size:10px;color:#555;margin-bottom:14px}
+  .sub{font-size:10px;color:#555;margin-bottom:4px}
+  .flt{font-size:10.5px;margin-bottom:14px;padding:5px 8px;background:#f3f4f6;border:1px solid #ddd;border-radius:4px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
   table{width:100%;border-collapse:collapse}
   th,td{border:1px solid #ccc;padding:4px 6px;font-size:10px;text-align:left}
   th{background:#efefef} td.n{text-align:right} td.c{text-align:right;font-weight:bold}
   tr{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 </style></head><body>
   <h2>${e(tituloRelatorio())}</h2>
+  <div class="flt"><b>Filtros:</b> ${e(filtrosTexto())}</div>
   <div class="sub">Emitido em: ${new Date().toLocaleString('pt-BR')} &nbsp;|&nbsp; ${visao === 'OP' ? lop.length + ' linhas (OP + insumo)' : l.length + ' insumos &nbsp;|&nbsp; ' + aComprar + ' para comprar'} &nbsp;|&nbsp; sobra/falta = saldo − o que as OPs abertas vão consumir</div>
   ${visao === 'OP' ? porOPHtml(lop) : `<table><thead><tr><th>CÓDIGO</th><th>DESCRIÇÃO</th><th>CATEGORIA</th><th>UN.</th><th>TEM</th><th>VAI USAR</th><th>SOBRA/FALTA</th><th>MÍNIMO</th><th>LEAD (DIAS)</th><th>COMPRAR</th><th>POR QUÊ</th></tr></thead>
   <tbody>${l.map(function (r) {
@@ -572,21 +579,34 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
       '<td class="n">' + Fmt.num(r.min) + '</td><td class="n">' + Fmt.num(r.lead) + '</td>' +
       '<td class="c">' + (r.comprar > 0 ? Fmt.num(r.comprar) : '—') + '</td><td>' + e(r.pq) + '</td></tr>';
   }).join('')}</tbody></table>`}
-  ${caixasHtml()}
   <script>window.onload=()=>window.print();<\/script></body></html>`);
     w.document.close();
   }
 
-  // Caixas em aberto no relatório
-  function linhasCaixas() {
-    return painel.solicitacoes.filter(aberta).slice().sort(function (a, b) { return (comprarAteDe(a) || 0) - (comprarAteDe(b) || 0); }).map(function (s) {
+  // Caixas: impressas pelo botão Imprimir do pop-up (com o filtro do pop-up)
+  function imprimirCaixas() {
+    const f = cxAberta ? cxAberta.filtro : '';
+    const html = caixasHtml(f);
+    if (!html) { Ui.toast('Nenhuma caixa neste filtro.', 'aviso'); return; }
+    const w = window.open('');
+    if (!w) { Ui.toast('O navegador bloqueou a janela de impressão. Libere pop-ups para este site.', 'erro'); return; }
+    const nomeF = (FILTROS_CX.find(function (x) { return x.f === f; }) || {}).t || '';
+    w.document.write('<html><head><title>CAIXAS (EMBALAGEM)</title><style>body{font-family:Arial;padding:20px;color:#111}h2{font-size:16px;margin:0 0 4px}' +
+      '.flt{font-size:10.5px;margin-bottom:14px;padding:5px 8px;background:#f3f4f6;border:1px solid #ddd;border-radius:4px}table{width:100%;border-collapse:collapse}' +
+      'th,td{border:1px solid #ccc;padding:4px 6px;font-size:10px;text-align:left}th{background:#efefef}td.n{text-align:right}tr,.flt{-webkit-print-color-adjust:exact;print-color-adjust:exact}</style></head><body>' +
+      html.replace('<h2 style="margin-top:22px">CAIXAS (EMBALAGEM) EM ABERTO</h2>', '<h2>CAIXAS (EMBALAGEM)</h2><div class="flt"><b>Filtros:</b> ' + e(nomeF) + ' · emitido em ' + new Date().toLocaleString('pt-BR') + '</div>') +
+      '<script>window.onload=()=>window.print();<\/script></body></html>');
+    w.document.close();
+  }
+  function linhasCaixas(f) {
+    return (f ? solicitacoesFiltradas(f) : painel.solicitacoes.filter(aberta)).slice().sort(function (a, b) { return (comprarAteDe(a) || 0) - (comprarAteDe(b) || 0); }).map(function (s) {
       const u = usoDe(s), c = comprarAteDe(s);
       return { op: s.op, cliente: s.cliente, cod: s.cod_insumo, desc: s.descricao, qtd: s.qtd, un: String(s.unidade || ''),
         uso: u ? dataBR(u) : '', ate: c ? dataBR(c) : '', ciente: semCiente(s) ? (dataMudou(s) ? 'DATA MUDOU' : 'SEM CIENTE') : 'CIENTE · ' + (s.ciente_por || ''), sem: semCiente(s) };
     });
   }
-  function caixasHtml() {
-    const l = linhasCaixas();
+  function caixasHtml(f) {
+    const l = linhasCaixas(f);
     if (!l.length) return '';
     return '<h2 style="margin-top:22px">CAIXAS (EMBALAGEM) EM ABERTO</h2><table><thead><tr><th>COMPRAR ATÉ</th><th>VAI USAR EM</th><th>OP</th><th>CLIENTE</th><th>INSUMO</th><th>DESCRIÇÃO</th><th>QTD</th><th>CIENTE</th></tr></thead><tbody>' +
       l.map(function (r) {
