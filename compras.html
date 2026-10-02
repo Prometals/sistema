@@ -49,6 +49,15 @@ tr.rup td:first-child { box-shadow: inset 3px 0 0 #dc2626; } tr.comprar td:first
 .stt.pend { background: rgba(240,122,31,.18); color: #fdba74; } .stt.compr { background: rgba(59,130,246,.18); color: #93c5fd; } .stt.cheg { background: rgba(34,197,94,.15); color: #34d399; }
 html.tema-claro .stt.pend { color: #9a3412; } html.tema-claro .stt.compr { color: #1d4ed8; } html.tema-claro .stt.cheg { color: #166534; }
 .btn2.verde { background: #16a34a; border-color: #16a34a; color: #fff; }
+/* caixas: vai usar em / comprar até / ciente */
+.sc .datas { grid-column: 1 / -1; display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--texto-suave); }
+.sc .datas b { color: var(--texto); font-size: 12.5px; }
+.sc .datas .venc b { color: #f87171; } html.tema-claro .sc .datas .venc b { color: #b91c1c; }
+.sc .rod { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; margin-top: 2px; font-size: 11.5px; color: var(--texto-suave); }
+.sc .rod .btn2 { margin-left: auto; height: 30px; font-size: 12.5px; }
+.sc.pisca { --c: #f07a1f; animation: pisca 1.8s infinite; box-shadow: inset 3px 0 0 #f07a1f; }
+.cm.pisca { --c: #f07a1f; animation: pisca 1.8s infinite; }
+.stt.mudou { background: rgba(240,122,31,.25); color: #fdba74; } html.tema-claro .stt.mudou { color: #9a3412; }
 /* janelas (entrada, inventário, OPs) */
 .mf { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .fc { display: grid; gap: 5px; font-size: 11px; font-weight: 800; color: var(--texto-suave); letter-spacing: .4px; align-content: start; }
@@ -101,19 +110,18 @@ html.tema-claro .av li .q .ok { color: #166534; }
 </head>
 <body>
 
-<!-- Compras — saldo, o que as OPs abertas vão consumir ("vai sair"),
-     projetado e o que comprar; solicitações de embalagem (Pendente →
-     Comprada → Chegou); Entrada de material (vincula à solicitação e
-     avisa o almoxarifado); Inventário (contado × sistema, rascunho,
-     diferença vira ajuste registrado). Tudo calculado no 30_Estoque.gs. -->
+<!-- Compras — SÓ LEITURA: saldo, o que as OPs abertas vão consumir
+     ("vai sair"), projetado e o que comprar. Caixas (embalagem sob
+     demanda) aparecem sozinhas quando o PCP abre a OP, com "vai usar em"
+     (início da Inspeção Final no cronograma) e "comprar até" (− lead
+     time). Pisca até alguém de Compras dar ✔ Ciente; se a data de uso
+     mudar, pisca de novo. Entrada e inventário ficam no Insumos. -->
 <main class="conteudo">
   <div class="tit-pagina">
     <div><h1>Compras</h1><p>Saldo, o que as OPs abertas vão consumir e o que precisa ser comprado</p></div>
     <div class="acoes-pagina so-desk">
       <button class="btn2" data-imprimir-compras title="Imprimir a lista do que está na tela"><svg class="i"><use href="#i-imp"/></svg>Imprimir</button>
       <button class="btn2" data-excel-compras title="Baixar a lista em Excel (.xlsx)"><svg class="i"><use href="#i-xls"/></svg>Excel</button>
-      <button class="btn2" data-inventario data-editar><svg class="i"><use href="#i-lista"/></svg>Inventário</button>
-      <button class="btn2 verde" data-entrada data-editar><svg class="i"><use href="#i-mais"/></svg>Entrada de material</button>
     </div>
   </div>
 
@@ -139,7 +147,7 @@ html.tema-claro .av li .q .ok { color: #166534; }
       </div>
     </section>
     <aside class="bx so-desk">
-      <div class="bx-cab"><h3>Solicitações de embalagem</h3><span class="s">criadas quando a OP abre · sob demanda</span><span class="filtro-on" id="filtro-sc"></span></div>
+      <div class="bx-cab"><h3>Caixas (embalagem)</h3><span class="s">aparecem quando o PCP abre a OP · dê ✔ Ciente</span><span class="filtro-on" id="filtro-sc"></span></div>
       <div id="solic"><div class="carregando">Carregando…</div></div>
     </aside>
 
@@ -147,11 +155,9 @@ html.tema-claro .av li .q .ok { color: #166534; }
     <div class="kpi-mini so-mob" id="cards-mob"></div>
     <div class="info-mob so-mob" id="info-mob"></div>
     <div class="lista-mob so-mob" id="cartoes"></div>
-    <div class="barra-mob so-mob" data-editar>
+    <div class="barra-mob so-mob">
       <button class="ic" data-imprimir-compras title="Imprimir"><svg class="i"><use href="#i-imp"/></svg></button>
       <button class="ic" data-excel-compras title="Excel"><svg class="i"><use href="#i-xls"/></svg></button>
-      <button class="ic" data-inventario title="Inventário"><svg class="i"><use href="#i-lista"/></svg></button>
-      <button class="pri" data-entrada><svg class="i"><use href="#i-mais"/></svg>Entrada de material</button>
     </div>
   </div>
 </main>
@@ -160,6 +166,7 @@ html.tema-claro .av li .q .ok { color: #166534; }
 <script src="js/icones.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/api.js"></script>
+<script src="js/cronograma.js"></script>
 <script src="js/sessao.js"></script>
 <script src="js/shell.js"></script>
 <script>
@@ -168,16 +175,9 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
   const e = Ui.esc;
 
   let painel = { indicadores: {}, insumos: [], solicitacoes: [] };
-  let cadastro = [];          // todos os insumos ativos (entrada de material), com saldo quando possível
-  let modo = '';              // filtro dos cards: RUPTURA | ABAIXO | PENDENTES | CHEGANDO
-  const contagem = {};        // inventário em andamento: cod → texto digitado
-  const pendente = {};        // idReq reaproveitado se o MESMO envio falhar por conexão
-
-  if (!ctx.podeEditar) document.querySelectorAll('[data-editar]').forEach(function (b) { b.hidden = true; });
-  if (!ctx.podeEditar) $('#cartoes').style.paddingBottom = '16px';
+  let modo = '';              // filtro dos cards: RUPTURA | ABAIXO | SEM_CIENTE | SEMANA
 
   carregar();
-  carregarCadastro();
   // Recalcula a cada 60 s (não atrapalha quem está digitando ou com janela aberta)
   setInterval(function () {
     const f = document.activeElement;
@@ -196,55 +196,42 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
       if (!silencioso) Ui.erro(err);
     }
   }
-  async function carregarCadastro() {
-    try {
-      if (ctx.nivelDe('insumos') !== 'NENHUM') cadastro = await Api.chamar('situacaoInsumos', {});
-      else cadastro = (await Api.chamar('listarInsumos', {})).map(function (i) {
-        return { cod_insumo: i.COD_INSUMO, descricao: i.DESCRICAO, categoria: i.CATEGORIA, unidade: i.UNIDADE, saldo: null };
-      });
-    } catch (err) { cadastro = []; }
-  }
-
   // ---------- Apoio ----------
-  // A janela que o Ui.janela acabou de abrir (a última na tela)
-  function ultimaJanela() { const l = document.querySelectorAll('.modal-fundo .modal-caixa'); return l[l.length - 1]; }
-  function num(v) {
-    let t = String(v === undefined || v === null ? '' : v).trim();
-    if (!t) return null;
-    if (t.indexOf(',') !== -1) t = t.replace(/\./g, '').replace(',', '.');
-    const n = Number(t);
-    return isNaN(n) ? NaN : Math.round(n * 1000) / 1000;
-  }
   function catClasse(c) { return { LUVA: 'luva', FILTRO: 'filtro', EMBALAGEM: 'emb' }[c] || ''; }
   function titulo(s) { return String(s || '').toLowerCase().replace(/(^|\s)\S/g, function (l) { return l.toUpperCase(); }); }
   function dataBR(d) { return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear(); }
   function deBR(br) { const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(br || ''); return m ? new Date(+m[3], m[2] - 1, +m[1]) : null; }
-  function paraISO(br) { const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(br || ''); return m ? m[3] + '-' + m[2] + '-' + m[1] : ''; }
-  function isoParaBR(iso) { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || ''); return m ? m[3] + '/' + m[2] + '/' + m[1] : ''; }
   function hojeMais(dias) { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + dias); return d; }
-  const hojeISO = function () { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
-
-  async function enviar(rota, dados) {
-    const chave = rota + JSON.stringify(dados);
-    const idReq = pendente[chave] || Api.idReq();
-    pendente[chave] = idReq;
-    try {
-      const r = await Api.chamar(rota, Object.assign({ idReq: idReq }, dados));
-      delete pendente[chave];
-      return r;
-    } catch (err) {
-      if (err.codigo !== 'SEM_CONEXAO') delete pendente[chave];
-      throw err;
-    }
-  }
 
   // ---------- Regras dos filtros (mesmas contas do servidor) ----------
   const abaixo = function (i) { return i.projetado < i.minimo || i.situacao === 'RUPTURA'; };
-  const chegando = function (s) { const p = deBR(s.previsao_chegada); return s.status === 'COMPRADO' && p && p <= hojeMais(7); };
-  // Urgente: pendente e a OP já está na Inspeção Final (esperando a caixa) ou precisa em até 2 dias
-  const urgente = function (s) { const n = deBR(s.data_necessidade); return s.status === 'SOLICITADO' && (s.processo === 'INSPEÇÃO FINAL' || (n && n <= hojeMais(2))); };
-  const MODOS_INS = { RUPTURA: 1, ABAIXO: 1 }, MODOS_SC = { PENDENTES: 1, CHEGANDO: 1 };
-  const ROTULO = { RUPTURA: 'Ruptura prevista', ABAIXO: 'Abaixo do mínimo', PENDENTES: 'Embalagens pendentes', CHEGANDO: 'Chegando na semana' };
+  // Caixas: "vai usar em" = início da INSPEÇÃO FINAL no cronograma da OP
+  // (prazo + liga); sem prazo, usa a data de necessidade gravada.
+  // "Comprar até" = vai usar em − lead time do insumo (dias corridos).
+  function usoDe(s) {
+    const c = Cronograma.cronograma({ prazo: s.prazo, liga: s.liga });
+    const f = c && c.fases.find(function (x) { return x.n === 'INSPEÇÃO FINAL'; });
+    return f ? f.ini : deBR(s.data_necessidade);
+  }
+  function comprarAteDe(s) {
+    const u = usoDe(s);
+    if (!u) return null;
+    const d = new Date(u); d.setDate(d.getDate() - (Number(s.lead_time) || 0));
+    return d;
+  }
+  const aberta = function (s) { return s.status === 'SOLICITADO' || s.status === 'COMPRADO'; };
+  // Precisa de ciente: nova (ninguém viu) ou a data de uso mudou depois do ciente
+  const semCiente = function (s) {
+    if (s.status === 'SOLICITADO') return true;
+    if (s.status !== 'COMPRADO') return false;
+    const u = usoDe(s);
+    return !!u && s.ciente_uso !== dataBR(u);
+  };
+  const dataMudou = function (s) { return s.status === 'COMPRADO' && semCiente(s); };
+  const nestaSemana = function (s) { const d = comprarAteDe(s); return aberta(s) && d && d <= hojeMais(7); };
+  const urgente = function (s) { const d = comprarAteDe(s); return aberta(s) && (s.processo === 'INSPEÇÃO FINAL' || (d && d <= hojeMais(0))); };
+  const MODOS_INS = { RUPTURA: 1, ABAIXO: 1 }, MODOS_SC = { SEM_CIENTE: 1, SEMANA: 1 };
+  const ROTULO = { RUPTURA: 'Ruptura prevista', ABAIXO: 'Abaixo do mínimo', SEM_CIENTE: 'Caixas sem ciente', SEMANA: 'Comprar esta semana' };
 
   function insumosFiltrados() {
     let l = painel.insumos.slice();
@@ -255,21 +242,25 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
   }
   function solicitacoesFiltradas() {
     let l = painel.solicitacoes;
-    if (modo === 'PENDENTES') l = l.filter(function (s) { return s.status === 'SOLICITADO'; });
-    if (modo === 'CHEGANDO') l = l.filter(chegando);
-    return l;
+    if (modo === 'SEM_CIENTE') l = l.filter(semCiente);
+    if (modo === 'SEMANA') l = l.filter(nestaSemana);
+    // sem ciente primeiro, depois quem precisa comprar antes
+    return l.slice().sort(function (a, b) {
+      return (semCiente(b) - semCiente(a)) || ((comprarAteDe(a) || 0) - (comprarAteDe(b) || 0));
+    });
   }
 
   // ---------- Desenho ----------
   function desenhar() {
     const ind = painel.indicadores;
-    const pend = painel.solicitacoes.filter(function (s) { return s.status === 'SOLICITADO'; });
-    const nUrg = pend.filter(urgente).length;
+    const nSem = painel.solicitacoes.filter(semCiente).length;
+    const nMud = painel.solicitacoes.filter(dataMudou).length;
+    const nSemana = painel.solicitacoes.filter(nestaSemana).length;
     const k = [
       { m: 'RUPTURA', c: '#dc2626', n: ind.ruptura, s: 'o projetado fica negativo', mob: 'Ruptura', pisca: ind.ruptura > 0 },
       { m: 'ABAIXO', c: '#eab308', n: ind.abaixoMinimo, s: 'sugerido comprar', mob: 'Abaixo mín.' },
-      { m: 'PENDENTES', c: '#f07a1f', n: ind.embalagensPendentes, s: nUrg ? nUrg + ' urgente' + (nUrg > 1 ? 's' : '') + ' (Inspeção Final ou até 2 dias)' : 'aguardando compra', mob: 'Embalagens' },
-      { m: 'CHEGANDO', c: '#3b82f6', n: ind.chegandoSemana, s: 'solicitações compradas', mob: 'Chegando', neutro: true }
+      { m: 'SEM_CIENTE', c: '#f07a1f', n: nSem, s: nMud ? nMud + ' com data de uso alterada' : 'novas · dê ✔ Ciente', mob: 'Sem ciente', pisca: nSem > 0 },
+      { m: 'SEMANA', c: '#3b82f6', n: nSemana, s: '"comprar até" nos próximos 7 dias', mob: 'Esta semana', neutro: true }
     ];
     $('#cards').innerHTML = k.map(function (x) {
       return '<button class="kq' + (x.n > 0 && !x.neutro ? ' alerta' : '') + (x.pisca ? ' piscando' : '') + (modo === x.m ? ' sel' : '') + '" data-modo="' + x.m + '" style="--c:' + x.c + '">' +
@@ -358,31 +349,38 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
   }
 
   function tagSolic(s) {
-    if (s.status === 'SOLICITADO') return '<span class="stt pend">PENDENTE</span>';
-    if (s.status === 'COMPRADO') return '<span class="stt compr">COMPRADA' + (s.previsao_chegada ? ' · chega ' + e(s.previsao_chegada.slice(0, 5)) : '') + '</span>';
+    if (s.status === 'SOLICITADO') return '<span class="stt pend">NOVA</span>';
+    if (dataMudou(s)) return '<span class="stt mudou">DATA MUDOU</span>';
+    if (s.status === 'COMPRADO') return '<span class="stt compr">CIENTE</span>';
     if (s.status === 'RECEBIDO') return '<span class="stt cheg">CHEGOU</span>';
     return '<span class="stt">' + e(s.status) + '</span>';
   }
   function detalheSolic(s) {
-    const onde = (s.processo === 'INSPEÇÃO FINAL' ? 'na Inspeção Final agora' : s.processo === 'SEM MOVIMENTAÇÃO' ? 'OP sem apontamento' : 'em ' + titulo(s.processo)) +
-      (s.data_necessidade && s.processo !== 'INSPEÇÃO FINAL' ? ' · precisa até ' + s.data_necessidade.slice(0, 5) : '');
-    return 'OP ' + s.op + ' · ' + titulo(s.cliente) + ' · ' + Fmt.num(s.qtd) + ' ' + String(s.unidade || '').toLowerCase() + ' · ' + onde;
+    return 'OP ' + s.op + ' · ' + titulo(s.cliente) + ' · ' + Fmt.num(s.qtd) + ' ' + String(s.unidade || '').toLowerCase() + ' · ' +
+      (s.processo === 'INSPEÇÃO FINAL' ? 'na Inspeção Final agora' : 'em ' + titulo(s.processo));
   }
-  const editavel = function (s) { return ctx.podeEditar && (s.status === 'SOLICITADO' || s.status === 'COMPRADO'); };
+  function datasSolic(s) {
+    const u = usoDe(s), c = comprarAteDe(s);
+    const venc = c && c < hojeMais(0) && aberta(s);
+    return '<span>Vai usar em <b>' + (u ? dataBR(u) : '—') + '</b></span>' +
+      '<span' + (venc ? ' class="venc"' : '') + '>Comprar até <b>' + (c ? dataBR(c) : '—') + '</b>' + (s.lead_time ? ' (lead ' + Fmt.num(s.lead_time) + ' d)' : '') + '</span>';
+  }
+  function cienteTexto(s) {
+    if (s.status === 'RECEBIDO') return 'chegou · o almoxarifado baixa na Inspeção Final';
+    if (s.status !== 'COMPRADO') return 'ninguém de Compras viu ainda';
+    return 'ciente por ' + (s.ciente_por || '—') + (s.ciente_em ? ' em ' + s.ciente_em : '') + (dataMudou(s) ? ' (uso era ' + s.ciente_uso + ')' : '');
+  }
+  const podeCiente = function (s) { return ctx.podeEditar && semCiente(s); };
 
   function desenharSolicitacoes() {
     const l = solicitacoesFiltradas();
     $('#filtro-sc').innerHTML = MODOS_SC[modo] ? 'Filtro: ' + ROTULO[modo] + '<button type="button" data-modo="' + modo + '">limpar</button>' : '';
     $('#solic').innerHTML = l.map(function (s) {
-      const acs = !editavel(s) ? '' : '<div class="acs">' +
-        '<input data-campo="fornecedor" placeholder="Fornecedor" value="' + e(s.fornecedor) + '" title="Fornecedor">' +
-        '<input type="date" data-campo="previsao_chegada" value="' + e(paraISO(s.previsao_chegada)) + '" title="Previsão de chegada">' +
-        '<select data-acao-sc title="Situação">' +
-        (s.status === 'SOLICITADO' ? '<option value="">Pendente</option><option value="COMPRADO">Marcar comprada</option>' : '<option value="">Comprada</option>') +
-        '<option value="CHEGOU">Chegou → lançar entrada</option></select></div>';
-      return '<div class="sc' + (urgente(s) ? ' urg' : '') + '" data-sc="' + e(s.id_solicitacao) + '"><b>' + e(s.id_solicitacao) + ' · ' + e(s.cod_insumo) + '</b>' + tagSolic(s) +
-        '<small>' + e(detalheSolic(s)) + '</small>' + acs + '</div>';
-    }).join('') || '<div class="vazio">' + (modo ? 'Nenhuma solicitação neste filtro.' : 'Nenhuma solicitação de embalagem em aberto.') + '</div>';
+      return '<div class="sc' + (semCiente(s) ? ' pisca' : urgente(s) ? ' urg' : '') + '" data-sc="' + e(s.id_solicitacao) + '"><b>' + e(s.cod_insumo) + ' · ' + e(s.descricao) + '</b>' + tagSolic(s) +
+        '<small>' + e(detalheSolic(s)) + '</small><div class="datas">' + datasSolic(s) + '</div>' +
+        '<div class="rod"><span>' + e(cienteTexto(s)) + '</span>' +
+        (podeCiente(s) ? '<button type="button" class="btn2 verde" data-ciente="' + e(s.id_solicitacao) + '"><svg class="i"><use href="#i-check"/></svg>Ciente</button>' : '') + '</div></div>';
+    }).join('') || '<div class="vazio">' + (modo ? 'Nenhuma caixa neste filtro.' : 'Nenhuma caixa em aberto.') + '</div>';
   }
 
   // Celular: embalagens (ordem de urgência) e depois os insumos
@@ -390,10 +388,11 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
     const mostraSc = !MODOS_INS[modo], mostraIns = !MODOS_SC[modo];
     const sc = mostraSc ? solicitacoesFiltradas() : [], ins = mostraIns ? insumosFiltrados() : [];
     $('#info-mob').textContent = modo ? ROTULO[modo] + ' · ' + (mostraSc ? sc.length : ins.length) + ' · toque de novo para limpar'
-      : sc.length + ' embalage' + (sc.length === 1 ? 'm' : 'ns') + ' (ordem de urgência) · ' + ins.length + ' insumo' + (ins.length === 1 ? '' : 's');
+      : sc.length + ' caixa' + (sc.length === 1 ? '' : 's') + ' (sem ciente primeiro) · ' + ins.length + ' insumo' + (ins.length === 1 ? '' : 's');
     $('#cartoes').innerHTML = sc.map(function (s) {
-      return '<div class="cm' + (urgente(s) ? ' urg' : '') + '" data-sc-mob="' + e(s.id_solicitacao) + '"><div class="cm-top"><span class="op">' + e(s.cod_insumo) + '</span><span class="cli">' + e(s.id_solicitacao) + '</span>' + tagSolic(s) + '</div>' +
-        '<div class="cm-desc">OP ' + e(s.op) + ' · ' + e(titulo(s.cliente)) + ' · ' + n(s.qtd) + ' ' + e(String(s.unidade || '').toLowerCase()) + '<small>' + e(detalheSolic(s).split(' · ').slice(3).join(' · ')) + (s.fornecedor ? ' · ' + e(s.fornecedor) : '') + '</small></div></div>';
+      const u = usoDe(s), c = comprarAteDe(s);
+      return '<div class="cm' + (semCiente(s) ? ' pisca' : urgente(s) ? ' urg' : '') + '" data-sc-mob="' + e(s.id_solicitacao) + '"><div class="cm-top"><span class="op">' + e(s.cod_insumo) + '</span><span class="cli">OP ' + e(s.op) + '</span>' + tagSolic(s) + '</div>' +
+        '<div class="cm-desc">' + e(titulo(s.cliente)) + ' · ' + n(s.qtd) + ' ' + e(String(s.unidade || '').toLowerCase()) + '<small>usar em ' + (u ? dataBR(u) : '—') + ' · comprar até ' + (c ? dataBR(c) : '—') + '</small></div></div>';
     }).join('') + ins.map(function (i) {
       return '<div class="cm" data-ins="' + e(i.cod_insumo) + '"><div class="cm-top"><span class="op">' + e(i.cod_insumo) + '</span><span class="cli">' + e(i.categoria) + '</span>' + tagSituacao(i) + '</div>' +
         '<div class="cm-desc">' + e(i.descricao) + '<small>saldo ' + n(i.saldo) + ' · vai sair ' + n(i.vai_sair) + ' · projetado ' + n(i.projetado) + ' · mín. ' + n(i.minimo) + (i.sugerido > 0 ? ' · comprar ' + n(i.sugerido) : '') + '</small></div></div>';
@@ -408,78 +407,43 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
     const ins = ev.target.closest('[data-ins]');
     if (ins) { verOPs(ins.dataset.ins); return; }
     const scm = ev.target.closest('[data-sc-mob]');
-    if (scm) { editarSolicMob(scm.dataset.scMob); return; }
-    if (ev.target.closest('[data-entrada]')) { abrirEntrada(); return; }
-    if (ev.target.closest('[data-inventario]')) abrirInventario();
+    if (scm) { verSolicMob(scm.dataset.scMob); return; }
+    const ci = ev.target.closest('[data-ciente]');
+    if (ci) darCiente(ci.dataset.ciente, ci);
   });
   $('#fCat').addEventListener('change', function () { carregar(); });
   $('#fOrd').addEventListener('change', function () { desenharInsumos(); desenharCartoes(); });
 
-  // Fornecedor / previsão: grava ao sair do campo · select: comprada ou chegou
-  $('#solic').addEventListener('change', async function (ev) {
-    const cx = ev.target.closest('[data-sc]');
-    if (!cx) return;
-    const s = painel.solicitacoes.find(function (x) { return x.id_solicitacao === cx.dataset.sc; });
-    if (!s) return;
-    const forn = cx.querySelector('[data-campo="fornecedor"]').value.trim();
-    const prev = isoParaBR(cx.querySelector('[data-campo="previsao_chegada"]').value);
-    if (ev.target.matches('[data-acao-sc]')) {
-      const v = ev.target.value;
-      ev.target.value = '';
-      if (v === 'CHEGOU') { abrirEntrada(s); return; }
-      if (v === 'COMPRADO') await atualizarSolic(s, { status: 'COMPRADO', fornecedor: forn, previsao_chegada: prev }, 'marcada como comprada');
-      return;
-    }
-    const campo = ev.target.dataset.campo;
-    if (!campo) return;
-    const d = {};
-    d[campo] = campo === 'fornecedor' ? forn : prev;
-    if (d[campo] === (s[campo] || '')) return;
-    await atualizarSolic(s, d, 'atualizada');
-  });
-
-  async function atualizarSolic(s, dados, texto) {
+  // ✔ Ciente: grava a data de uso que a pessoa está vendo agora.
+  // Se o PCP mudar o prazo depois, a data muda e a caixa volta a piscar.
+  async function darCiente(id, bt) {
+    const s = painel.solicitacoes.find(function (x) { return x.id_solicitacao === id; });
+    if (!s) return false;
+    const u = usoDe(s);
+    if (bt) bt.disabled = true;
     try {
-      await Api.chamar('atualizarSolicitacao', Object.assign({ id_solicitacao: s.id_solicitacao }, dados));
-      Ui.toast(s.id_solicitacao + ' (' + s.cod_insumo + ', OP ' + s.op + ') ' + texto + '.', 'ok', 'Solicitação');
+      await Api.chamar('cienteSolicitacao', { id_solicitacao: s.id_solicitacao, data_uso: u ? dataBR(u) : '' });
+      Ui.toast(s.cod_insumo + ' · OP ' + s.op + ' · vai usar em ' + (u ? dataBR(u) : '—') + '.', 'ok', 'Ciente');
       await carregar(true);
       return true;
     } catch (err) {
       Ui.erro(err);
-      desenharSolicitacoes();
+      if (bt) bt.disabled = false;
       return false;
     }
   }
 
-  // Celular: uma solicitação por vez numa janela
-  function editarSolicMob(id) {
+  // Celular: uma caixa por vez numa janela
+  function verSolicMob(id) {
     const s = painel.solicitacoes.find(function (x) { return x.id_solicitacao === id; });
     if (!s) return;
-    const pode = editavel(s);
-    const corpo = '<div class="msg-erro"></div><p style="margin:0 0 12px">' + e(detalheSolic(s)) + '</p>' +
-      (pode ? '<div class="mf"><label class="fc l">FORNECEDOR<input name="forn" value="' + e(s.fornecedor) + '"></label>' +
-        '<label class="fc l">PREVISÃO DE CHEGADA<input type="date" name="prev" value="' + e(paraISO(s.previsao_chegada)) + '"></label></div>'
-        : '<p class="mut" style="margin:0">' + (s.fornecedor ? 'Fornecedor: ' + e(s.fornecedor) + '. ' : '') + (s.status === 'RECEBIDO' ? 'Já chegou: o almoxarifado baixa na Inspeção Final.' : '') + '</p>');
+    const corpo = '<p style="margin:0 0 10px">' + e(detalheSolic(s)) + '</p>' +
+      '<div class="sc" style="padding:0;border:0"><div class="datas">' + datasSolic(s) + '</div></div>' +
+      '<p class="mut" style="margin:10px 0 0;font-size:12.5px">' + e(cienteTexto(s)) + '</p>';
     const botoes = [{ texto: 'Voltar', valor: null }];
-    if (pode) {
-      botoes.push({ texto: 'Chegou → entrada', valor: 'chegou' });
-      botoes.push({ texto: s.status === 'SOLICITADO' ? 'Marcar comprada' : 'Salvar', classe: 'pri', valor: 'salvar' });
-    }
-    Ui.janela({
-      titulo: s.id_solicitacao + ' · ' + s.cod_insumo, subtitulo: s.descricao, largura: 460, corpo: corpo, botoes: botoes,
-      antesDeFechar: async function (v, cx) {
-        if (v !== 'salvar') return true;
-        const d = { fornecedor: cx.querySelector('[name="forn"]').value.trim(), previsao_chegada: isoParaBR(cx.querySelector('[name="prev"]').value) };
-        if (s.status === 'SOLICITADO') d.status = 'COMPRADO';
-        try {
-          await Api.chamar('atualizarSolicitacao', Object.assign({ id_solicitacao: s.id_solicitacao }, d));
-          return true;
-        } catch (err) { Ui.msgErro(cx.querySelector('.msg-erro'), err.message); return false; }
-      }
-    }).then(function (v) {
-      if (v === 'chegou') abrirEntrada(s);
-      if (v === 'salvar') { Ui.toast(s.id_solicitacao + ' ' + (s.status === 'SOLICITADO' ? 'marcada como comprada' : 'atualizada') + '.', 'ok', 'Solicitação'); carregar(true); }
-    });
+    if (podeCiente(s)) botoes.push({ texto: '✔ Ciente', classe: 'verde', valor: 'ciente' });
+    Ui.janela({ titulo: s.cod_insumo + ' · OP ' + s.op, subtitulo: s.descricao, largura: 460, corpo: corpo, botoes: botoes })
+      .then(function (v) { if (v === 'ciente') darCiente(s.id_solicitacao); });
   }
 
   // ---------- Relatório de compras: imprimir e Excel ----------
@@ -525,9 +489,28 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
       '<td class="n">' + Fmt.num(r.min) + '</td><td class="n">' + Fmt.num(r.lead) + '</td><td>' + e(r.sit) + '</td>' +
       '<td class="c">' + (r.comprar > 0 ? Fmt.num(r.comprar) : '—') + '</td></tr>';
   }).join('')}</tbody></table>
+  ${caixasHtml()}
   ${avisosHtml()}
   <script>window.onload=()=>window.print();<\/script></body></html>`);
     w.document.close();
+  }
+
+  // Caixas em aberto no relatório
+  function linhasCaixas() {
+    return painel.solicitacoes.filter(aberta).slice().sort(function (a, b) { return (comprarAteDe(a) || 0) - (comprarAteDe(b) || 0); }).map(function (s) {
+      const u = usoDe(s), c = comprarAteDe(s);
+      return { op: s.op, cliente: s.cliente, cod: s.cod_insumo, desc: s.descricao, qtd: s.qtd, un: String(s.unidade || ''),
+        uso: u ? dataBR(u) : '', ate: c ? dataBR(c) : '', ciente: semCiente(s) ? (dataMudou(s) ? 'DATA MUDOU' : 'SEM CIENTE') : 'CIENTE · ' + (s.ciente_por || ''), sem: semCiente(s) };
+    });
+  }
+  function caixasHtml() {
+    const l = linhasCaixas();
+    if (!l.length) return '';
+    return '<h2 style="margin-top:22px">CAIXAS (EMBALAGEM) EM ABERTO</h2><table><thead><tr><th>COMPRAR ATÉ</th><th>VAI USAR EM</th><th>OP</th><th>CLIENTE</th><th>INSUMO</th><th>DESCRIÇÃO</th><th>QTD</th><th>CIENTE</th></tr></thead><tbody>' +
+      l.map(function (r) {
+        return '<tr' + (r.sem ? ' style="background:#fff4d6"' : '') + '><td><b>' + e(r.ate) + '</b></td><td>' + e(r.uso) + '</td><td><b>' + e(r.op) + '</b></td><td>' + e(r.cliente) + '</td><td>' + e(r.cod) + '</td><td>' + e(r.desc) + '</td>' +
+          '<td class="n">' + Fmt.num(r.qtd) + ' ' + e(r.un.toLowerCase()) + '</td><td>' + e(r.ciente) + '</td></tr>';
+      }).join('') + '</tbody></table>';
   }
 
   // Avisos do PCP no relatório impresso (só as OPs que faltam material)
@@ -566,6 +549,14 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
       ws['!cols'] = [12, 42, 12, 8, 10, 10, 11, 10, 11, 12, 10].map(function (c) { return { wch: c }; });
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Compras');
+      const cx = linhasCaixas().map(function (r) {
+        return { 'Comprar até': r.ate, 'Vai usar em': r.uso, 'OP': r.op, 'Cliente': r.cliente, 'Insumo': r.cod, 'Descrição': r.desc, 'Qtd': r.qtd, 'Unidade': r.un, 'Ciente': r.ciente };
+      });
+      if (cx.length) {
+        const ws3 = XLSX.utils.json_to_sheet(cx);
+        ws3['!cols'] = [12, 12, 8, 28, 12, 40, 8, 8, 24].map(function (c) { return { wch: c }; });
+        XLSX.utils.book_append_sheet(wb, ws3, 'Caixas');
+      }
       const av = [];
       avisosPorOP().forEach(function (a) {
         a.itens.forEach(function (it) {
@@ -596,175 +587,6 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
     Ui.janela({ titulo: i.cod_insumo + ' · ' + i.descricao, subtitulo: 'OPs abertas que ainda vão retirar este insumo', largura: 560, corpo: corpo, botoes: [{ texto: 'Fechar', valor: null }] });
   }
 
-  // ============================================================
-  // ENTRADA DE MATERIAL
-  // ============================================================
-  function achaInsumo(texto) {
-    const t = String(texto || '').trim().toUpperCase();
-    if (!t) return null;
-    const cod = t.split(' · ')[0].trim();
-    return cadastro.find(function (i) { return i.cod_insumo.toUpperCase() === cod; }) ||
-      painel.insumos.find(function (i) { return i.cod_insumo.toUpperCase() === cod; }) || null;
-  }
-  function saldoDe(cod) {
-    const i = painel.insumos.find(function (x) { return x.cod_insumo === cod; }) || cadastro.find(function (x) { return x.cod_insumo === cod; });
-    return i && i.saldo !== null && i.saldo !== undefined ? i.saldo : null;
-  }
-
-  async function abrirEntrada(solic) {
-    if (!ctx.podeEditar) return;
-    if (!cadastro.length) await carregarCadastro();
-    const abertas = painel.solicitacoes.filter(function (s) { return s.status === 'SOLICITADO' || s.status === 'COMPRADO'; });
-    const ins0 = solic ? achaInsumo(solic.cod_insumo) || { cod_insumo: solic.cod_insumo, descricao: solic.descricao } : null;
-    const corpo = '<div class="msg-erro"></div><div class="mf">' +
-      '<label class="fc l">INSUMO<input name="ins" list="dl-ins" autocomplete="off" placeholder="Código ou descrição" value="' + e(ins0 ? ins0.cod_insumo + ' · ' + ins0.descricao : '') + '">' +
-      '<datalist id="dl-ins">' + cadastro.map(function (i) { return '<option value="' + e(i.cod_insumo + ' · ' + i.descricao) + '">'; }).join('') + '</datalist></label>' +
-      '<label class="fc">QUANTIDADE<input name="qtd" inputmode="decimal" autocomplete="off" value="' + e(solic ? Fmt.num(solic.qtd) : '') + '"><small data-saldo></small></label>' +
-      '<label class="fc">DATA DA CHEGADA<input type="date" name="data" value="' + hojeISO() + '"></label>' +
-      '<label class="fc">FORNECEDOR<input name="forn" autocomplete="off" value="' + e(solic ? solic.fornecedor : '') + '"></label>' +
-      '<label class="fc">DOCUMENTO (opcional)<input name="doc" autocomplete="off" placeholder="NF / pedido"></label>' +
-      '<div class="vinc"><b style="font-size:11px;color:var(--texto-suave)">É EMBALAGEM DE UMA SOLICITAÇÃO?</b>' +
-      '<label><input type="checkbox" class="chk" name="vinc"' + (solic ? ' checked' : '') + '> Vincular a uma solicitação (a solicitação vira "Chegou" e o almoxarifado é avisado)</label>' +
-      '<select name="sc"' + (solic ? '' : ' hidden') + '></select></div></div>';
-    Ui.janela({
-      titulo: 'Entrada de material', subtitulo: 'O saldo sobe na hora; fica registrado quem lançou', largura: 560, corpo: corpo, enterConfirma: false,
-      botoes: [{ texto: 'Cancelar', valor: null }, { texto: 'Lançar entrada', classe: 'verde', valor: 'ok' }],
-      antesDeFechar: async function (v, cx) {
-        const erro = cx.querySelector('.msg-erro');
-        const ins = achaInsumo(cx.querySelector('[name="ins"]').value);
-        const q = num(cx.querySelector('[name="qtd"]').value);
-        const vinc = cx.querySelector('[name="vinc"]').checked;
-        const sc = cx.querySelector('[name="sc"]').value;
-        if (!ins) { Ui.msgErro(erro, 'Escolha um insumo da lista.'); return false; }
-        if (!(q > 0)) { Ui.msgErro(erro, 'Informe a quantidade (maior que zero).'); return false; }
-        if (vinc && !sc) { Ui.msgErro(erro, 'Escolha a solicitação ou desmarque o vínculo.'); return false; }
-        const dados = { cod_insumo: ins.cod_insumo, qtd: q };
-        const forn = cx.querySelector('[name="forn"]').value.trim(), doc = cx.querySelector('[name="doc"]').value.trim(), data = cx.querySelector('[name="data"]').value;
-        if (forn) dados.fornecedor = forn;
-        if (doc) dados.documento = doc;
-        if (data) dados.data_chegada = data;
-        if (vinc) dados.id_solicitacao = sc;
-        try {
-          const r = await enviar('registrarEntrada', dados);
-          if (r.duplicado) Ui.toast('Esta entrada já tinha sido lançada.', 'aviso');
-          else Ui.toast(ins.cod_insumo + ' +' + Fmt.num(q) + ' · saldo ' + Fmt.num(r.saldo) + ' · ' + r.id + (r.solicitacao ? ' · ' + r.solicitacao + ' chegou: o almoxarifado já vê para baixar' : ''), 'ok', 'Entrada lançada');
-          return true;
-        } catch (err) { Ui.msgErro(erro, err.message); return false; }
-      }
-    }).then(function (v) { if (v === 'ok') { carregar(true); carregarCadastro(); } });
-
-    const cx = ultimaJanela();
-    const fIns = cx.querySelector('[name="ins"]'), fQtd = cx.querySelector('[name="qtd"]'), fVinc = cx.querySelector('[name="vinc"]'), fSc = cx.querySelector('[name="sc"]');
-    // Lista de solicitações abertas (do insumo escolhido, se houver)
-    function opcoesSc() {
-      const ins = achaInsumo(fIns.value);
-      const atual = fSc.value || (solic ? solic.id_solicitacao : '');
-      const l = abertas.filter(function (s) { return !ins || s.cod_insumo === ins.cod_insumo; });
-      fSc.innerHTML = '<option value="">' + (l.length ? 'Escolha a solicitação…' : 'Nenhuma solicitação aberta' + (ins ? ' deste insumo' : '')) + '</option>' + l.map(function (s) {
-        return '<option value="' + e(s.id_solicitacao) + '"' + (s.id_solicitacao === atual ? ' selected' : '') + '>' + e(s.id_solicitacao + ' · ' + s.cod_insumo + ' · OP ' + s.op + ' · ' + titulo(s.cliente) + ' · ' + Fmt.num(s.qtd) + ' ' + String(s.unidade || '').toLowerCase()) + '</option>';
-      }).join('');
-    }
-    function saldoInfo() {
-      const ins = achaInsumo(fIns.value), q = num(fQtd.value), el = cx.querySelector('[data-saldo]');
-      const sd = ins ? saldoDe(ins.cod_insumo) : null;
-      el.textContent = ins && sd !== null ? (q > 0 ? 'saldo vai de ' + Fmt.num(sd) + ' para ' + Fmt.num(Math.round((sd + q) * 1000) / 1000) : 'saldo atual ' + Fmt.num(sd)) : '';
-    }
-    fIns.addEventListener('input', function () { opcoesSc(); saldoInfo(); });
-    fQtd.addEventListener('input', saldoInfo);
-    fVinc.addEventListener('change', function () { fSc.hidden = !fVinc.checked; opcoesSc(); });
-    fSc.addEventListener('change', function () {
-      const s = abertas.find(function (x) { return x.id_solicitacao === fSc.value; });
-      if (!s) return;
-      const ins = achaInsumo(s.cod_insumo);
-      fIns.value = s.cod_insumo + ' · ' + (ins ? ins.descricao : s.descricao);
-      if (!fQtd.value) fQtd.value = Fmt.num(s.qtd);
-      if (!cx.querySelector('[name="forn"]').value && s.fornecedor) cx.querySelector('[name="forn"]').value = s.fornecedor;
-      saldoInfo();
-    });
-    opcoesSc();
-    saldoInfo();
-  }
-
-  // ============================================================
-  // INVENTÁRIO (contado × sistema; rascunho no servidor)
-  // ============================================================
-  async function abrirInventario() {
-    if (!ctx.podeEditar) return;
-    let rasc = { salvoEm: '', contagens: [] };
-    try { rasc = await Api.chamar('lerRascunhoInventario', {}); } catch (err) { Ui.erro(err); }
-    (rasc.contagens || []).forEach(function (c) {
-      if (!(c.cod_insumo in contagem) && c.qtd_contada !== '' && c.qtd_contada !== null) contagem[c.cod_insumo] = String(c.qtd_contada).replace('.', ',');
-    });
-    const ORDEM_CAT = { LUVA: 0, FILTRO: 1, EMBALAGEM: 2 };
-    const oc = function (c) { return c in ORDEM_CAT ? ORDEM_CAT[c] : 9; };
-    const lista = painel.insumos.slice().sort(function (a, b) { return oc(a.categoria) - oc(b.categoria) || a.cod_insumo.localeCompare(b.cod_insumo); });
-    const nomeCat = $('#fCat').value === 'TODAS' ? 'Todos os estocados' : 'Luva e filtro';
-    const corpo = '<div class="msg-erro" style="margin-bottom:10px"></div><div class="inv-wrap"><table class="tab"><thead><tr><th>Insumo</th><th class="col-desc">Descrição</th><th class="num"><span class="so-desk">Saldo no sistema</span><span class="so-mob">Sistema</span></th><th class="num">Contado</th><th class="num"><span class="so-desk">Diferença</span><span class="so-mob">Dif.</span></th></tr></thead><tbody>' +
-      lista.map(function (i) {
-        return '<tr data-inv="' + e(i.cod_insumo) + '"><td><b>' + e(i.cod_insumo) + '</b></td><td class="col-desc">' + e(i.descricao) + '</td><td class="num">' + n(i.saldo) + '</td>' +
-          '<td class="num"><input class="in" inputmode="decimal" placeholder="contar" value="' + e(contagem[i.cod_insumo] || '') + '"></td><td class="num" data-dif></td></tr>';
-      }).join('') + '</tbody></table></div>';
-    Ui.janela({
-      titulo: 'Inventário · ' + nomeCat,
-      subtitulo: 'Conte o físico; a diferença vira um ajuste registrado (nada é sobrescrito)' + (rasc.salvoEm ? ' · rascunho de ' + rasc.salvoEm : ''),
-      largura: 860, corpo: corpo, enterConfirma: false,
-      botoes: [{ texto: 'Voltar', valor: null }, { texto: 'Salvar rascunho', valor: 'rasc' }, { texto: 'Fechar inventário e ajustar', classe: 'verde', valor: 'fechar' }],
-      antesDeFechar: async function (v, cx) {
-        const erro = cx.querySelector('.msg-erro');
-        Ui.msgErro(erro, '');
-        const todas = lista.map(function (i) { return { cod_insumo: i.cod_insumo, qtd_contada: (contagem[i.cod_insumo] || '').trim() }; });
-        const ruim = todas.find(function (c) { const q = num(c.qtd_contada); return c.qtd_contada !== '' && (isNaN(q) || q < 0); });
-        if (ruim) { Ui.msgErro(erro, ruim.cod_insumo + ': contagem inválida.'); return false; }
-        if (v === 'rasc') {
-          try {
-            const r = await Api.chamar('salvarRascunhoInventario', { contagens: todas });
-            Ui.toast(r.salvos + ' linha(s) guardada(s). Dá para continuar em outro aparelho.', 'ok', 'Rascunho salvo');
-          } catch (err) { Ui.msgErro(erro, err.message); }
-          return false;   // continua contando
-        }
-        const contadas = todas.filter(function (c) { return c.qtd_contada !== ''; });
-        if (!contadas.length) { Ui.msgErro(erro, 'Nenhum insumo contado.'); return false; }
-        const difs = contadas.filter(function (c) { const i = lista.find(function (x) { return x.cod_insumo === c.cod_insumo; }); return Math.abs(num(c.qtd_contada) - i.saldo) > 1e-9; }).length;
-        const ok = await Ui.confirmar({ titulo: 'Fechar inventário', texto: contadas.length + ' insumo(s) contado(s), ' + difs + ' com diferença. Cada diferença vira um ajuste no estoque (fica registrado quem fechou).', ok: 'Fechar e ajustar' });
-        if (!ok) return false;
-        try {
-          const r = await enviar('fecharInventario', { contagens: contadas.map(function (c) { return { cod_insumo: c.cod_insumo, qtd_contada: num(c.qtd_contada) }; }) });
-          if (r.duplicado) Ui.toast('Este inventário já tinha sido fechado.', 'aviso');
-          else Ui.toast(r.contados + ' contado(s) · ' + r.ajustes + ' ajuste(s)' + (r.diferencas.length ? ': ' + r.diferencas.map(function (d) { return d.cod_insumo + ' ' + (d.diferenca > 0 ? '+' : '') + Fmt.num(d.diferenca); }).join(', ') : ''), 'ok', 'Inventário fechado');
-          Object.keys(contagem).forEach(function (k) { delete contagem[k]; });
-          return true;
-        } catch (err) { Ui.msgErro(erro, err.message); return false; }
-      }
-    }).then(function (v) { if (v === 'fechar') { carregar(true); carregarCadastro(); } });
-
-    const cx = ultimaJanela();
-    const rod = cx.querySelector('.rodape');
-    const info = document.createElement('span');
-    info.className = 't-inv';
-    rod.insertBefore(info, rod.firstChild);
-    function atualizar() {
-      let nCont = 0, nDif = 0;
-      cx.querySelectorAll('tr[data-inv]').forEach(function (tr) {
-        const i = lista.find(function (x) { return x.cod_insumo === tr.dataset.inv; });
-        const t = (contagem[i.cod_insumo] || '').trim(), q = num(t);
-        const cel = tr.querySelector('[data-dif]');
-        if (t === '') { cel.innerHTML = '<span class="dif zero">—</span>'; return; }
-        if (isNaN(q)) { cel.innerHTML = '<span class="dif neg2">?</span>'; return; }
-        nCont++;
-        const d = Math.round((q - i.saldo) * 1000) / 1000;
-        if (d !== 0) nDif++;
-        cel.innerHTML = d < 0 ? '<span class="dif neg2">' + n(d) + '</span>' : d > 0 ? '<span class="dif pos">+' + n(d) + '</span>' : '<span class="dif zero">0</span>';
-      });
-      info.textContent = nCont + ' de ' + lista.length + ' contados · ' + nDif + ' com diferença';
-    }
-    cx.addEventListener('input', function (ev) {
-      const tr = ev.target.closest('tr[data-inv]');
-      if (!tr) return;
-      contagem[tr.dataset.inv] = ev.target.value;
-      atualizar();
-    });
-    atualizar();
-  }
 });
 </script>
 </body>
