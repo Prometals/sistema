@@ -74,35 +74,40 @@ html.tema-claro .stt.pend { color: #9a3412; } html.tema-claro .stt.compr { color
 html.tema-claro .dif.neg2 { color: #b91c1c; } html.tema-claro .dif.pos { color: #166534; }
 .rodape .t-inv { margin-right: auto; font-size: 12px; color: var(--texto-suave); align-self: center; }
 .ops-lista table.tab td, .ops-lista table.tab th { padding: 8px 10px; }
-/* Avisos do PCP: tabela compacta (uma linha por OP + insumo) */
-.av-bx { margin-bottom: 14px; }
-.av-wrap { max-height: 300px; overflow: auto; }
-.av-tab { width: 100%; border-collapse: collapse; font-size: 12.5px; }
-.av-tab th { position: sticky; top: 0; z-index: 1; background: var(--painel-2); text-align: left; font-size: 10.5px; font-weight: 800; letter-spacing: .4px; color: var(--texto-suave); text-transform: uppercase; padding: 7px 10px; white-space: nowrap; }
-.av-tab td { padding: 6px 10px; border-top: 1px solid transparent; vertical-align: middle; }
-.av-tab tr.ini td { border-top-color: var(--linha); }
-.av-tab th:first-child, .av-tab td:first-child { padding-left: 16px; }
-.av-tab .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.av-tab td.op { font-weight: 800; white-space: nowrap; }
-.av-tab td.cli { max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.av-tab td.pr { color: var(--texto-suave); white-space: nowrap; }
-.av-tab td.ins { max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.av-tab td.ins small { color: var(--texto-suave); margin-left: 4px; }
-.av-tab .f { color: #f87171; font-weight: 800; } html.tema-claro .av-tab .f { color: #b91c1c; }
-.av-tab .ok { color: #34d399; font-weight: 700; font-size: 11.5px; } html.tema-claro .av-tab .ok { color: #166534; }
-.av-tab tr.falta td.ins { font-weight: 600; }
-.av-rod { display: flex; align-items: center; gap: 10px; padding: 8px 16px; border-top: 1px solid var(--linha); font-size: 12px; color: var(--texto-suave); }
-.av-mais { margin-left: auto; background: none; border: 0; color: var(--destaque); font-weight: 700; cursor: pointer; padding: 2px 0; font: inherit; font-size: 12px; }
-.av-vazio { color: var(--texto-suave); font-size: 13px; padding: 12px 16px; }
-.av-mob { display: none; }
+/* tabela única: Por insumo | Por OP */
+.seg { display: inline-flex; border: 1px solid var(--borda); border-radius: 9px; overflow: hidden; height: 32px; }
+.seg button { border: 0; background: transparent; font: inherit; font-size: 12.5px; font-weight: 800; color: var(--texto-suave); padding: 0 14px; cursor: pointer; }
+.seg button.on { background: var(--destaque); color: #fff; }
+.tg-falta { height: 32px; border: 1px solid var(--borda); border-radius: 9px; background: transparent; font: inherit; font-size: 12.5px; font-weight: 700; color: var(--texto-suave); padding: 0 12px; cursor: pointer; }
+.tg-falta.on { border-color: #dc2626; color: #f87171; background: rgba(220,38,38,.08); }
+html.tema-claro .tg-falta.on { color: #b91c1c; }
+.tab-wrap { max-height: calc(100vh - 360px); min-height: 220px; }
+.tab-wrap table.tab th { position: sticky; top: 0; z-index: 1; }
+td.seta { width: 18px; color: var(--texto-suave); font-size: 11px; padding-right: 0 !important; }
+tr.aberto td.seta { color: var(--destaque); }
+.pq { font-size: 10.5px; font-weight: 800; padding: 2px 7px; border-radius: 5px; white-space: nowrap; }
+.pq.op { background: rgba(240,122,31,.18); color: #fdba74; } .pq.min { background: rgba(234,179,8,.18); color: #eab308; } .pq.cx { background: var(--painel-2); color: var(--texto-suave); }
+html.tema-claro .pq.op { color: #9a3412; } html.tema-claro .pq.min { color: #92400e; }
+.pq-ops { font-size: 11.5px; color: var(--texto-suave); margin-left: 6px; white-space: nowrap; }
+tr.det > td { background: var(--painel-2); padding: 6px 16px 10px 40px !important; cursor: default; }
+.det-tab { width: 100%; border-collapse: collapse; font-size: 12px; }
+.det-tab th { text-align: left; font-size: 10px; font-weight: 800; color: var(--texto-suave); letter-spacing: .4px; padding: 4px 8px; text-transform: uppercase; }
+.det-tab td { padding: 4px 8px; border-top: 1px solid var(--linha); }
+.det-tab .num { text-align: right; }
+.det-inf { font-size: 11.5px; color: var(--texto-suave); margin-top: 6px; }
+.f { color: #f87171; font-weight: 800; } html.tema-claro .f { color: #b91c1c; }
+.okc { color: #34d399; font-weight: 700; font-size: 11.5px; } html.tema-claro .okc { color: #166534; }
+tr.op-ini td { border-top: 1px solid var(--linha); }
+tr.op-cont td { border-top-color: transparent; }
+td.op-n { font-weight: 800; white-space: nowrap; }
+.rod-tab { padding: 8px 16px; border-top: 1px solid var(--linha); font-size: 12px; color: var(--texto-suave); }
+.lista-tab .li { padding: 9px 14px; border-top: 1px solid var(--linha); font-size: 13px; cursor: pointer; }
+.lista-tab .li:first-child { border-top: 0; }
+.lista-tab .li small { display: block; color: var(--texto-suave); font-size: 11.5px; margin-top: 2px; }
 @media (max-width: 760px) {
-  .av-tab { display: none; }
-  .av-mob { display: block; }
-  .av-wrap { max-height: 260px; }
-  .av-mob div { padding: 8px 14px; border-top: 1px solid var(--linha); font-size: 13px; }
-  .av-mob div:first-child { border-top: 0; }
-  .av-mob small { display: block; color: var(--texto-suave); font-size: 11.5px; }
-  .av-bx { margin: 0 0 12px; }
+  .bx-cab .dir #fOrd { display: none; }
+  .bx-cab .s { display: none; }
+  #bx-tab { margin-bottom: 12px; }
 }
 .lista-mob { padding-bottom: 90px; }
 .cm { cursor: pointer; text-align: left; }
@@ -130,7 +135,7 @@ html.tema-claro .dif.neg2 { color: #b91c1c; } html.tema-claro .dif.pos { color: 
      mudar, pisca de novo. Entrada e inventário ficam no Insumos. -->
 <main class="conteudo">
   <div class="tit-pagina">
-    <div><h1>Compras</h1><p>Saldo, o que as OPs abertas vão consumir e o que precisa ser comprado</p></div>
+    <div><h1>Compras</h1><p>O que precisa comprar · por insumo ou por OP</p></div>
     <div class="acoes-pagina so-desk">
       <button class="btn2" data-imprimir-compras title="Imprimir a lista do que está na tela"><svg class="i"><use href="#i-imp"/></svg>Imprimir</button>
       <button class="btn2" data-excel-compras title="Baixar a lista em Excel (.xlsx)"><svg class="i"><use href="#i-xls"/></svg>Excel</button>
@@ -139,32 +144,30 @@ html.tema-claro .dif.neg2 { color: #b91c1c; } html.tema-claro .dif.pos { color: 
 
   <div class="kl so-desk" id="cards"></div>
 
-  <!-- Avisos do PCP: OP aberta × estrutura × estoque (conta de + e −, sem travar nada) -->
-  <section class="bx av-bx">
-    <div class="bx-cab"><h3>Avisos do PCP</h3><span class="s">OPs em Planejamento, Modelação ou Moldagem · o que vai usar × o que tem (da OP mais antiga para a mais nova)</span></div>
-    <div id="avisos"><div class="av-vazio">Carregando…</div></div>
-  </section>
-
   <div class="cp">
-    <section class="bx so-desk">
-      <div class="bx-cab"><h3>Situação dos insumos</h3><span class="s">sobra/falta = tem − vai usar · clique no insumo para ver as OPs, o mínimo e o lead time</span>
+    <div class="kpi-mini so-mob" id="cards-mob"></div>
+    <section class="bx" id="bx-tab">
+      <div class="bx-cab"><h3>O que comprar</h3>
+        <div class="seg" role="tablist"><button type="button" data-visao="INS" class="on">Por insumo</button><button type="button" data-visao="OP">Por OP</button></div>
+        <button type="button" class="tg-falta on" id="bSoFalta" title="Mostrar só o que falta / mostrar tudo">Só o que falta</button>
         <span class="filtro-on" id="filtro-ins"></span>
         <div class="dir">
           <select id="fCat" title="Categorias"><option value="LF">Luva e filtro</option><option value="TODAS">Todos</option></select>
           <select id="fOrd" title="Ordem"><option value="urg">Precisa comprar primeiro</option><option value="cod">Código</option></select>
         </div></div>
-      <div class="tab-wrap">
-        <table class="tab"><thead><tr><th>Insumo</th><th class="num">Tem</th><th class="num">Vai usar</th><th class="num">Sobra / falta</th><th class="num">Comprar</th><th>Situação</th></tr></thead>
-          <tbody id="linhas"><tr><td colspan="6"><div class="carregando">Carregando…</div></td></tr></tbody></table>
+      <div class="tab-wrap so-desk">
+        <table class="tab"><thead id="cab"></thead>
+          <tbody id="linhas"><tr><td colspan="8"><div class="carregando">Carregando…</div></td></tr></tbody></table>
       </div>
+      <div class="lista-tab so-mob" id="lista-tab"></div>
+      <div class="rod-tab" id="rod-tab"></div>
     </section>
     <aside class="bx so-desk">
       <div class="bx-cab"><h3>Caixas (embalagem)</h3><span class="s">aparecem quando o PCP abre a OP · dê ✔ Ciente</span><span class="filtro-on" id="filtro-sc"></span></div>
       <div id="solic"><div class="carregando">Carregando…</div></div>
     </aside>
 
-    <!-- celular -->
-    <div class="kpi-mini so-mob" id="cards-mob"></div>
+    <!-- celular: caixas -->
     <div class="info-mob so-mob" id="info-mob"></div>
     <div class="lista-mob so-mob" id="cartoes"></div>
     <div class="barra-mob so-mob">
@@ -188,6 +191,9 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
 
   let painel = { indicadores: {}, insumos: [], solicitacoes: [] };
   let modo = '';              // filtro dos cards: RUPTURA | ABAIXO | SEM_CIENTE | SEMANA
+  let visao = 'INS';          // tabela: INS (por insumo) | OP (por OP)
+  let soFalta = true;         // mostra só o que falta
+  const abertos = {};         // insumos com a linha de OPs aberta
 
   carregar();
   // Recalcula a cada 60 s (não atrapalha quem está digitando ou com janela aberta)
@@ -281,21 +287,19 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
     $('#cards-mob').innerHTML = k.map(function (x) {
       return '<button class="km' + (x.pisca ? ' piscando' : '') + (modo === x.m ? ' sel' : '') + '" data-modo="' + x.m + '" style="--c:' + x.c + '"><b>' + e(x.n || 0) + '</b> ' + x.mob + '</button>';
     }).join('');
-    desenharAvisos();
-    desenharInsumos();
+    desenharTabela();
     desenharSolicitacoes();
     desenharCartoes();
   }
 
-  // ---------- Avisos do PCP ----------
+  // ---------- Conta por OP ----------
   // Para cada OP que ainda vai consumir: o que ela vai usar × o que tem.
   // A conta é acumulada, da OP mais antiga para a mais nova: se duas OPs
   // usam a mesma luva, a segunda já considera o que a primeira vai tirar.
-  let verTodosAvisos = false;
   function avisosPorOP() {
     const porOP = {}, ordem = [];
     painel.insumos.forEach(function (i) {
-      if (i.politica === 'SOB_DEMANDA') return;   // embalagem tem o fluxo de solicitações
+      if (i.politica === 'SOB_DEMANDA') return;   // caixa tem o fluxo próprio (coluna da direita)
       (i.ops || []).forEach(function (o) {
         let a = porOP[o.id_item];
         if (!a) { a = porOP[o.id_item] = { op: o.op, cliente: o.cliente, processo: o.processo, itens: [] }; ordem.push(a); }
@@ -317,66 +321,108 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
     });
     return ordem;   // mais antiga primeiro (é quem consome primeiro)
   }
-  function desenharAvisos() {
-    const todos = avisosPorOP();
-    const un = function (it) { return it.un ? ' ' + e(it.un) : ''; };
-    const linhas = [];
-    todos.forEach(function (a) {
-      const itens = verTodosAvisos ? a.itens : a.itens.filter(function (it) { return it.faltam > 0; });
-      itens.forEach(function (it, k) { linhas.push({ a: a, it: it, ini: k === 0 }); });
-    });
-    const nFalta = todos.reduce(function (t, a) { return t + a.itens.filter(function (it) { return it.faltam > 0; }).length; }, 0);
-    const nTotal = todos.reduce(function (t, a) { return t + a.itens.length; }, 0);
-    const opsFalta = todos.filter(function (a) { return a.falta; }).length;
-    let html;
-    if (!todos.length) html = '<div class="av-vazio">Nenhuma OP em Planejamento, Modelação ou Moldagem vai consumir ' + ($('#fCat').value === 'TODAS' ? 'insumos estocados' : 'luva ou filtro') + ' agora.</div>';
-    else if (!linhas.length) html = '<div class="av-vazio">✅ As ' + todos.length + ' OPs têm material no estoque.</div>';
-    else {
-      html = '<div class="av-wrap"><table class="av-tab"><thead><tr><th>OP</th><th>Cliente</th><th>Processo</th><th>Insumo</th><th class="num">Precisa</th><th class="num">Tem</th><th class="num">Falta</th></tr></thead><tbody>' +
-        linhas.map(function (l) {
-          const a = l.a, it = l.it;
-          return '<tr class="' + (l.ini ? 'ini' : '') + (it.faltam > 0 ? ' falta' : '') + '">' +
-            '<td class="op">' + (l.ini ? e(a.op) : '') + '</td><td class="cli"' + (l.ini ? ' title="' + e(a.cliente) + '"' : '') + '>' + (l.ini ? e(titulo(a.cliente)) : '') + '</td>' +
-            '<td class="pr">' + (l.ini ? e(titulo(a.processo)) : '') + '</td>' +
-            '<td class="ins" title="' + e(it.desc + ' (' + it.cod + ')') + '">' + e(it.desc) + '<small>' + e(it.cod) + '</small></td>' +
-            '<td class="num">' + n(it.precisa) + '</td><td class="num">' + n(it.tem) + '</td>' +
-            '<td class="num">' + (it.faltam > 0 ? '<span class="f">' + n(it.faltam) + un(it) + '</span>' : '<span class="ok">ok</span>') + '</td></tr>';
-        }).join('') + '</tbody></table>' +
-        '<div class="av-mob">' + linhas.map(function (l) {
-          const it = l.it;
-          return '<div><b>OP ' + e(l.a.op) + '</b> · ' + e(it.desc) + ' — ' + (it.faltam > 0 ? '<span class="f" style="color:#f87171;font-weight:800">faltam ' + n(it.faltam) + un(it) + '</span>' : '<span style="color:#34d399;font-weight:700">ok</span>') +
-            '<small>' + e(titulo(l.a.cliente)) + ' · precisa ' + n(it.precisa) + ' · tem ' + n(it.tem) + '</small></div>';
-        }).join('') + '</div></div>';
-    }
-    if (todos.length) {
-      html += '<div class="av-rod"><span>' + (nFalta ? nFalta + ' insumo' + (nFalta > 1 ? 's' : '') + ' faltando em ' + opsFalta + ' OP' + (opsFalta > 1 ? 's' : '') : 'nada faltando') + ' · ' + todos.length + ' OP' + (todos.length > 1 ? 's' : '') + ' vão consumir</span>' +
-        (nTotal > nFalta ? '<button type="button" class="av-mais" data-av-todos>' + (verTodosAvisos ? 'Mostrar só o que falta' : 'Ver tudo (' + nTotal + ')') + '</button>' : '') + '</div>';
-    }
-    $('#avisos').innerHTML = html;
+  // cod do insumo → OPs que vão usar (com precisa / tem / faltam)
+  function opsPorInsumo(lista) {
+    const m = {};
+    lista.forEach(function (a) { a.itens.forEach(function (it) { (m[it.cod] = m[it.cod] || []).push({ op: a.op, cliente: a.cliente, processo: a.processo, precisa: it.precisa, tem: it.tem, faltam: it.faltam }); }); });
+    return m;
   }
-  document.addEventListener('click', function (ev) {
-    if (ev.target.closest('[data-av-todos]')) { verTodosAvisos = !verTodosAvisos; desenharAvisos(); }
-  });
 
-  function tagSituacao(i) {
-    if (i.situacao === 'RUPTURA') return '<span class="stt rup">RUPTURA</span>';
-    if (i.situacao === 'COMPRAR') return '<span class="stt comprar">COMPRAR</span>';
-    if (i.situacao === 'ATENCAO') return '<span class="stt ok">OK · atenção</span>';
-    if (i.situacao === 'SOB_DEMANDA') return '<span class="stt pend">SOB DEMANDA</span>';
-    return '<span class="stt ok">OK</span>';
-  }
-  function classeLinha(i) { return i.situacao === 'RUPTURA' ? 'rup' : (i.situacao === 'COMPRAR' || i.situacao === 'ATENCAO') ? 'comprar' : ''; }
   const n = function (v) { return e(Fmt.num(v)); };
+  function catClasseLinha(i) { return i.situacao === 'RUPTURA' ? 'rup' : (i.situacao === 'COMPRAR' || i.situacao === 'ATENCAO') ? 'comprar' : ''; }
+  // Por que comprar: OP (as OPs vão usar mais do que tem), Estoque mínimo
+  // (nenhuma OP falta, mas o saldo fica abaixo do mínimo) ou os dois.
+  function porQue(i) {
+    if (i.politica === 'SOB_DEMANDA') return { cls: 'cx', txt: 'Caixa · ver ao lado' };
+    if (i.projetado < 0 && i.minimo > 0) return { cls: 'op', txt: 'OP + mínimo' };
+    if (i.projetado < 0) return { cls: 'op', txt: 'OP' };
+    if (i.projetado < i.minimo) return { cls: 'min', txt: 'Estoque mínimo' };
+    return null;
+  }
+  const falta = function (i) { return i.sugerido > 0 || i.projetado < 0; };
 
-  function desenharInsumos() {
-    const l = insumosFiltrados();
+  function insumosFiltrados() {
+    let l = painel.insumos.slice();
+    if (modo === 'RUPTURA') l = l.filter(function (i) { return i.situacao === 'RUPTURA'; });
+    if (modo === 'ABAIXO') l = l.filter(abaixo);
+    if (soFalta && !MODOS_INS[modo]) l = l.filter(falta);
+    if ($('#fOrd').value === 'cod') l.sort(function (a, b) { return a.cod_insumo.localeCompare(b.cod_insumo); });
+    return l;
+  }
+  // Por OP: uma linha por OP + insumo
+  function linhasPorOP() {
+    const l = [];
+    avisosPorOP().forEach(function (a) {
+      const itens = soFalta ? a.itens.filter(function (it) { return it.faltam > 0; }) : a.itens;
+      itens.forEach(function (it, k) { l.push({ a: a, it: it, ini: k === 0 }); });
+    });
+    return l;
+  }
+
+  function desenharTabela() {
+    document.querySelectorAll('[data-visao]').forEach(function (b) { b.classList.toggle('on', b.dataset.visao === visao); });
+    $('#bSoFalta').classList.toggle('on', soFalta);
+    $('#fOrd').hidden = visao !== 'INS';
     $('#filtro-ins').innerHTML = MODOS_INS[modo] ? 'Filtro: ' + ROTULO[modo] + '<button type="button" data-modo="' + modo + '">limpar</button>' : '';
+    if (visao === 'OP') desenharPorOP(); else desenharPorInsumo();
+  }
+
+  function desenharPorInsumo() {
+    const l = insumosFiltrados();
+    const ops = opsPorInsumo(avisosPorOP());
+    $('#cab').innerHTML = '<tr><th></th><th>Insumo</th><th class="num">Tem</th><th class="num">Vai usar (OPs)</th><th class="num">Sobra / falta</th><th class="num">Mínimo</th><th class="num">Comprar</th><th>Por quê</th></tr>';
+    const opsTexto = function (cod) {
+      const f = (ops[cod] || []).filter(function (o) { return o.faltam > 0; }).map(function (o) { return o.op; });
+      return f.length ? 'OP ' + f.slice(0, 3).join(', ') + (f.length > 3 ? ' +' + (f.length - 3) : '') : '';
+    };
     $('#linhas').innerHTML = l.map(function (i) {
-      return '<tr class="' + classeLinha(i) + '" data-ins="' + e(i.cod_insumo) + '"><td class="d" title="' + e(i.descricao) + '"><b>' + e(i.cod_insumo) + '</b> <span class="cat ' + catClasse(i.categoria) + '">' + e(i.categoria) + '</span><small>' + e(i.descricao) + '</small></td>' +
-        '<td class="num">' + n(i.saldo) + '</td><td class="num">' + n(i.vai_sair) + '</td>' +
+      const pq = porQue(i), lista = ops[i.cod_insumo] || [], ab = !!abertos[i.cod_insumo] && lista.length;
+      let html = '<tr class="' + catClasseLinha(i) + (ab ? ' aberto' : '') + '" data-ins="' + e(i.cod_insumo) + '"><td class="seta">' + (lista.length ? (ab ? '▾' : '▸') : '') + '</td>' +
+        '<td class="d" title="' + e(i.descricao) + '"><b>' + e(i.cod_insumo) + '</b> <span class="cat ' + catClasse(i.categoria) + '">' + e(i.categoria) + '</span><small>' + e(i.descricao) + '</small></td>' +
+        '<td class="num">' + n(i.saldo) + '</td><td class="num">' + (i.vai_sair ? n(i.vai_sair) : '—') + '</td>' +
         '<td class="num">' + (i.projetado < 0 ? '<span class="neg">' + n(i.projetado) + '</span>' : n(i.projetado)) + '</td>' +
-        '<td class="num sug">' + (i.sugerido > 0 ? '<b>' + n(i.sugerido) + '</b>' : '—') + '</td><td>' + tagSituacao(i) + '</td></tr>';
-    }).join('') || '<tr><td colspan="6"><div class="vazio">' + (modo ? 'Nenhum insumo neste filtro.' : 'Nenhum insumo estocado nesta categoria.') + '</div></td></tr>';
+        '<td class="num">' + (i.minimo ? n(i.minimo) : '—') + '</td>' +
+        '<td class="num sug">' + (i.sugerido > 0 ? '<b>' + n(i.sugerido) + '</b>' : '—') + '</td>' +
+        '<td>' + (pq ? '<span class="pq ' + pq.cls + '">' + pq.txt + '</span>' + (pq.cls === 'op' ? '<span class="pq-ops">' + e(opsTexto(i.cod_insumo)) + '</span>' : '') : '<span class="okc">ok</span>') + '</td></tr>';
+      if (ab) {
+        html += '<tr class="det"><td colspan="8"><table class="det-tab"><thead><tr><th>OP</th><th>Cliente</th><th>Processo</th><th class="num">Precisa</th><th class="num">Tem</th><th class="num">Falta</th></tr></thead><tbody>' +
+          lista.map(function (o) {
+            return '<tr><td><b>' + e(o.op) + '</b></td><td>' + e(titulo(o.cliente)) + '</td><td>' + e(titulo(o.processo)) + '</td><td class="num">' + n(o.precisa) + '</td><td class="num">' + n(o.tem) + '</td>' +
+              '<td class="num">' + (o.faltam > 0 ? '<span class="f">' + n(o.faltam) + '</span>' : '<span class="okc">ok</span>') + '</td></tr>';
+          }).join('') + '</tbody></table><div class="det-inf">Lead time ' + n(i.lead_time) + ' dias · mínimo ' + n(i.minimo) + ' ' + e(String(i.unidade || '').toLowerCase()) + '</div></td></tr>';
+      }
+      return html;
+    }).join('') || '<tr><td colspan="8"><div class="vazio">' + (soFalta && !modo ? '✅ Nada para comprar nesta categoria.' : 'Nenhum insumo neste filtro.') + '</div></td></tr>';
+    // celular
+    $('#lista-tab').innerHTML = l.map(function (i) {
+      const pq = porQue(i);
+      return '<div class="li" data-ins="' + e(i.cod_insumo) + '"><b>' + e(i.cod_insumo) + '</b> · ' + e(i.descricao) +
+        (i.sugerido > 0 ? ' — <span class="f">comprar ' + n(i.sugerido) + '</span>' : '') +
+        '<small>' + (pq ? pq.txt + (pq.cls === 'op' ? ' (' + e(opsTexto(i.cod_insumo)) + ')' : '') + ' · ' : '') + 'tem ' + n(i.saldo) + ' · vai usar ' + n(i.vai_sair) + ' · mín. ' + n(i.minimo) + '</small></div>';
+    }).join('') || '<div class="vazio">' + (soFalta && !modo ? '✅ Nada para comprar.' : 'Nenhum insumo neste filtro.') + '</div>';
+    const nComprar = painel.insumos.filter(function (i) { return i.sugerido > 0; }).length;
+    $('#rod-tab').textContent = l.length + ' insumo' + (l.length === 1 ? '' : 's') + ' na lista · ' + nComprar + ' para comprar · clique no insumo para ver as OPs';
+  }
+
+  function desenharPorOP() {
+    const l = linhasPorOP();
+    const todos = avisosPorOP();
+    $('#cab').innerHTML = '<tr><th>OP</th><th>Cliente</th><th>Processo</th><th>Insumo</th><th class="num">Precisa</th><th class="num">Tem</th><th class="num">Falta</th></tr>';
+    $('#linhas').innerHTML = l.map(function (x) {
+      const a = x.a, it = x.it;
+      return '<tr class="' + (x.ini ? 'op-ini' : 'op-cont') + '" data-ins="' + e(it.cod) + '"><td class="op-n">' + (x.ini ? e(a.op) : '') + '</td>' +
+        '<td>' + (x.ini ? e(titulo(a.cliente)) : '') + '</td><td class="mut">' + (x.ini ? e(titulo(a.processo)) : '') + '</td>' +
+        '<td class="d" title="' + e(it.desc) + '"><b>' + e(it.cod) + '</b><small>' + e(it.desc) + '</small></td>' +
+        '<td class="num">' + n(it.precisa) + '</td><td class="num">' + n(it.tem) + '</td>' +
+        '<td class="num">' + (it.faltam > 0 ? '<span class="f">' + n(it.faltam) + (it.un ? ' ' + e(it.un) : '') + '</span>' : '<span class="okc">ok</span>') + '</td></tr>';
+    }).join('') || '<tr><td colspan="7"><div class="vazio">' + (todos.length ? '✅ As ' + todos.length + ' OPs têm material no estoque.' : 'Nenhuma OP em Planejamento, Modelação ou Moldagem vai consumir agora.') + '</div></td></tr>';
+    $('#lista-tab').innerHTML = l.map(function (x) {
+      const it = x.it;
+      return '<div class="li" data-ins="' + e(it.cod) + '"><b>OP ' + e(x.a.op) + '</b> · ' + e(it.desc) + ' — ' + (it.faltam > 0 ? '<span class="f">faltam ' + n(it.faltam) + (it.un ? ' ' + e(it.un) : '') + '</span>' : '<span class="okc">ok</span>') +
+        '<small>' + e(titulo(x.a.cliente)) + ' · ' + e(titulo(x.a.processo)) + ' · precisa ' + n(it.precisa) + ' · tem ' + n(it.tem) + '</small></div>';
+    }).join('') || '<div class="vazio">' + (todos.length ? '✅ Todas as OPs têm material.' : 'Nenhuma OP vai consumir agora.') + '</div>';
+    const opsFalta = todos.filter(function (a) { return a.falta; }).length;
+    $('#rod-tab').textContent = opsFalta + ' de ' + todos.length + ' OP' + (todos.length === 1 ? '' : 's') + ' com falta de material · da OP mais antiga para a mais nova (a conta é acumulada)';
   }
 
   function tagSolic(s) {
@@ -414,36 +460,40 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
     }).join('') || '<div class="vazio">' + (modo ? 'Nenhuma caixa neste filtro.' : 'Nenhuma caixa em aberto.') + '</div>';
   }
 
-  // Celular: embalagens (ordem de urgência) e depois os insumos
+  // Celular: caixas (sem ciente primeiro); a tabela de insumos/OPs fica acima
   function desenharCartoes() {
-    const mostraSc = !MODOS_INS[modo], mostraIns = !MODOS_SC[modo];
-    const sc = mostraSc ? solicitacoesFiltradas() : [], ins = mostraIns ? insumosFiltrados() : [];
-    $('#info-mob').textContent = modo ? ROTULO[modo] + ' · ' + (mostraSc ? sc.length : ins.length) + ' · toque de novo para limpar'
-      : sc.length + ' caixa' + (sc.length === 1 ? '' : 's') + ' (sem ciente primeiro) · ' + ins.length + ' insumo' + (ins.length === 1 ? '' : 's');
+    const sc = MODOS_INS[modo] ? [] : solicitacoesFiltradas();
+    $('#info-mob').textContent = 'Caixas (embalagem) · ' + sc.length + (MODOS_SC[modo] ? ' · ' + ROTULO[modo] + ' · toque de novo para limpar' : ' · sem ciente primeiro');
     $('#cartoes').innerHTML = sc.map(function (s) {
       const u = usoDe(s), c = comprarAteDe(s);
       return '<div class="cm' + (semCiente(s) ? ' pisca' : urgente(s) ? ' urg' : '') + '" data-sc-mob="' + e(s.id_solicitacao) + '"><div class="cm-top"><span class="op">' + e(s.cod_insumo) + '</span><span class="cli">OP ' + e(s.op) + '</span>' + tagSolic(s) + '</div>' +
         '<div class="cm-desc">' + e(titulo(s.cliente)) + ' · ' + n(s.qtd) + ' ' + e(String(s.unidade || '').toLowerCase()) + '<small>usar em ' + (u ? dataBR(u) : '—') + ' · comprar até ' + (c ? dataBR(c) : '—') + '</small></div></div>';
-    }).join('') + ins.map(function (i) {
-      return '<div class="cm" data-ins="' + e(i.cod_insumo) + '"><div class="cm-top"><span class="op">' + e(i.cod_insumo) + '</span><span class="cli">' + e(i.categoria) + '</span>' + tagSituacao(i) + '</div>' +
-        '<div class="cm-desc">' + e(i.descricao) + '<small>saldo ' + n(i.saldo) + ' · vai sair ' + n(i.vai_sair) + ' · projetado ' + n(i.projetado) + ' · mín. ' + n(i.minimo) + (i.sugerido > 0 ? ' · comprar ' + n(i.sugerido) : '') + '</small></div></div>';
-    }).join('') || '<div class="vazio">Nada neste filtro.</div>';
+    }).join('') || '<div class="vazio">' + (MODOS_INS[modo] ? 'Filtro de insumos ligado (tabela acima).' : 'Nenhuma caixa neste filtro.') + '</div>';
   }
 
   // ---------- Eventos ----------
   document.addEventListener('click', function (ev) {
     if (ev.target.closest('.modal-fundo')) return;
     const m = ev.target.closest('[data-modo]');
-    if (m) { modo = m.dataset.modo === modo ? '' : m.dataset.modo; desenhar(); return; }
+    if (m) { modo = m.dataset.modo === modo ? '' : m.dataset.modo; if (MODOS_INS[modo]) visao = 'INS'; desenhar(); return; }
+    const vs = ev.target.closest('[data-visao]');
+    if (vs) { visao = vs.dataset.visao; desenharTabela(); return; }
+    if (ev.target.closest('#bSoFalta')) { soFalta = !soFalta; desenharTabela(); return; }
     const ins = ev.target.closest('[data-ins]');
-    if (ins) { verOPs(ins.dataset.ins); return; }
+    if (ins) {
+      // celular ou visão por OP: janela com as OPs; por insumo no PC: abre a linha
+      if (ins.closest('#lista-tab') || visao === 'OP') { verOPs(ins.dataset.ins); return; }
+      abertos[ins.dataset.ins] = !abertos[ins.dataset.ins];
+      desenharTabela();
+      return;
+    }
     const scm = ev.target.closest('[data-sc-mob]');
     if (scm) { verSolicMob(scm.dataset.scMob); return; }
     const ci = ev.target.closest('[data-ciente]');
     if (ci) darCiente(ci.dataset.ciente, ci);
   });
   $('#fCat').addEventListener('change', function () { carregar(); });
-  $('#fOrd').addEventListener('change', function () { desenharInsumos(); desenharCartoes(); });
+  $('#fOrd').addEventListener('change', function () { desenharTabela(); });
 
   // ✔ Ciente: grava a data de uso que a pessoa está vendo agora.
   // Se o PCP mudar o prazo depois, a data muda e a caixa volta a piscar.
@@ -483,11 +533,12 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
   function linhasRelatorio() {
     return insumosFiltrados().map(function (i) {
       return { cod: i.cod_insumo, desc: i.descricao, cat: i.categoria, un: String(i.unidade || ''), saldo: i.saldo, sair: i.vai_sair,
-        proj: i.projetado, min: i.minimo, lead: i.lead_time, sit: i.situacao || '', comprar: i.sugerido > 0 ? i.sugerido : 0 };
+        proj: i.projetado, min: i.minimo, lead: i.lead_time, sit: i.situacao || '', comprar: i.sugerido > 0 ? i.sugerido : 0,
+        pq: (porQue(i) || { txt: '' }).txt };
     });
   }
   function tituloRelatorio() {
-    return 'LISTA DE COMPRAS — ' + (MODOS_INS[modo] ? ROTULO[modo].toUpperCase() : ($('#fCat').value === 'TODAS' ? 'TODOS OS INSUMOS' : 'LUVA E FILTRO'));
+    return (visao === 'OP' ? 'COMPRAS POR OP — ' : 'LISTA DE COMPRAS — ') + (MODOS_INS[modo] ? ROTULO[modo].toUpperCase() : ($('#fCat').value === 'TODAS' ? 'TODOS OS INSUMOS' : 'LUVA E FILTRO')) + (soFalta && !modo ? ' (SÓ O QUE FALTA)' : '');
   }
   document.addEventListener('click', function (ev) {
     if (ev.target.closest('[data-imprimir-compras]')) imprimirCompras();
@@ -495,8 +546,9 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
   });
 
   function imprimirCompras() {
-    const l = linhasRelatorio();
-    if (!l.length) { Ui.toast('Nenhum insumo neste filtro.', 'aviso'); return; }
+    const l = visao === 'OP' ? [] : linhasRelatorio();
+    const lop = visao === 'OP' ? linhasPorOP() : [];
+    if (!l.length && !lop.length) { Ui.toast('Nada neste filtro para imprimir.', 'aviso'); return; }
     const aComprar = l.filter(function (r) { return r.comprar > 0; }).length;
     const w = window.open('');
     if (!w) { Ui.toast('O navegador bloqueou a janela de impressão. Libere pop-ups para este site.', 'erro'); return; }
@@ -512,16 +564,15 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
   tr{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 </style></head><body>
   <h2>${e(tituloRelatorio())}</h2>
-  <div class="sub">Emitido em: ${new Date().toLocaleString('pt-BR')} &nbsp;|&nbsp; ${l.length} insumos &nbsp;|&nbsp; ${aComprar} para comprar &nbsp;|&nbsp; projetado = saldo − o que as OPs abertas vão consumir</div>
-  <table><thead><tr><th>CÓDIGO</th><th>DESCRIÇÃO</th><th>CATEGORIA</th><th>UN.</th><th>SALDO</th><th>VAI SAIR</th><th>PROJETADO</th><th>MÍNIMO</th><th>LEAD (DIAS)</th><th>SITUAÇÃO</th><th>COMPRAR</th></tr></thead>
+  <div class="sub">Emitido em: ${new Date().toLocaleString('pt-BR')} &nbsp;|&nbsp; ${visao === 'OP' ? lop.length + ' linhas (OP + insumo)' : l.length + ' insumos &nbsp;|&nbsp; ' + aComprar + ' para comprar'} &nbsp;|&nbsp; sobra/falta = saldo − o que as OPs abertas vão consumir</div>
+  ${visao === 'OP' ? porOPHtml(lop) : `<table><thead><tr><th>CÓDIGO</th><th>DESCRIÇÃO</th><th>CATEGORIA</th><th>UN.</th><th>TEM</th><th>VAI USAR</th><th>SOBRA/FALTA</th><th>MÍNIMO</th><th>LEAD (DIAS)</th><th>COMPRAR</th><th>POR QUÊ</th></tr></thead>
   <tbody>${l.map(function (r) {
     return '<tr' + corLinha(r) + '><td><b>' + e(r.cod) + '</b></td><td>' + e(r.desc) + '</td><td>' + e(r.cat) + '</td><td>' + e(r.un) + '</td>' +
       '<td class="n">' + Fmt.num(r.saldo) + '</td><td class="n">' + Fmt.num(r.sair) + '</td><td class="n">' + Fmt.num(r.proj) + '</td>' +
-      '<td class="n">' + Fmt.num(r.min) + '</td><td class="n">' + Fmt.num(r.lead) + '</td><td>' + e(r.sit) + '</td>' +
-      '<td class="c">' + (r.comprar > 0 ? Fmt.num(r.comprar) : '—') + '</td></tr>';
-  }).join('')}</tbody></table>
+      '<td class="n">' + Fmt.num(r.min) + '</td><td class="n">' + Fmt.num(r.lead) + '</td>' +
+      '<td class="c">' + (r.comprar > 0 ? Fmt.num(r.comprar) : '—') + '</td><td>' + e(r.pq) + '</td></tr>';
+  }).join('')}</tbody></table>`}
   ${caixasHtml()}
-  ${avisosHtml()}
   <script>window.onload=()=>window.print();<\/script></body></html>`);
     w.document.close();
   }
@@ -544,16 +595,13 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
       }).join('') + '</tbody></table>';
   }
 
-  // Avisos do PCP no relatório impresso (só as OPs que faltam material)
-  function avisosHtml() {
-    const l = avisosPorOP().filter(function (a) { return a.falta; });
-    if (!l.length) return '';
-    return '<h2 style="margin-top:22px">AVISOS DO PCP — OPs QUE FALTAM MATERIAL</h2><table><thead><tr><th>OP</th><th>CLIENTE</th><th>PROCESSO</th><th>INSUMO</th><th>DESCRIÇÃO</th><th>PRECISA</th><th>TEM</th><th>FALTAM</th></tr></thead><tbody>' +
-      l.map(function (a) {
-        return a.itens.map(function (it) {
-          return '<tr' + (it.faltam > 0 ? ' style="background:#fde2e2"' : '') + '><td><b>' + e(a.op) + '</b></td><td>' + e(a.cliente) + '</td><td>' + e(a.processo) + '</td><td>' + e(it.cod) + '</td><td>' + e(it.desc) + '</td>' +
-            '<td class="n">' + Fmt.num(it.precisa) + '</td><td class="n">' + Fmt.num(it.tem) + '</td><td class="c">' + (it.faltam > 0 ? Fmt.num(it.faltam) : '—') + '</td></tr>';
-        }).join('');
+  // Por OP no relatório impresso
+  function porOPHtml(l) {
+    return '<table><thead><tr><th>OP</th><th>CLIENTE</th><th>PROCESSO</th><th>INSUMO</th><th>DESCRIÇÃO</th><th>PRECISA</th><th>TEM</th><th>FALTA</th></tr></thead><tbody>' +
+      l.map(function (x) {
+        const a = x.a, it = x.it;
+        return '<tr' + (it.faltam > 0 ? ' style="background:#fde2e2"' : '') + '><td><b>' + (x.ini ? e(a.op) : '') + '</b></td><td>' + (x.ini ? e(a.cliente) : '') + '</td><td>' + (x.ini ? e(a.processo) : '') + '</td><td>' + e(it.cod) + '</td><td>' + e(it.desc) + '</td>' +
+          '<td class="n">' + Fmt.num(it.precisa) + '</td><td class="n">' + Fmt.num(it.tem) + '</td><td class="c">' + (it.faltam > 0 ? Fmt.num(it.faltam) : 'ok') + '</td></tr>';
       }).join('') + '</tbody></table>';
   }
 
@@ -568,18 +616,32 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
     });
   }
   async function baixarExcel() {
+    // Duas abas (Por insumo e Por OP) com o filtro "só o que falta" da tela;
+    // a aba da visão aberta vem primeiro. Mais a aba das caixas.
     const l = linhasRelatorio();
-    if (!l.length) { Ui.toast('Nenhum insumo neste filtro.', 'aviso'); return; }
+    const av = [];
+    linhasPorOP().forEach(function (x) {
+      av.push({ 'OP': x.a.op, 'Cliente': x.a.cliente, 'Processo': x.a.processo, 'Insumo': x.it.cod, 'Descrição': x.it.desc, 'Precisa': x.it.precisa, 'Tem': x.it.tem, 'Falta': x.it.faltam });
+    });
+    if (!l.length && !av.length && !linhasCaixas().length) { Ui.toast('Nada neste filtro para exportar.', 'aviso'); return; }
     try {
       await carregarSheetJS();
-      const dados = l.map(function (r) {
-        return { 'Código': r.cod, 'Descrição': r.desc, 'Categoria': r.cat, 'Unidade': r.un, 'Saldo': r.saldo, 'Vai sair': r.sair,
-          'Projetado': r.proj, 'Mínimo': r.min, 'Lead (dias)': r.lead, 'Situação': r.sit, 'Comprar': r.comprar };
-      });
-      const ws = XLSX.utils.json_to_sheet(dados);
-      ws['!cols'] = [12, 42, 12, 8, 10, 10, 11, 10, 11, 12, 10].map(function (c) { return { wch: c }; });
       const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Compras');
+      const abaInsumo = function () {
+        const ws = XLSX.utils.json_to_sheet(l.map(function (r) {
+          return { 'Código': r.cod, 'Descrição': r.desc, 'Categoria': r.cat, 'Unidade': r.un, 'Tem': r.saldo, 'Vai usar (OPs)': r.sair,
+            'Sobra/falta': r.proj, 'Mínimo': r.min, 'Lead (dias)': r.lead, 'Comprar': r.comprar, 'Por quê': r.pq };
+        }));
+        ws['!cols'] = [12, 42, 12, 8, 10, 12, 11, 10, 11, 10, 16].map(function (c) { return { wch: c }; });
+        XLSX.utils.book_append_sheet(wb, ws, 'Por insumo');
+      };
+      const abaOP = function () {
+        if (!av.length) return;
+        const ws2 = XLSX.utils.json_to_sheet(av);
+        ws2['!cols'] = [8, 30, 16, 12, 40, 10, 10, 10].map(function (c) { return { wch: c }; });
+        XLSX.utils.book_append_sheet(wb, ws2, 'Por OP');
+      };
+      if (visao === 'OP') { abaOP(); abaInsumo(); } else { abaInsumo(); abaOP(); }
       const cx = linhasCaixas().map(function (r) {
         return { 'Comprar até': r.ate, 'Vai usar em': r.uso, 'OP': r.op, 'Cliente': r.cliente, 'Insumo': r.cod, 'Descrição': r.desc, 'Qtd': r.qtd, 'Unidade': r.un, 'Ciente': r.ciente };
       });
@@ -588,21 +650,10 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
         ws3['!cols'] = [12, 12, 8, 28, 12, 40, 8, 8, 24].map(function (c) { return { wch: c }; });
         XLSX.utils.book_append_sheet(wb, ws3, 'Caixas');
       }
-      const av = [];
-      avisosPorOP().forEach(function (a) {
-        a.itens.forEach(function (it) {
-          av.push({ 'OP': a.op, 'Cliente': a.cliente, 'Processo': a.processo, 'Insumo': it.cod, 'Descrição': it.desc, 'Precisa': it.precisa, 'Tem': it.tem, 'Faltam': it.faltam });
-        });
-      });
-      if (av.length) {
-        const ws2 = XLSX.utils.json_to_sheet(av);
-        ws2['!cols'] = [8, 30, 16, 12, 40, 10, 10, 10].map(function (c) { return { wch: c }; });
-        XLSX.utils.book_append_sheet(wb, ws2, 'Avisos por OP');
-      }
       const hoje = new Date();
       const nome = 'compras_' + hoje.getFullYear() + String(hoje.getMonth() + 1).padStart(2, '0') + String(hoje.getDate()).padStart(2, '0') + '.xlsx';
       XLSX.writeFile(wb, nome);
-      Ui.toast(l.length + ' insumos exportados · ' + nome, 'ok', 'Excel');
+      Ui.toast('Planilha gerada · ' + nome, 'ok', 'Excel');
     } catch (err) { Ui.erro(err); }
   }
 
