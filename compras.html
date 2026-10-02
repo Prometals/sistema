@@ -88,9 +88,24 @@ html.tema-claro .tg-falta.on { color: #b91c1c; }
 .tab-wrap { max-height: calc(100vh - 360px); }
 .tab-wrap table.tab th { position: sticky; top: 0; z-index: 1; }
 #bx-tab table.tab th, #bx-tab table.tab td { padding-top: 7px; padding-bottom: 7px; white-space: nowrap; }
-#bx-tab table.tab tbody tr { cursor: pointer; }
+#bx-tab table.tab tbody tr.lin { cursor: pointer; }
+#bx-tab table.tab tbody tr.lin:hover td { background: color-mix(in srgb, var(--destaque) 5%, transparent); }
+tr.lin td.sv { width: 28px; text-align: center; color: var(--texto-suave); font-size: 12px; }
+tr.lin.ab td { background: color-mix(in srgb, var(--destaque) 8%, transparent); border-bottom-color: transparent; }
+tr.lin.ab td.sv { color: var(--destaque); }
+td.qc { font-weight: 800; font-size: 13.5px; }
+.res { color: var(--texto-suave); }
+tr.dt > td { padding: 0 0 12px 0 !important; background: color-mix(in srgb, var(--destaque) 8%, transparent); white-space: normal !important; cursor: default; }
+.dt-box { margin: 0 28px 0 40px; background: var(--painel); border: 1px solid var(--linha); border-radius: 10px; overflow: hidden; }
+.dt-box table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.dt-box th { text-align: left; font-size: 10px; font-weight: 800; color: var(--texto-suave); letter-spacing: .4px; text-transform: uppercase; padding: 6px 12px; background: var(--painel-2); }
+.dt-box td { padding: 6px 12px; border-top: 1px solid var(--linha); white-space: nowrap; }
+.dt-box .num { text-align: right; }
+.dt-inf { padding: 7px 12px; font-size: 11.5px; color: var(--texto-suave); border-top: 1px solid var(--linha); }
+.lista-tab .dt-box { margin: 0 10px 10px; }
+.lista-tab .dt-box td, .lista-tab .dt-box th { padding: 5px 8px; }
 td.ins { max-width: 420px; overflow: hidden; text-overflow: ellipsis; }
-td.ins .cod, .lista-tab .cod { color: var(--texto-suave); font-size: 11px; margin-left: 6px; font-weight: 400; }
+td.ins .cod, .lista-tab .cod, .dt-box .cod { color: var(--texto-suave); font-size: 11px; margin-left: 6px; font-weight: 400; }
 .pqt { font-size: 12px; font-weight: 700; }
 .pqt.op { color: #f07a1f; } .pqt.min { color: #ca8a04; } .pqt.cx { color: var(--texto-suave); font-weight: 600; }
 html.tema-claro .pqt.op { color: #c2410c; } html.tema-claro .pqt.min { color: #a16207; }
@@ -196,6 +211,7 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
   const NOME_CAT = { TODAS: 'Todos', OP: 'De OP (luva e filtro)', SEM: 'Sem OP (outros)' };
   let visao = 'INS';          // tabela: INS (por insumo) | OP (por OP)
   let soFalta = true;         // mostra só o que falta
+  const aberto = { INS: {}, OP: {} };   // linhas abertas (detalhe embaixo da linha)
 
   carregar();
   // Recalcula a cada 60 s (não atrapalha quem está digitando ou com janela aberta)
@@ -303,7 +319,7 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
       if (i.politica === 'SOB_DEMANDA') return;   // caixa tem o fluxo próprio (coluna da direita)
       (i.ops || []).forEach(function (o) {
         let a = porOP[o.id_item];
-        if (!a) { a = porOP[o.id_item] = { op: o.op, cliente: o.cliente, processo: o.processo, itens: [] }; ordem.push(a); }
+        if (!a) { a = porOP[o.id_item] = { id: o.id_item, op: o.op, cliente: o.cliente, processo: o.processo, itens: [] }; ordem.push(a); }
         a.itens.push({ cod: i.cod_insumo, desc: i.descricao, un: String(i.unidade || '').toLowerCase(), precisa: o.falta, saldo: i.saldo });
       });
     });
@@ -368,60 +384,75 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
     if (visao === 'OP') desenharPorOP(); else desenharPorInsumo();
   }
 
+  // ============================================================
+  // POR INSUMO: lista simples (insumo · tem · comprar). Clicou, abre
+  // embaixo as OPs que vão consumir aquele insumo.
+  // ============================================================
   function desenharPorInsumo() {
     const l = insumosFiltrados();
     const ops = opsPorInsumo(avisosPorOP());
-    $('#cab').innerHTML = '<tr><th>Insumo</th><th class="num">Tem</th><th class="num">Vai usar</th><th class="num">Sobra / falta</th><th class="num">Mínimo</th><th class="num">Comprar</th><th>Por quê</th></tr>';
-    const opsFalta = function (cod) { return (ops[cod] || []).filter(function (o) { return o.faltam > 0; }).map(function (o) { return o.op; }); };
-    // Por quê em texto direto: "OP 3190" / "Estoque mínimo" / "OP 3190 + mínimo"
-    const pqTexto = function (i) {
-      const pq = porQue(i);
-      if (!pq) return { cls: '', txt: '' };
-      if (pq.cls !== 'op') return { cls: pq.cls, txt: pq.cls === 'cx' ? 'Caixa (ver card)' : 'Estoque mínimo' };
-      const f = opsFalta(i.cod_insumo);
-      const t = f.length ? 'OP ' + f.slice(0, 3).join(', ') + (f.length > 3 ? ' +' + (f.length - 3) : '') : 'OPs';
-      return { cls: 'op', txt: t + (i.minimo > 0 ? ' + mínimo' : '') };
+    const unid = function (i) { return String(i.unidade || '').toLowerCase(); };
+    const detalhe = function (i) {
+      const lista = ops[i.cod_insumo] || [];
+      const conta = 'Tem ' + Fmt.num(i.saldo) + ' · OPs vão usar ' + Fmt.num(i.vai_sair) + ' · mínimo ' + Fmt.num(i.minimo) + ' · lead time ' + Fmt.num(i.lead_time) + ' dias' +
+        (i.sugerido > 0 ? ' → comprar ' + Fmt.num(i.sugerido) + ' ' + unid(i) : '');
+      return '<div class="dt-box">' + (lista.length
+        ? '<table><thead><tr><th>OP</th><th>Cliente</th><th>Processo</th><th class="num">Precisa</th></tr></thead><tbody>' +
+          lista.map(function (o) { return '<tr><td><b>' + e(o.op) + '</b></td><td>' + e(titulo(o.cliente)) + '</td><td class="res">' + e(titulo(o.processo)) + '</td><td class="num">' + n(o.precisa) + '</td></tr>'; }).join('') + '</tbody></table>'
+        : '<div class="dt-inf" style="border-top:0">Nenhuma OP vai usar este insumo agora' + (i.minimo > 0 ? ' · a compra é pelo estoque mínimo.' : '.') + '</div>') +
+        '<div class="dt-inf">' + e(conta) + '</div></div>';
     };
+    $('#cab').innerHTML = '<tr><th>Insumo</th><th class="num">Tem</th><th class="num">Comprar</th><th></th></tr>';
     $('#linhas').innerHTML = l.map(function (i) {
-      const pq = pqTexto(i);
-      return '<tr class="' + catClasseLinha(i) + '" data-ins="' + e(i.cod_insumo) + '" title="Clique para ver as OPs">' +
+      const ab = !!aberto.INS[i.cod_insumo];
+      return '<tr class="lin' + (ab ? ' ab' : '') + '" data-abre="INS" data-k="' + e(i.cod_insumo) + '">' +
         '<td class="ins">' + e(i.descricao) + '<span class="cod">' + e(i.cod_insumo) + '</span></td>' +
-        '<td class="num">' + n(i.saldo) + '</td><td class="num">' + (i.vai_sair ? n(i.vai_sair) : '—') + '</td>' +
-        '<td class="num">' + (i.projetado < 0 ? '<span class="neg">' + n(i.projetado) + '</span>' : n(i.projetado)) + '</td>' +
-        '<td class="num">' + (i.minimo ? n(i.minimo) : '—') + '</td>' +
-        '<td class="num sug">' + (i.sugerido > 0 ? '<b>' + n(i.sugerido) + '</b>' : '—') + '</td>' +
-        '<td>' + (pq.txt ? '<span class="pqt ' + pq.cls + '">' + e(pq.txt) + '</span>' : '<span class="okc">ok</span>') + '</td></tr>';
-    }).join('') || '<tr><td colspan="7"><div class="vazio">' + (soFalta && !modo ? '✅ Nada para comprar nesta categoria.' : 'Nenhum insumo neste filtro.') + '</div></td></tr>';
-    // celular
+        '<td class="num res">' + n(i.saldo) + '</td>' +
+        '<td class="num qc">' + (i.sugerido > 0 ? n(i.sugerido) : '<span class="res" style="font-weight:400">—</span>') + '</td>' +
+        '<td class="sv">' + (ab ? '▾' : '▸') + '</td></tr>' +
+        (ab ? '<tr class="dt"><td colspan="4">' + detalhe(i) + '</td></tr>' : '');
+    }).join('') || '<tr><td colspan="4"><div class="vazio">' + (soFalta && !modo ? '✅ Nada para comprar.' : 'Nenhum insumo neste filtro.') + '</div></td></tr>';
     $('#lista-tab').innerHTML = l.map(function (i) {
-      const pq = pqTexto(i);
-      return '<div class="li" data-ins="' + e(i.cod_insumo) + '">' + e(i.descricao) + '<span class="cod">' + e(i.cod_insumo) + '</span>' +
-        (i.sugerido > 0 ? ' — <span class="f">comprar ' + n(i.sugerido) + '</span>' : '') +
-        '<small>' + (pq.txt ? e(pq.txt) + ' · ' : '') + 'tem ' + n(i.saldo) + ' · vai usar ' + n(i.vai_sair) + ' · mín. ' + n(i.minimo) + '</small></div>';
+      const ab = !!aberto.INS[i.cod_insumo];
+      return '<div class="li" data-abre="INS" data-k="' + e(i.cod_insumo) + '">' + e(i.descricao) + '<span class="cod">' + e(i.cod_insumo) + '</span>' +
+        '<small>tem ' + n(i.saldo) + (i.sugerido > 0 ? ' · <b style="color:var(--texto)">comprar ' + n(i.sugerido) + '</b>' : '') + '</small></div>' +
+        (ab ? detalhe(i) : '');
     }).join('') || '<div class="vazio">' + (soFalta && !modo ? '✅ Nada para comprar.' : 'Nenhum insumo neste filtro.') + '</div>';
     const nComprar = painel.insumos.filter(function (i) { return i.sugerido > 0; }).length;
-    $('#rod-tab').textContent = l.length + ' insumo' + (l.length === 1 ? '' : 's') + ' na lista · ' + nComprar + ' para comprar' + ($('#fCat').value === 'SEM' ? ' · itens sem OP: compra pelo estoque mínimo' : ' · clique na linha para ver as OPs');
+    $('#rod-tab').textContent = nComprar + ' insumo' + (nComprar === 1 ? '' : 's') + ' para comprar' + (soFalta && !modo ? '' : ' · ' + l.length + ' na lista') + ' · clique no insumo para ver as OPs';
   }
 
+  // ============================================================
+  // POR OP: uma linha por OP (resumo dos insumos). Clicou, abre embaixo
+  // os insumos daquela OP (precisa · tem · falta).
+  // ============================================================
   function desenharPorOP() {
-    const l = linhasPorOP();
     const todos = avisosPorOP();
-    $('#cab').innerHTML = '<tr><th>OP</th><th>Cliente</th><th>Processo</th><th>Insumo</th><th class="num">Precisa</th><th class="num">Tem</th><th class="num">Falta</th></tr>';
-    $('#linhas').innerHTML = l.map(function (x) {
-      const a = x.a, it = x.it;
-      return '<tr class="' + (x.ini ? 'op-ini' : 'op-cont') + '" data-ins="' + e(it.cod) + '"><td class="op-n">' + (x.ini ? e(a.op) : '') + '</td>' +
-        '<td>' + (x.ini ? e(titulo(a.cliente)) : '') + '</td><td class="mut">' + (x.ini ? e(titulo(a.processo)) : '') + '</td>' +
-        '<td class="ins" title="' + e(it.desc) + '">' + e(it.desc) + '<span class="cod">' + e(it.cod) + '</span></td>' +
-        '<td class="num">' + n(it.precisa) + '</td><td class="num">' + n(it.tem) + '</td>' +
-        '<td class="num">' + (it.faltam > 0 ? '<span class="f">' + n(it.faltam) + (it.un ? ' ' + e(it.un) : '') + '</span>' : '<span class="okc">ok</span>') + '</td></tr>';
-    }).join('') || '<tr><td colspan="7"><div class="vazio">' + (todos.length ? '✅ As ' + todos.length + ' OPs têm material no estoque.' : 'Nenhuma OP em Planejamento, Modelação ou Moldagem vai consumir agora.') + '</div></td></tr>';
-    $('#lista-tab').innerHTML = l.map(function (x) {
-      const it = x.it;
-      return '<div class="li" data-ins="' + e(it.cod) + '"><b>OP ' + e(x.a.op) + '</b> · ' + e(it.desc) + '<span class="cod">' + e(it.cod) + '</span> — ' + (it.faltam > 0 ? '<span class="f">faltam ' + n(it.faltam) + (it.un ? ' ' + e(it.un) : '') + '</span>' : '<span class="okc">ok</span>') +
-        '<small>' + e(titulo(x.a.cliente)) + ' · ' + e(titulo(x.a.processo)) + ' · precisa ' + n(it.precisa) + ' · tem ' + n(it.tem) + '</small></div>';
+    const l = soFalta ? todos.filter(function (a) { return a.falta; }) : todos;
+    const resumo = function (a) {
+      const f = a.itens.filter(function (it) { return it.faltam > 0; }).length;
+      return a.itens.length + ' insumo' + (a.itens.length === 1 ? '' : 's') + ' · ' + (f ? '<span class="f">' + f + ' faltando</span>' : '<span class="okc">ok</span>');
+    };
+    const detalhe = function (a) {
+      return '<div class="dt-box"><table><thead><tr><th>Insumo</th><th class="num">Precisa</th><th class="num">Tem</th><th class="num">Falta</th></tr></thead><tbody>' +
+        a.itens.map(function (it) {
+          return '<tr><td>' + e(it.desc) + '<span class="cod">' + e(it.cod) + '</span></td><td class="num">' + n(it.precisa) + '</td><td class="num">' + n(it.tem) + '</td>' +
+            '<td class="num">' + (it.faltam > 0 ? '<span class="f">' + n(it.faltam) + (it.un ? ' ' + e(it.un) : '') + '</span>' : '<span class="okc">ok</span>') + '</td></tr>';
+        }).join('') + '</tbody></table></div>';
+    };
+    $('#cab').innerHTML = '<tr><th>OP</th><th>Cliente</th><th>Processo</th><th>Insumos</th><th></th></tr>';
+    $('#linhas').innerHTML = l.map(function (a) {
+      const ab = !!aberto.OP[a.id];
+      return '<tr class="lin' + (ab ? ' ab' : '') + '" data-abre="OP" data-k="' + e(a.id) + '"><td class="op-n">' + e(a.op) + '</td><td>' + e(titulo(a.cliente)) + '</td>' +
+        '<td class="res">' + e(titulo(a.processo)) + '</td><td>' + resumo(a) + '</td><td class="sv">' + (ab ? '▾' : '▸') + '</td></tr>' +
+        (ab ? '<tr class="dt"><td colspan="5">' + detalhe(a) + '</td></tr>' : '');
+    }).join('') || '<tr><td colspan="5"><div class="vazio">' + (todos.length ? '✅ As ' + todos.length + ' OPs têm material no estoque.' : 'Nenhuma OP em Planejamento, Modelação ou Moldagem vai consumir agora.') + '</div></td></tr>';
+    $('#lista-tab').innerHTML = l.map(function (a) {
+      const ab = !!aberto.OP[a.id];
+      return '<div class="li" data-abre="OP" data-k="' + e(a.id) + '"><b>OP ' + e(a.op) + '</b> · ' + e(titulo(a.cliente)) + '<small>' + e(titulo(a.processo)) + ' · ' + resumo(a) + '</small></div>' + (ab ? detalhe(a) : '');
     }).join('') || '<div class="vazio">' + (todos.length ? '✅ Todas as OPs têm material.' : 'Nenhuma OP vai consumir agora.') + '</div>';
     const opsFalta = todos.filter(function (a) { return a.falta; }).length;
-    $('#rod-tab').textContent = opsFalta + ' de ' + todos.length + ' OP' + (todos.length === 1 ? '' : 's') + ' com falta de material · da OP mais antiga para a mais nova (a conta é acumulada)';
+    $('#rod-tab').textContent = opsFalta + ' de ' + todos.length + ' OP' + (todos.length === 1 ? '' : 's') + ' com falta de material · clique na OP para ver os insumos';
   }
 
   function tagSolic(s) {
@@ -493,9 +524,11 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
     const vs = ev.target.closest('[data-visao]');
     if (vs) { visao = vs.dataset.visao; desenharTabela(); return; }
     if (ev.target.closest('#bSoFalta')) { soFalta = !soFalta; desenharTabela(); return; }
-    const ins = ev.target.closest('[data-ins]');
-    if (ins) {
-      verOPs(ins.dataset.ins);
+    const ab = ev.target.closest('[data-abre]');
+    if (ab) {
+      const g = aberto[ab.dataset.abre], k = ab.dataset.k;
+      g[k] = !g[k];
+      desenharTabela();
       return;
     }
     const cx = ev.target.closest('[data-caixas]');
