@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="css/sistema.css">
 <style>
 /* ---------- específico desta página ---------- */
-.kl { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 14px; }
+.kl { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; margin-bottom: 14px; }
 .kq { background: var(--painel); border: 1px solid var(--linha); border-radius: 12px; padding: 10px 14px; cursor: pointer; position: relative; overflow: hidden; text-align: left; font: inherit; color: inherit; }
 .kq::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--c); }
 .kq.sel { border-color: var(--c); box-shadow: 0 0 0 1px var(--c) inset; }
@@ -55,6 +55,7 @@
 th[data-col] { cursor: pointer; user-select: none; }
 th.ord-desc::after { content: " ↓"; color: var(--destaque); } th.ord-asc::after { content: " ↑"; color: var(--destaque); }
 .tt { font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 5px; white-space: nowrap; } .tt.ref { background: rgba(220,38,38,.18); color: #f87171; } .tt.ret { background: rgba(59,130,246,.18); color: #93c5fd; }
+.tt.mol { background: rgba(168,85,247,.18); color: #d8b4fe; } html.tema-claro .tt.mol { color: #7e22ce; }
 html.tema-claro .tt.ref { color: #b91c1c; } html.tema-claro .tt.ret { color: #1d4ed8; }
 .est { font-size: 10.5px; color: var(--texto-suave); font-weight: 700; margin-left: 4px; }
 table.tab tr.recente td { background: color-mix(in srgb, var(--destaque) 10%, transparent); }
@@ -177,7 +178,7 @@ Sessao.iniciarPagina('qualidade').then(function (ctx) {
   const PROCESSOS_FUNDICAO = ['ENGENHARIA', 'MODELAÇÃO', 'MOLDAGEM', 'PINTURA', 'FUSÃO', 'DESMOLDAGEM',
     'AGUARDANDO FUSÃO', 'AGUARDANDO MOLDAGEM', 'AGUARDANDO PINTURA', 'INSPEÇÃO FUSÃO', 'PINTURA MOLDE'];
   const NOME_SETOR = { FUNDICAO: 'FUNDIÇÃO', USINAGEM: 'USINAGEM' };
-  const NOME_TIPO = { REFUGO: 'REFUGO', RETRABALHO: 'RETRABALHO' };
+  const NOME_TIPO = { REFUGO: 'REFUGO', RETRABALHO: 'RETRABALHO', MOLDE: 'MOLDE' };
   const COR_SETOR = { FUNDICAO: '#f07a1f', USINAGEM: '#14b8a6' };
 
   /* ---------- ESTADO ---------- */
@@ -211,7 +212,7 @@ Sessao.iniciarPagina('qualidade').then(function (ctx) {
     return PROCESSOS_FUNDICAO.indexOf(p) !== -1 ? 'FUNDICAO' : 'USINAGEM';
   }
   function soma(lista, campo) { return lista.reduce(function (s, x) { return s + x[campo]; }, 0); }
-  function tagTipo(t) { return t === 'RETRABALHO' ? '<span class="tt ret">RETRAB.</span>' : '<span class="tt ref">REFUGO</span>'; }
+  function tagTipo(t) { return t === 'RETRABALHO' ? '<span class="tt ret">RETRAB.</span>' : t === 'MOLDE' ? '<span class="tt mol">MOLDE</span>' : '<span class="tt ref">REFUGO</span>'; }
   function haModal() { return !!document.querySelector('.modal-fundo'); }
   function ehCelular() { return window.innerWidth <= 760; }
 
@@ -258,7 +259,7 @@ Sessao.iniciarPagina('qualidade').then(function (ctx) {
           qtd: qtd, qtdOriginal: orig, qtdEstornada: Number(x.qtdEstornada) || 0,
           // peso líquido proporcional ao que sobrou depois do estorno parcial
           peso: orig > 0 && qtd !== orig ? Math.round(pesoOrig / orig * qtd * 1000) / 1000 : pesoOrig,
-          motivo: x.motivo || '', tipo: String(x.tipo || '').toUpperCase() === 'RETRABALHO' ? 'RETRABALHO' : 'REFUGO'
+          motivo: x.motivo || '', tipo: ['RETRABALHO', 'MOLDE'].indexOf(String(x.tipo || '').toUpperCase()) !== -1 ? String(x.tipo).toUpperCase() : 'REFUGO'
         };
       }).filter(function (x) { return x.data; });
       jaCarregou = true;
@@ -401,10 +402,12 @@ Sessao.iniciarPagina('qualidade').then(function (ctx) {
     const semTipo = filtrar(estado.dados, { tipo: true });
     const ref = semTipo.filter(function (x) { return x.tipo === 'REFUGO'; });
     const ret = semTipo.filter(function (x) { return x.tipo === 'RETRABALHO'; });
+    const mol = semTipo.filter(function (x) { return x.tipo === 'MOLDE'; });
     const k = [
       { a: 'TODOS', c: '#3b82f6', l: 'Apontamentos', v: lista.length, s: 'no período', mob: 'Apont.', sel: f.setor === 'TODOS' && f.tipo === 'TODOS' },
-      { a: 'T:REFUGO', c: '#ef4444', l: 'Refugo', v: soma(ref, 'qtd') + ' <small>pç</small>', s: kg(soma(ref, 'peso'), 1) + ' kg', mob: 'Refugo', vm: soma(ref, 'qtd') + ' pç', sel: f.tipo === 'REFUGO' },
+      { a: 'T:REFUGO', c: '#ef4444', l: 'Refugo de peça', v: soma(ref, 'qtd') + ' <small>pç</small>', s: kg(soma(ref, 'peso'), 1) + ' kg', mob: 'Refugo', vm: soma(ref, 'qtd') + ' pç', sel: f.tipo === 'REFUGO' },
       { a: 'T:RETRABALHO', c: '#3b82f6', l: 'Retrabalho', v: soma(ret, 'qtd') + ' <small>pç</small>', s: kg(soma(ret, 'peso'), 1) + ' kg', mob: 'Retrab.', vm: soma(ret, 'qtd') + ' pç', sel: f.tipo === 'RETRABALHO' },
+      { a: 'T:MOLDE', c: '#a855f7', l: 'Moldes perdidos', v: soma(mol, 'qtd') + ' <small>un</small>', s: kg(soma(mol, 'peso'), 1) + ' kg', mob: 'Moldes', vm: soma(mol, 'qtd') + ' un', sel: f.tipo === 'MOLDE' },
       { a: 'S:FUNDICAO', c: '#f07a1f', l: 'Fundição', v: semSetor.filter(function (x) { return x.setor === 'FUNDICAO'; }).length, s: 'apontamentos', mob: 'Fundição', sel: f.setor === 'FUNDICAO' },
       { a: 'S:USINAGEM', c: '#14b8a6', l: 'Usinagem', v: semSetor.filter(function (x) { return x.setor === 'USINAGEM'; }).length, s: 'apontamentos', mob: 'Usinagem', sel: f.setor === 'USINAGEM' }
     ];
@@ -419,15 +422,17 @@ Sessao.iniciarPagina('qualidade').then(function (ctx) {
     const hoje = estado.dados.filter(function (x) { return x.ts >= hojeIni; }).sort(function (a, b) { return b.ts - a.ts; });
     const hRef = hoje.filter(function (x) { return x.tipo === 'REFUGO'; });
     const hRet = hoje.filter(function (x) { return x.tipo === 'RETRABALHO'; });
+    const hMol = hoje.filter(function (x) { return x.tipo === 'MOLDE'; });
     const ult = hoje[0];
     const minutos = ult ? Math.max(0, Math.round((agora - ult.ts) / 60000)) : 0;
     const htmlHoje =
       (ult && ult.ts >= limiteNovo ? '<span class="novo">NOVO</span>' : '') +
       '<h4>APONTAMENTOS HOJE</h4><div class="n">' + hoje.length + '<small>apontamentos</small></div>' +
-      '<div class="d">Refugo: <b>' + soma(hRef, 'qtd') + ' pç · ' + kg(soma(hRef, 'peso')) + ' kg</b></div>' +
+      '<div class="d">Refugo de peça: <b>' + soma(hRef, 'qtd') + ' pç · ' + kg(soma(hRef, 'peso')) + ' kg</b></div>' +
       '<div class="d">Retrabalho: <b>' + soma(hRet, 'qtd') + ' pç · ' + kg(soma(hRet, 'peso')) + ' kg</b> · ' + new Set(hoje.map(function (x) { return x.op; })).size + ' OPs</div>' +
+      '<div class="d">Moldes perdidos: <b>' + soma(hMol, 'qtd') + ' un · ' + kg(soma(hMol, 'peso')) + ' kg</b></div>' +
       '<div class="u">' + (ult
-        ? 'Último: <b>' + pad(ult.data.getHours()) + ':' + pad(ult.data.getMinutes()) + '</b> · ' + esc(ult.operador) + ' · ' + (ult.tipo === 'RETRABALHO' ? 'RETRAB. · ' : '') + 'OP ' + esc(ult.op) + ' · ' + esc(ult.processo) + ' · ' + (minutos < 1 ? 'agora' : minutos < 60 ? 'há ' + minutos + ' min' : 'há ' + Math.floor(minutos / 60) + ' h')
+        ? 'Último: <b>' + pad(ult.data.getHours()) + ':' + pad(ult.data.getMinutes()) + '</b> · ' + esc(ult.operador) + ' · ' + (ult.tipo === 'RETRABALHO' ? 'RETRAB. · ' : ult.tipo === 'MOLDE' ? 'MOLDE · ' : '') + 'OP ' + esc(ult.op) + ' · ' + esc(ult.processo) + ' · ' + (minutos < 1 ? 'agora' : minutos < 60 ? 'há ' + minutos + ' min' : 'há ' + Math.floor(minutos / 60) + ' h')
         : 'Nenhum apontamento hoje.') + '</div>';
     document.querySelectorAll('[data-hoje]').forEach(function (c) {
       c.innerHTML = htmlHoje;
@@ -449,7 +454,7 @@ Sessao.iniciarPagina('qualidade').then(function (ctx) {
     const motivos = agrupar(lista, 'motivo');
     const tipoMot = function (g) { return (lista.find(function (x) { return x.motivo === g.nome; }) || {}).tipo; };
     barras('barMot', motivos, 6,
-      function (g) { return tipoMot(g) === 'RETRABALHO' ? '#eab308' : '#ef4444'; },
+      function (g) { return tipoMot(g) === 'RETRABALHO' ? '#eab308' : tipoMot(g) === 'MOLDE' ? '#a855f7' : '#ef4444'; },
       function (g) { return g.nome + (tipoMot(g) === 'RETRABALHO' ? ' (retrab.)' : ''); },
       function (g) { return '<b>' + g.qtd + ' pç</b> · ' + kg(g.peso, 1); });
 
@@ -551,16 +556,19 @@ Sessao.iniciarPagina('qualidade').then(function (ctx) {
       XLSX.utils.book_append_sheet(wb, ws, 'REFUGO');
       const soRef = lista.filter(function (x) { return x.tipo === 'REFUGO'; });
       const soRet = lista.filter(function (x) { return x.tipo === 'RETRABALHO'; });
+      const soMol = lista.filter(function (x) { return x.tipo === 'MOLDE'; });
       const resumo = [
         ['RELATÓRIO DE REFUGO · QUALIDADE PROMETALS'],
         ['Filtro', descreverFiltros()],
         ['Emitido em', new Date().toLocaleString('pt-BR')],
         [],
         ['Apontamentos', lista.length],
-        ['Refugo · peças', soma(soRef, 'qtd')],
-        ['Refugo · peso (kg)', Number(soma(soRef, 'peso').toFixed(3))],
+        ['Refugo de peça · peças', soma(soRef, 'qtd')],
+        ['Refugo de peça · peso (kg)', Number(soma(soRef, 'peso').toFixed(3))],
         ['Retrabalho · peças', soma(soRet, 'qtd')],
         ['Retrabalho · peso (kg)', Number(soma(soRet, 'peso').toFixed(3))],
+        ['Refugo de molde · moldes', soma(soMol, 'qtd')],
+        ['Refugo de molde · peso (kg)', Number(soma(soMol, 'peso').toFixed(3))],
         ['OPs envolvidas', new Set(lista.map(function (x) { return x.op; })).size],
         [],
         ['MOTIVO', 'APONTAMENTOS', 'PEÇAS', 'PESO (kg)']
@@ -599,6 +607,7 @@ Sessao.iniciarPagina('qualidade').then(function (ctx) {
     const e = esc;
     const soRef = lista.filter(function (x) { return x.tipo === 'REFUGO'; });
     const soRet = lista.filter(function (x) { return x.tipo === 'RETRABALHO'; });
+    const soMol = lista.filter(function (x) { return x.tipo === 'MOLDE'; });
     const linhas = lista.map(function (x) {
       return `<tr>
         <td>${e(x.dataHora.slice(0, 16))}</td><td>${e(x.operador)}</td><td>${e(NOME_SETOR[x.setor])}</td>
@@ -618,7 +627,7 @@ Sessao.iniciarPagina('qualidade').then(function (ctx) {
   body { font-family: Arial, sans-serif; color: #111; margin: 0; }
   h2 { font-size: 16px; margin: 0 0 3px; }
   .sub { font-size: 10px; color: #555; margin-bottom: 12px; }
-  .res { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; }
+  .res { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 12px; }
   .res div { border: 1px solid #ccc; border-radius: 4px; padding: 6px 8px; font-size: 9px; color: #555; }
   .res b { display: block; font-size: 15px; color: #111; }
   table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
@@ -632,12 +641,13 @@ Sessao.iniciarPagina('qualidade').then(function (ctx) {
   .ass { display: flex; justify-content: space-between; margin-top: 30px; font-size: 10px; }
   .ass span { border-top: 1px solid #333; padding-top: 3px; width: 40%; text-align: center; }
 </style></head><body>
-  <h2>RELATÓRIO DE REFUGO E RETRABALHO · QUALIDADE PROMETALS</h2>
+  <h2>RELATÓRIO DE REFUGO (PEÇA E MOLDE) E RETRABALHO · QUALIDADE PROMETALS</h2>
   <div class="sub">Filtro: ${e(descreverFiltros())} · Emitido em ${new Date().toLocaleString('pt-BR')}</div>
   <div class="res">
     <div>APONTAMENTOS<b>${lista.length}</b></div>
-    <div>REFUGO<b>${soma(soRef, 'qtd')} pç · ${kg(soma(soRef, 'peso'))} kg</b></div>
+    <div>REFUGO DE PEÇA<b>${soma(soRef, 'qtd')} pç · ${kg(soma(soRef, 'peso'))} kg</b></div>
     <div>RETRABALHO<b>${soma(soRet, 'qtd')} pç · ${kg(soma(soRet, 'peso'))} kg</b></div>
+    <div>REFUGO DE MOLDE<b>${soma(soMol, 'qtd')} un · ${kg(soma(soMol, 'peso'))} kg</b></div>
     <div>OPs ENVOLVIDAS<b>${new Set(lista.map(function (x) { return x.op; })).size}</b></div>
   </div>
   <table>
