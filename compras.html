@@ -74,24 +74,36 @@ html.tema-claro .stt.pend { color: #9a3412; } html.tema-claro .stt.compr { color
 html.tema-claro .dif.neg2 { color: #b91c1c; } html.tema-claro .dif.pos { color: #166534; }
 .rodape .t-inv { margin-right: auto; font-size: 12px; color: var(--texto-suave); align-self: center; }
 .ops-lista table.tab td, .ops-lista table.tab th { padding: 8px 10px; }
-/* Avisos do PCP */
+/* Avisos do PCP: tabela compacta (uma linha por OP + insumo) */
 .av-bx { margin-bottom: 14px; }
-#avisos { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 10px; padding: 12px; }
-.av { border: 1px solid var(--linha); border-left: 4px solid #22c55e; border-radius: 10px; padding: 10px 12px; background: var(--painel); font-size: 13px; }
-.av.falta { border-left-color: #dc2626; background: color-mix(in srgb, #dc2626 6%, var(--painel)); }
-.av .t { font-weight: 800; margin-bottom: 6px; }
-.av .t small { font-weight: 600; color: var(--texto-suave); }
-.av ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
-.av li { display: flex; gap: 8px; justify-content: space-between; align-items: baseline; }
-.av li .q { white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--texto-suave); }
-.av li .q b { color: var(--texto); }
-.av li .q .f { color: #f87171; font-weight: 800; }
-html.tema-claro .av li .q .f { color: #b91c1c; }
-.av li .q .ok { color: #34d399; font-weight: 800; }
-html.tema-claro .av li .q .ok { color: #166534; }
-.av-mais { grid-column: 1 / -1; justify-self: start; background: none; border: 0; color: var(--destaque); font-weight: 700; cursor: pointer; padding: 2px 0; }
-.av-vazio { grid-column: 1 / -1; color: var(--texto-suave); font-size: 13px; padding: 6px 2px; }
-@media (max-width: 760px) { #avisos { grid-template-columns: 1fr; padding: 10px 0; } .av-bx { margin: 0 0 12px; } }
+.av-wrap { max-height: 300px; overflow: auto; }
+.av-tab { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.av-tab th { position: sticky; top: 0; z-index: 1; background: var(--painel-2); text-align: left; font-size: 10.5px; font-weight: 800; letter-spacing: .4px; color: var(--texto-suave); text-transform: uppercase; padding: 7px 10px; white-space: nowrap; }
+.av-tab td { padding: 6px 10px; border-top: 1px solid transparent; vertical-align: middle; }
+.av-tab tr.ini td { border-top-color: var(--linha); }
+.av-tab th:first-child, .av-tab td:first-child { padding-left: 16px; }
+.av-tab .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.av-tab td.op { font-weight: 800; white-space: nowrap; }
+.av-tab td.cli { max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.av-tab td.pr { color: var(--texto-suave); white-space: nowrap; }
+.av-tab td.ins { max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.av-tab td.ins small { color: var(--texto-suave); margin-left: 4px; }
+.av-tab .f { color: #f87171; font-weight: 800; } html.tema-claro .av-tab .f { color: #b91c1c; }
+.av-tab .ok { color: #34d399; font-weight: 700; font-size: 11.5px; } html.tema-claro .av-tab .ok { color: #166534; }
+.av-tab tr.falta td.ins { font-weight: 600; }
+.av-rod { display: flex; align-items: center; gap: 10px; padding: 8px 16px; border-top: 1px solid var(--linha); font-size: 12px; color: var(--texto-suave); }
+.av-mais { margin-left: auto; background: none; border: 0; color: var(--destaque); font-weight: 700; cursor: pointer; padding: 2px 0; font: inherit; font-size: 12px; }
+.av-vazio { color: var(--texto-suave); font-size: 13px; padding: 12px 16px; }
+.av-mob { display: none; }
+@media (max-width: 760px) {
+  .av-tab { display: none; }
+  .av-mob { display: block; }
+  .av-wrap { max-height: 260px; }
+  .av-mob div { padding: 8px 14px; border-top: 1px solid var(--linha); font-size: 13px; }
+  .av-mob div:first-child { border-top: 0; }
+  .av-mob small { display: block; color: var(--texto-suave); font-size: 11.5px; }
+  .av-bx { margin: 0 0 12px; }
+}
 .lista-mob { padding-bottom: 90px; }
 .cm { cursor: pointer; text-align: left; }
 .cm.urg { border-left: 3px solid #dc2626; }
@@ -129,8 +141,8 @@ html.tema-claro .av li .q .ok { color: #166534; }
 
   <!-- Avisos do PCP: OP aberta × estrutura × estoque (conta de + e −, sem travar nada) -->
   <section class="bx av-bx">
-    <div class="bx-cab"><h3>Avisos do PCP</h3><span class="s">OPs em Planejamento, Modelação ou Moldagem (ou recém-abertas) · o que cada uma vai usar × o que tem no estoque</span></div>
-    <div id="avisos"><div class="carregando">Carregando…</div></div>
+    <div class="bx-cab"><h3>Avisos do PCP</h3><span class="s">OPs em Planejamento, Modelação ou Moldagem · o que vai usar × o que tem (da OP mais antiga para a mais nova)</span></div>
+    <div id="avisos"><div class="av-vazio">Carregando…</div></div>
   </section>
 
   <div class="cp">
@@ -303,24 +315,43 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
         if (it.faltam > 0) a.falta = true;
       });
     });
-    return ordem.reverse();   // mais nova primeiro na tela
+    return ordem;   // mais antiga primeiro (é quem consome primeiro)
   }
   function desenharAvisos() {
     const todos = avisosPorOP();
-    const comFalta = todos.filter(function (a) { return a.falta; });
-    const lista = verTodosAvisos ? comFalta.concat(todos.filter(function (a) { return !a.falta; })) : comFalta;
-    const cartao = function (a) {
-      return '<div class="av' + (a.falta ? ' falta' : '') + '"><div class="t">OP ' + e(a.op) + ' · ' + e(titulo(a.cliente)) + ' <small>· ' + e(titulo(a.processo)) + '</small></div>' +
-        '<div class="mut" style="font-size:12px;margin-bottom:6px">Vai usar:</div><ul>' + a.itens.map(function (it) {
-          return '<li><span>' + e(it.desc) + ' <span class="mut">(' + e(it.cod) + ')</span></span><span class="q">precisa <b>' + n(it.precisa) + '</b> · tem <b>' + n(it.tem) + '</b> · ' +
-            (it.faltam > 0 ? '<span class="f">faltam ' + n(it.faltam) + ' ' + e(it.un) + '</span>' : '<span class="ok">ok</span>') + '</span></li>';
-        }).join('') + '</ul></div>';
-    };
-    let html = lista.map(cartao).join('');
+    const un = function (it) { return it.un ? ' ' + e(it.un) : ''; };
+    const linhas = [];
+    todos.forEach(function (a) {
+      const itens = verTodosAvisos ? a.itens : a.itens.filter(function (it) { return it.faltam > 0; });
+      itens.forEach(function (it, k) { linhas.push({ a: a, it: it, ini: k === 0 }); });
+    });
+    const nFalta = todos.reduce(function (t, a) { return t + a.itens.filter(function (it) { return it.faltam > 0; }).length; }, 0);
+    const nTotal = todos.reduce(function (t, a) { return t + a.itens.length; }, 0);
+    const opsFalta = todos.filter(function (a) { return a.falta; }).length;
+    let html;
     if (!todos.length) html = '<div class="av-vazio">Nenhuma OP em Planejamento, Modelação ou Moldagem vai consumir ' + ($('#fCat').value === 'TODAS' ? 'insumos estocados' : 'luva ou filtro') + ' agora.</div>';
-    else if (!comFalta.length && !verTodosAvisos) html = '<div class="av-vazio">✅ Todas as ' + todos.length + ' OPs têm material no estoque.</div>';
-    const semFalta = todos.length - comFalta.length;
-    if (semFalta > 0) html += '<button type="button" class="av-mais" data-av-todos>' + (verTodosAvisos ? 'Mostrar só as que faltam material' : (semFalta > 1 ? 'Ver também as ' + semFalta + ' OPs que já têm material' : 'Ver também a OP que já tem material')) + '</button>';
+    else if (!linhas.length) html = '<div class="av-vazio">✅ As ' + todos.length + ' OPs têm material no estoque.</div>';
+    else {
+      html = '<div class="av-wrap"><table class="av-tab"><thead><tr><th>OP</th><th>Cliente</th><th>Processo</th><th>Insumo</th><th class="num">Precisa</th><th class="num">Tem</th><th class="num">Falta</th></tr></thead><tbody>' +
+        linhas.map(function (l) {
+          const a = l.a, it = l.it;
+          return '<tr class="' + (l.ini ? 'ini' : '') + (it.faltam > 0 ? ' falta' : '') + '">' +
+            '<td class="op">' + (l.ini ? e(a.op) : '') + '</td><td class="cli"' + (l.ini ? ' title="' + e(a.cliente) + '"' : '') + '>' + (l.ini ? e(titulo(a.cliente)) : '') + '</td>' +
+            '<td class="pr">' + (l.ini ? e(titulo(a.processo)) : '') + '</td>' +
+            '<td class="ins" title="' + e(it.desc + ' (' + it.cod + ')') + '">' + e(it.desc) + '<small>' + e(it.cod) + '</small></td>' +
+            '<td class="num">' + n(it.precisa) + '</td><td class="num">' + n(it.tem) + '</td>' +
+            '<td class="num">' + (it.faltam > 0 ? '<span class="f">' + n(it.faltam) + un(it) + '</span>' : '<span class="ok">ok</span>') + '</td></tr>';
+        }).join('') + '</tbody></table>' +
+        '<div class="av-mob">' + linhas.map(function (l) {
+          const it = l.it;
+          return '<div><b>OP ' + e(l.a.op) + '</b> · ' + e(it.desc) + ' — ' + (it.faltam > 0 ? '<span class="f" style="color:#f87171;font-weight:800">faltam ' + n(it.faltam) + un(it) + '</span>' : '<span style="color:#34d399;font-weight:700">ok</span>') +
+            '<small>' + e(titulo(l.a.cliente)) + ' · precisa ' + n(it.precisa) + ' · tem ' + n(it.tem) + '</small></div>';
+        }).join('') + '</div></div>';
+    }
+    if (todos.length) {
+      html += '<div class="av-rod"><span>' + (nFalta ? nFalta + ' insumo' + (nFalta > 1 ? 's' : '') + ' faltando em ' + opsFalta + ' OP' + (opsFalta > 1 ? 's' : '') : 'nada faltando') + ' · ' + todos.length + ' OP' + (todos.length > 1 ? 's' : '') + ' vão consumir</span>' +
+        (nTotal > nFalta ? '<button type="button" class="av-mais" data-av-todos>' + (verTodosAvisos ? 'Mostrar só o que falta' : 'Ver tudo (' + nTotal + ')') + '</button>' : '') + '</div>';
+    }
     $('#avisos').innerHTML = html;
   }
   document.addEventListener('click', function (ev) {
