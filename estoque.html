@@ -35,6 +35,8 @@
 .acao b { display: block; font-size: 22px; letter-spacing: .3px; }
 .acao small { display: block; font-size: 15px; font-weight: 600; color: var(--texto-suave); margin-top: 2px; }
 .acao:hover { border-color: var(--c); }
+.acao.em-breve { opacity: .45; cursor: not-allowed; filter: grayscale(1); }
+.acao.em-breve:hover { border-color: var(--linha); }
 
 /* entradas grandes */
 .campo-g { width: 100%; height: 68px; font-size: 26px; font-weight: 800; text-align: center; letter-spacing: 1px; border-radius: 14px; padding: 0 12px; }
@@ -141,8 +143,8 @@ Sessao.iniciarPagina('estoque').then(function (ctx) {
   const e = Ui.esc;
   const tela = $('#tela');
 
-  // Quem pode estornar: EDITAR em Estoque ou em Compras (regra do backend)
-  const podeEstornar = ctx.podeEditar || ctx.nivelDe('compras') === 'EDITAR';
+  // Quem pode estornar: EDITAR em Estoque (os próprios) ou em Insumos (auditor)
+  const podeEstornar = ctx.podeEditar || ctx.nivelDe('insumos') === 'EDITAR';
 
   // Passos de cada caminho (a ordem das perguntas)
   const PASSOS = {
@@ -265,7 +267,8 @@ Sessao.iniciarPagina('estoque').then(function (ctx) {
     const acoes = ctx.podeEditar
       ? botaoAcao('op', '#f07a1f', 'i-saida', 'RETIRAR COM OP', 'material para uma OP') +
         botaoAcao('semop', '#3b82f6', 'i-pacote', 'RETIRAR SEM OP', 'manutenção, teste, outro setor') +
-        botaoAcao('dev', '#16a34a', 'i-volta', 'DEVOLUÇÃO', 'sobrou, volta para o estoque')
+        botaoAcao('dev', '#16a34a', 'i-volta', 'DEVOLUÇÃO', 'sobrou, volta para o estoque') +
+        '<button type="button" class="bg acao em-breve" disabled style="--c:#64748b" title="Em breve: a entrada é lançada no Insumos"><span class="ic">' + Ui.ic('i-mais') + '</span><span><b>ENTRADA</b><small>em breve</small></span></button>'
       : botaoAcao('op', '#f07a1f', 'i-busca', 'CONSULTAR OP', 'ver a estrutura e o que já saiu');
     return '<h2>O que você vai fazer?</h2>' +
       (ctx.podeEditar ? '' : '<div class="msg-info leitura">Somente consulta: seu perfil vê o estoque, mas não lança retiradas nem devoluções.</div>') +
@@ -339,7 +342,7 @@ Sessao.iniciarPagina('estoque').then(function (ctx) {
         '<div class="extra"></div></div>';
     }).join('') + '</div>' +
       '<div class="resumo" id="op-resumo"></div>' + btConfirmar('bt-retirar', 'CONFIRMAR RETIRADA');
-   }
+  }
   function itemDe(cod) { return op.estr ? op.estr.itens.find(function (i) { return i.cod_insumo === cod; }) : null; }
 
   // Marca no cartão: saldo insuficiente (bloqueia) e acima do previsto (pede motivo)
