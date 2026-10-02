@@ -85,10 +85,15 @@ html.tema-claro .dif.neg2 { color: #b91c1c; } html.tema-claro .dif.pos { color: 
 .tg-falta { height: 32px; border: 1px solid var(--borda); border-radius: 9px; background: transparent; font: inherit; font-size: 12.5px; font-weight: 700; color: var(--texto-suave); padding: 0 12px; cursor: pointer; }
 .tg-falta.on { border-color: #dc2626; color: #f87171; background: rgba(220,38,38,.08); }
 html.tema-claro .tg-falta.on { color: #b91c1c; }
-.tab-wrap { max-height: calc(100vh - 360px); min-height: 220px; }
+.tab-wrap { max-height: calc(100vh - 360px); }
 .tab-wrap table.tab th { position: sticky; top: 0; z-index: 1; }
-td.seta { width: 18px; color: var(--texto-suave); font-size: 11px; padding-right: 0 !important; }
-tr.aberto td.seta { color: var(--destaque); }
+#bx-tab table.tab th, #bx-tab table.tab td { padding-top: 7px; padding-bottom: 7px; white-space: nowrap; }
+#bx-tab table.tab tbody tr { cursor: pointer; }
+td.ins { max-width: 420px; overflow: hidden; text-overflow: ellipsis; }
+td.ins .cod, .lista-tab .cod { color: var(--texto-suave); font-size: 11px; margin-left: 6px; font-weight: 400; }
+.pqt { font-size: 12px; font-weight: 700; }
+.pqt.op { color: #f07a1f; } .pqt.min { color: #ca8a04; } .pqt.cx { color: var(--texto-suave); font-weight: 600; }
+html.tema-claro .pqt.op { color: #c2410c; } html.tema-claro .pqt.min { color: #a16207; }
 .pq { font-size: 10.5px; font-weight: 800; padding: 2px 7px; border-radius: 5px; white-space: nowrap; }
 .pq.op { background: rgba(240,122,31,.18); color: #fdba74; } .pq.min { background: rgba(234,179,8,.18); color: #eab308; } .pq.cx { background: var(--painel-2); color: var(--texto-suave); }
 html.tema-claro .pq.op { color: #9a3412; } html.tema-claro .pq.min { color: #92400e; }
@@ -191,7 +196,6 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
   const NOME_CAT = { TODAS: 'Todos', OP: 'De OP (luva e filtro)', SEM: 'Sem OP (outros)' };
   let visao = 'INS';          // tabela: INS (por insumo) | OP (por OP)
   let soFalta = true;         // mostra só o que falta
-  const abertos = {};         // insumos com a linha de OPs aberta
 
   carregar();
   // Recalcula a cada 60 s (não atrapalha quem está digitando ou com janela aberta)
@@ -367,38 +371,36 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
   function desenharPorInsumo() {
     const l = insumosFiltrados();
     const ops = opsPorInsumo(avisosPorOP());
-    $('#cab').innerHTML = '<tr><th></th><th>Insumo</th><th class="num">Tem</th><th class="num">Vai usar (OPs)</th><th class="num">Sobra / falta</th><th class="num">Mínimo</th><th class="num">Comprar</th><th>Por quê</th></tr>';
-    const opsTexto = function (cod) {
-      const f = (ops[cod] || []).filter(function (o) { return o.faltam > 0; }).map(function (o) { return o.op; });
-      return f.length ? 'OP ' + f.slice(0, 3).join(', ') + (f.length > 3 ? ' +' + (f.length - 3) : '') : '';
+    $('#cab').innerHTML = '<tr><th>Insumo</th><th class="num">Tem</th><th class="num">Vai usar</th><th class="num">Sobra / falta</th><th class="num">Mínimo</th><th class="num">Comprar</th><th>Por quê</th></tr>';
+    const opsFalta = function (cod) { return (ops[cod] || []).filter(function (o) { return o.faltam > 0; }).map(function (o) { return o.op; }); };
+    // Por quê em texto direto: "OP 3190" / "Estoque mínimo" / "OP 3190 + mínimo"
+    const pqTexto = function (i) {
+      const pq = porQue(i);
+      if (!pq) return { cls: '', txt: '' };
+      if (pq.cls !== 'op') return { cls: pq.cls, txt: pq.cls === 'cx' ? 'Caixa (ver card)' : 'Estoque mínimo' };
+      const f = opsFalta(i.cod_insumo);
+      const t = f.length ? 'OP ' + f.slice(0, 3).join(', ') + (f.length > 3 ? ' +' + (f.length - 3) : '') : 'OPs';
+      return { cls: 'op', txt: t + (i.minimo > 0 ? ' + mínimo' : '') };
     };
     $('#linhas').innerHTML = l.map(function (i) {
-      const pq = porQue(i), lista = ops[i.cod_insumo] || [], ab = !!abertos[i.cod_insumo] && lista.length;
-      let html = '<tr class="' + catClasseLinha(i) + (ab ? ' aberto' : '') + '" data-ins="' + e(i.cod_insumo) + '"><td class="seta">' + (lista.length ? (ab ? '▾' : '▸') : '') + '</td>' +
-        '<td class="d" title="' + e(i.descricao) + '"><b>' + e(i.cod_insumo) + '</b> <span class="cat ' + catClasse(i.categoria) + '">' + e(i.categoria) + '</span><small>' + e(i.descricao) + '</small></td>' +
+      const pq = pqTexto(i);
+      return '<tr class="' + catClasseLinha(i) + '" data-ins="' + e(i.cod_insumo) + '" title="Clique para ver as OPs">' +
+        '<td class="ins">' + e(i.descricao) + '<span class="cod">' + e(i.cod_insumo) + '</span></td>' +
         '<td class="num">' + n(i.saldo) + '</td><td class="num">' + (i.vai_sair ? n(i.vai_sair) : '—') + '</td>' +
         '<td class="num">' + (i.projetado < 0 ? '<span class="neg">' + n(i.projetado) + '</span>' : n(i.projetado)) + '</td>' +
         '<td class="num">' + (i.minimo ? n(i.minimo) : '—') + '</td>' +
         '<td class="num sug">' + (i.sugerido > 0 ? '<b>' + n(i.sugerido) + '</b>' : '—') + '</td>' +
-        '<td>' + (pq ? '<span class="pq ' + pq.cls + '">' + pq.txt + '</span>' + (pq.cls === 'op' ? '<span class="pq-ops">' + e(opsTexto(i.cod_insumo)) + '</span>' : '') : '<span class="okc">ok</span>') + '</td></tr>';
-      if (ab) {
-        html += '<tr class="det"><td colspan="8"><table class="det-tab"><thead><tr><th>OP</th><th>Cliente</th><th>Processo</th><th class="num">Precisa</th><th class="num">Tem</th><th class="num">Falta</th></tr></thead><tbody>' +
-          lista.map(function (o) {
-            return '<tr><td><b>' + e(o.op) + '</b></td><td>' + e(titulo(o.cliente)) + '</td><td>' + e(titulo(o.processo)) + '</td><td class="num">' + n(o.precisa) + '</td><td class="num">' + n(o.tem) + '</td>' +
-              '<td class="num">' + (o.faltam > 0 ? '<span class="f">' + n(o.faltam) + '</span>' : '<span class="okc">ok</span>') + '</td></tr>';
-          }).join('') + '</tbody></table><div class="det-inf">Lead time ' + n(i.lead_time) + ' dias · mínimo ' + n(i.minimo) + ' ' + e(String(i.unidade || '').toLowerCase()) + '</div></td></tr>';
-      }
-      return html;
-    }).join('') || '<tr><td colspan="8"><div class="vazio">' + (soFalta && !modo ? '✅ Nada para comprar nesta categoria.' : 'Nenhum insumo neste filtro.') + '</div></td></tr>';
+        '<td>' + (pq.txt ? '<span class="pqt ' + pq.cls + '">' + e(pq.txt) + '</span>' : '<span class="okc">ok</span>') + '</td></tr>';
+    }).join('') || '<tr><td colspan="7"><div class="vazio">' + (soFalta && !modo ? '✅ Nada para comprar nesta categoria.' : 'Nenhum insumo neste filtro.') + '</div></td></tr>';
     // celular
     $('#lista-tab').innerHTML = l.map(function (i) {
-      const pq = porQue(i);
-      return '<div class="li" data-ins="' + e(i.cod_insumo) + '"><b>' + e(i.cod_insumo) + '</b> · ' + e(i.descricao) +
+      const pq = pqTexto(i);
+      return '<div class="li" data-ins="' + e(i.cod_insumo) + '">' + e(i.descricao) + '<span class="cod">' + e(i.cod_insumo) + '</span>' +
         (i.sugerido > 0 ? ' — <span class="f">comprar ' + n(i.sugerido) + '</span>' : '') +
-        '<small>' + (pq ? pq.txt + (pq.cls === 'op' ? ' (' + e(opsTexto(i.cod_insumo)) + ')' : '') + ' · ' : '') + 'tem ' + n(i.saldo) + ' · vai usar ' + n(i.vai_sair) + ' · mín. ' + n(i.minimo) + '</small></div>';
+        '<small>' + (pq.txt ? e(pq.txt) + ' · ' : '') + 'tem ' + n(i.saldo) + ' · vai usar ' + n(i.vai_sair) + ' · mín. ' + n(i.minimo) + '</small></div>';
     }).join('') || '<div class="vazio">' + (soFalta && !modo ? '✅ Nada para comprar.' : 'Nenhum insumo neste filtro.') + '</div>';
     const nComprar = painel.insumos.filter(function (i) { return i.sugerido > 0; }).length;
-    $('#rod-tab').textContent = l.length + ' insumo' + (l.length === 1 ? '' : 's') + ' na lista · ' + nComprar + ' para comprar' + ($('#fCat').value === 'SEM' ? ' · itens sem OP: compra pelo estoque mínimo' : ' · clique no insumo para ver as OPs');
+    $('#rod-tab').textContent = l.length + ' insumo' + (l.length === 1 ? '' : 's') + ' na lista · ' + nComprar + ' para comprar' + ($('#fCat').value === 'SEM' ? ' · itens sem OP: compra pelo estoque mínimo' : ' · clique na linha para ver as OPs');
   }
 
   function desenharPorOP() {
@@ -409,13 +411,13 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
       const a = x.a, it = x.it;
       return '<tr class="' + (x.ini ? 'op-ini' : 'op-cont') + '" data-ins="' + e(it.cod) + '"><td class="op-n">' + (x.ini ? e(a.op) : '') + '</td>' +
         '<td>' + (x.ini ? e(titulo(a.cliente)) : '') + '</td><td class="mut">' + (x.ini ? e(titulo(a.processo)) : '') + '</td>' +
-        '<td class="d" title="' + e(it.desc) + '"><b>' + e(it.cod) + '</b><small>' + e(it.desc) + '</small></td>' +
+        '<td class="ins" title="' + e(it.desc) + '">' + e(it.desc) + '<span class="cod">' + e(it.cod) + '</span></td>' +
         '<td class="num">' + n(it.precisa) + '</td><td class="num">' + n(it.tem) + '</td>' +
         '<td class="num">' + (it.faltam > 0 ? '<span class="f">' + n(it.faltam) + (it.un ? ' ' + e(it.un) : '') + '</span>' : '<span class="okc">ok</span>') + '</td></tr>';
     }).join('') || '<tr><td colspan="7"><div class="vazio">' + (todos.length ? '✅ As ' + todos.length + ' OPs têm material no estoque.' : 'Nenhuma OP em Planejamento, Modelação ou Moldagem vai consumir agora.') + '</div></td></tr>';
     $('#lista-tab').innerHTML = l.map(function (x) {
       const it = x.it;
-      return '<div class="li" data-ins="' + e(it.cod) + '"><b>OP ' + e(x.a.op) + '</b> · ' + e(it.desc) + ' — ' + (it.faltam > 0 ? '<span class="f">faltam ' + n(it.faltam) + (it.un ? ' ' + e(it.un) : '') + '</span>' : '<span class="okc">ok</span>') +
+      return '<div class="li" data-ins="' + e(it.cod) + '"><b>OP ' + e(x.a.op) + '</b> · ' + e(it.desc) + '<span class="cod">' + e(it.cod) + '</span> — ' + (it.faltam > 0 ? '<span class="f">faltam ' + n(it.faltam) + (it.un ? ' ' + e(it.un) : '') + '</span>' : '<span class="okc">ok</span>') +
         '<small>' + e(titulo(x.a.cliente)) + ' · ' + e(titulo(x.a.processo)) + ' · precisa ' + n(it.precisa) + ' · tem ' + n(it.tem) + '</small></div>';
     }).join('') || '<div class="vazio">' + (todos.length ? '✅ Todas as OPs têm material.' : 'Nenhuma OP vai consumir agora.') + '</div>';
     const opsFalta = todos.filter(function (a) { return a.falta; }).length;
@@ -493,10 +495,7 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
     if (ev.target.closest('#bSoFalta')) { soFalta = !soFalta; desenharTabela(); return; }
     const ins = ev.target.closest('[data-ins]');
     if (ins) {
-      // celular ou visão por OP: janela com as OPs; por insumo no PC: abre a linha
-      if (ins.closest('#lista-tab') || visao === 'OP') { verOPs(ins.dataset.ins); return; }
-      abertos[ins.dataset.ins] = !abertos[ins.dataset.ins];
-      desenharTabela();
+      verOPs(ins.dataset.ins);
       return;
     }
     const cx = ev.target.closest('[data-caixas]');
@@ -681,12 +680,18 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
   function verOPs(cod) {
     const i = painel.insumos.find(function (x) { return x.cod_insumo === cod; });
     if (!i) return;
-    const corpo = (i.ops.length ? '<div class="ops-lista"><table class="tab"><thead><tr><th>OP</th><th>Cliente</th><th>Processo</th><th class="num">Falta retirar</th></tr></thead><tbody>' +
-      i.ops.map(function (o) { return '<tr><td><b>' + e(o.op) + '</b></td><td>' + e(titulo(o.cliente)) + '</td><td>' + e(o.processo) + '</td><td class="num">' + n(o.falta) + '</td></tr>'; }).join('') +
-      '</tbody></table></div>' : '<p class="mut" style="margin:0">Nenhuma OP aberta vai consumir este insumo (as que já passaram do processo de consumo saem da conta).</p>') +
-      '<p style="margin:12px 0 0;font-size:12.5px">Saldo <b>' + n(i.saldo) + '</b> − vai sair <b>' + n(i.vai_sair) + '</b> = projetado <b' + (i.projetado < 0 ? ' class="neg"' : '') + '>' + n(i.projetado) + '</b> · mínimo ' + n(i.minimo) + ' · lead ' + n(i.lead_time) + ' dias' +
-      (i.sugerido > 0 ? ' · <b style="color:var(--destaque)">comprar ' + n(i.sugerido) + ' ' + e(String(i.unidade || '').toLowerCase()) + '</b>' : '') + '</p>';
-    Ui.janela({ titulo: i.cod_insumo + ' · ' + i.descricao, subtitulo: 'OPs abertas que ainda vão retirar este insumo', largura: 560, corpo: corpo, botoes: [{ texto: 'Fechar', valor: null }] });
+    const lista = opsPorInsumo(avisosPorOP())[cod] || [];
+    const un = String(i.unidade || '').toLowerCase();
+    const corpo = (lista.length ? '<div class="ops-lista"><table class="tab"><thead><tr><th>OP</th><th>Cliente</th><th>Processo</th><th class="num">Precisa</th><th class="num">Tem</th><th class="num">Falta</th></tr></thead><tbody>' +
+      lista.map(function (o) {
+        return '<tr><td><b>' + e(o.op) + '</b></td><td>' + e(titulo(o.cliente)) + '</td><td>' + e(titulo(o.processo)) + '</td><td class="num">' + n(o.precisa) + '</td><td class="num">' + n(o.tem) + '</td>' +
+          '<td class="num">' + (o.faltam > 0 ? '<span class="f">' + n(o.faltam) + '</span>' : '<span class="okc">ok</span>') + '</td></tr>';
+      }).join('') + '</tbody></table></div>'
+      : '<p class="mut" style="margin:0">Nenhuma OP aberta vai usar este insumo' + (i.categoria === 'OUTROS' ? ' (item sem OP: a compra é pelo estoque mínimo).' : '.') + '</p>') +
+      '<p style="margin:12px 0 0;font-size:12.5px">Tem <b>' + n(i.saldo) + '</b> − vai usar <b>' + n(i.vai_sair) + '</b> = <b' + (i.projetado < 0 ? ' class="neg"' : '') + '>' + n(i.projetado) + '</b> · mínimo ' + n(i.minimo) + ' · lead ' + n(i.lead_time) + ' dias' +
+      (i.sugerido > 0 ? ' · <b style="color:var(--destaque)">comprar ' + n(i.sugerido) + ' ' + e(un) + '</b>' : '') + '</p>';
+    Ui.janela({ titulo: i.descricao, subtitulo: i.cod_insumo + ' · OPs abertas que vão usar este insumo (da mais antiga para a mais nova)', largura: 620, corpo: corpo, botoes: [{ texto: 'Fechar', valor: null }] });
+
   }
 
 });
