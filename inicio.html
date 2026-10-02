@@ -97,16 +97,23 @@ Sessao.iniciarPagina('inicio').then(function (ctx) {
     const n = function (cat) { return cart.filter(function (c) { return c._cat === cat; }).length; };
     const venc = n('VENCIDO'), fcr = n('FORA_CRONO');
     const pct = cart.length ? Math.round(prod / cart.length * 100) : 0;
-    const em7 = eng.filter(function (e) { const d = diasAte(e.prazo); return d !== null && d <= 7; }).length;
+    // Prazo da engenharia = início do PLANEJAMENTO no cronograma reverso (mesma regra do Mapa).
+    // Item sem OP que já passou dessa data é crítico para a produção.
+    const hoje0 = new Date(); hoje0.setHours(0, 0, 0, 0);
+    const criticos = eng.filter(function (e) {
+      const cron = Cronograma.cronograma(e); if (!cron) return false;
+      const plan = cron.fases.find(function (f) { return f.n === 'PLANEJAMENTO'; });
+      return !!plan && hoje0 >= plan.ini;
+    }).length;
     const k = [
       { c: '#3b82f6', ic: 'i-tabela', rot: 'Carteira ativa', val: cart.length, det: clientes + ' cliente' + (clientes === 1 ? '' : 's') },
       { c: '#22c55e', ic: 'i-relogio', rot: 'Em produção', val: prod, det: pct + '% da carteira' },
-      { c: '#a855f7', ic: 'i-clip', rot: 'Engenharia (sem OP)', val: eng.length, det: em7 + ' com prazo em 7 dias' },
+      { c: '#a855f7', ic: 'i-clip', rot: 'Engenharia (sem OP)', val: eng.length, det: criticos + (criticos === 1 ? ' crítico' : ' críticos') + ' · passou do prazo da engenharia', alerta: criticos > 0 },
       { c: Cronograma.COR.VENCIDO, ic: 'i-alerta', rot: 'Prazo vencido', val: venc, det: fcr + ' fora do crono.' }
     ];
     $('kpis').innerHTML = k.map(function (x) {
       return '<div class="kpi" style="--c:' + x.c + '"><div class="rot">' + Ui.ic(x.ic) + x.rot + '</div>' +
-             '<div class="val">' + x.val + '</div><div class="det">' + Ui.esc(x.det) + '</div></div>';
+             '<div class="val">' + x.val + '</div><div class="det"' + (x.alerta ? ' style="color:#ef4444;font-weight:700"' : '') + '>' + Ui.esc(x.det) + '</div></div>';
     }).join('');
     $('kpis-mob').innerHTML = k.map(function (x, i) {
       return '<span class="km' + (i === 3 && x.val > 0 ? ' piscando' : '') + '" style="--c:' + x.c + '">' + x.rot.replace(' (sem OP)', '') + ' <b>' + x.val + '</b></span>';
