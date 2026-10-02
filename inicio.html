@@ -140,15 +140,14 @@ Sessao.iniciarPagina('inicio').then(function (ctx) {
       return;
     }
     const proc = function (p) { return p ? p.charAt(0) + p.slice(1).toLowerCase() : '—'; };
-    const deveria = function (o) { return o._st.fase ? proc(o._st.fase.n) : '—'; };
     $('atencao').innerHTML =
       '<table class="tab so-desk"><thead><tr><th>OP</th><th>Cliente</th><th class="col-opc">Código</th><th class="col-opc">Liga</th>' +
-      '<th>Processo atual</th><th class="col-opc">Deveria estar</th><th class="num">Prazo</th><th>Situação</th></tr></thead><tbody>' +
+      '<th>Processo atual</th><th class="num">Prazo</th><th>Situação</th></tr></thead><tbody>' +
       lista.map(function (l) {
         const o = l.o;
         return '<tr><td><b>' + Ui.esc(o.op || '—') + '</b></td><td>' + Ui.esc(o.cliente) + '</td>' +
                '<td class="col-opc mut">' + Ui.esc(o.codigo) + '</td><td class="col-opc">' + Ui.esc(o.liga) + '</td>' +
-               '<td>' + Ui.esc(proc(o.processo)) + '</td><td class="col-opc mut">' + Ui.esc(deveria(o)) + '</td>' +
+               '<td>' + Ui.esc(proc(o.processo)) + '</td>' +
                '<td class="num">' + Ui.esc(String(o.prazo).slice(0, 5)) + '</td>' +
                '<td><span class="tag ' + l.tag + '">' + Ui.esc(l.txt) + '</span></td></tr>';
       }).join('') + '</tbody></table>' +
