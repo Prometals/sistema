@@ -57,7 +57,7 @@ kbd { font: 700 10px var(--fonte); padding: 1px 5px; border-radius: 4px; border:
 
 /* botões de escolha (tipo, processo, lado) */
 .grade { display: grid; gap: 8px; }
-.op-b { min-height: 46px; padding: 4px 8px; border-radius: 10px; border: 1px solid var(--borda); background: var(--painel-2); font-weight: 800; font-size: 13.5px; line-height: 1.15; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; text-align: center; }
+.op-b { min-width: 0; min-height: 46px; padding: 4px 8px; border-radius: 10px; border: 1px solid var(--borda); background: var(--painel-2); font-weight: 800; font-size: 13.5px; line-height: 1.15; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; text-align: center; }
 .op-b small { font-size: 10px; color: var(--texto-suave); font-weight: 700; }
 .op-b.on { background: color-mix(in srgb, var(--destaque) 20%, var(--painel-2)); border-color: var(--destaque); color: var(--destaque); }
 .op-b.ref.on { background: rgba(220,38,38,.18); border-color: #dc2626; color: #f87171; }
@@ -154,6 +154,28 @@ html.tema-claro .rod .trava { color: #92400e; }
 .bn { height: 42px; padding: 0 18px; border-radius: 10px; border: 1px solid var(--borda); background: var(--painel-2); font-weight: 800; cursor: pointer; color: var(--texto); white-space: nowrap; }
 .bn.pri { background: var(--destaque); border-color: var(--destaque); color: #fff; }
 .bn:disabled { opacity: .45; cursor: not-allowed; }
+
+/* ---------- tela baixa (notebook, navegador com barras) ----------
+   Nada pode passar por baixo da barra de botões do rodapé:
+   1) até 800 px de altura: tudo um pouco mais compacto;
+   2) até 680 px: a página passa a rolar inteira (rodapé vai para o fim,
+      nunca por cima do conteúdo). */
+@media (min-width: 761px) and (max-height: 800px) {
+  .corpo { padding: 4px 20px 10px; }
+  .cx { padding: 12px 14px; gap: 8px; }
+  .cx h2, .cx h3 { margin: 0; }
+  .grade { gap: 6px; }
+  .op-b { min-height: 38px; font-size: 12.5px; }
+  .cmp input { height: 40px; }
+  .add, .bbusca { height: 42px; }
+  .op-grande { height: 52px !important; font-size: 24px !important; }
+  .stepper { padding-top: 6px; padding-bottom: 6px; }
+}
+@media (min-width: 761px) and (max-height: 680px) {
+  body.kiosque main.conteudo { grid-template-rows: 56px auto auto 58px; height: auto; min-height: 100vh; overflow: visible; }
+  body.kiosque.sem-step main.conteudo { grid-template-rows: 56px auto; }
+  .lista-box { max-height: 320px; }
+}
 
 /* ---------- celular / terminal estreito ---------- */
 @media (max-width: 760px) {
@@ -527,10 +549,15 @@ Sessao.iniciarPagina('refugo').then(function (ctx) {
   }
 
   /* ---------- ETAPA 3 · LANÇAR ITENS ---------- */
+  function colunasProcessos(n) { return 'repeat(' + (n > 6 && window.innerWidth >= 1150 ? 4 : 3) + ', minmax(0, 1fr))'; }
+  window.addEventListener('resize', function () {
+    const g = $('gradeProcessos'); if (g && g.children.length) g.style.gridTemplateColumns = colunasProcessos(g.children.length);
+  });
   function montarProcessos() {
     const lista = listaProcessos();
     const grade = $('gradeProcessos');
-    grade.style.gridTemplateColumns = 'repeat(' + (lista.length > 6 ? 4 : 3) + ', 1fr)';
+    // minmax(0, 1fr): o botão encolhe com a tela em vez de empurrar a grade para fora
+    grade.style.gridTemplateColumns = colunasProcessos(lista.length);
     grade.innerHTML = lista.map(function (p, i) {
       return '<button type="button" class="op-b" data-processo="' + esc(p) + '">' + (i < 9 ? '<small>' + (i + 1) + '</small>' : '') + esc(p) + '</button>';
     }).join('');
@@ -935,7 +962,7 @@ Sessao.iniciarPagina('refugo').then(function (ctx) {
       '<div class="dado"><span>REFUGO</span><b>' + somaQtd(ref) + ' pç · ' + kg(somaPeso(ref)) + ' kg</b></div>' +
       (comTipo ? '<div class="dado"><span>RETRABALHO</span><b>' + somaQtd(ret) + ' pç · ' + kg(somaPeso(ret)) + ' kg</b></div>' : '') +
       '<div class="dado"><span>OPs</span><b>' + new Set(lista.map(function (x) { return String(x.op); })).size + '</b></div>';
-    $('confTotais').style.gridTemplateColumns = window.innerWidth <= 760 ? '' : 'repeat(' + (comTipo ? 4 : 3) + ', 1fr)';
+    $('confTotais').style.gridTemplateColumns = window.innerWidth <= 760 ? '' : 'repeat(' + (comTipo ? 4 : 3) + ', minmax(0, 1fr))';
     setMsg('confFonte',
       fonte === 'carregando' ? 'buscando o dia completo no servidor…'
         : fonte === 'falhou' ? '⚠ servidor indisponível: mostrando só o que foi apontado neste terminal'
