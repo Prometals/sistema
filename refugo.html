@@ -62,6 +62,10 @@ kbd { font: 700 10px var(--fonte); padding: 1px 5px; border-radius: 4px; border:
 .op-b.on { background: color-mix(in srgb, var(--destaque) 20%, var(--painel-2)); border-color: var(--destaque); color: var(--destaque); }
 .op-b.ref.on { background: rgba(220,38,38,.18); border-color: #dc2626; color: #f87171; }
 .op-b.ret.on { background: rgba(59,130,246,.18); border-color: #3b82f6; color: #93c5fd; }
+.op-b.mol.on { background: rgba(168,85,247,.18); border-color: #a855f7; color: #d8b4fe; }
+html.tema-claro .op-b.mol.on { color: #7e22ce; }
+.tt-mob { display: none; }
+.tt.mol { background: rgba(168,85,247,.18); color: #d8b4fe; } html.tema-claro .tt.mol { color: #7e22ce; }
 html.tema-claro .op-b.ref.on { color: #b91c1c; } html.tema-claro .op-b.ret.on { color: #1d4ed8; }
 .op-b:disabled { opacity: .4; cursor: not-allowed; }
 .op-b:focus-visible { outline: 2px solid #3b82f6; outline-offset: 1px; }
@@ -74,7 +78,7 @@ html.tema-claro .op-b.ref.on { color: #b91c1c; } html.tema-claro .op-b.ret.on { 
 input.valido { border-color: #16a34a; } input.invalido { border-color: #dc2626; }
 .op-grande { height: 60px !important; font-size: 28px !important; font-weight: 800; letter-spacing: 2px; }
 .msg { font-size: 11.5px; font-weight: 700; min-height: 14px; color: var(--texto-suave); }
-.msg.erro { color: #f87171; } .msg.ok { color: #34d399; }
+.msg.erro { color: #f87171; } .msg.ok { color: #34d399; } .msg.aviso { color: #fbbf24; }
 html.tema-claro .msg.erro { color: #b91c1c; } html.tema-claro .msg.ok { color: #15803d; }
 .inp-mot { position: relative; }
 .sug { position: absolute; top: calc(100% + 4px); left: 0; right: 0; margin: 0; padding: 0; list-style: none; background: var(--painel); border: 1px solid var(--destaque); border-radius: 10px; box-shadow: var(--sombra); z-index: 5; overflow: hidden; }
@@ -194,6 +198,7 @@ html.tema-claro .rod .trava { color: #92400e; }
   .lin.qp { grid-template-columns: 1fr 1fr !important; } .lin.qp .cmp:last-child { grid-column: 1 / -1; } .lin.qp .cmp:last-child .rot { display: none; }
   .op-b { min-height: 50px; } kbd, .op-b small, .dica-k { display: none !important; }
   table.it th.c-lado, table.it td.c-lado { display: none; }
+  #boxConf table.it .c-tipo { display: none; } .tt-mob { display: inline !important; }
   table.it { font-size: 12px; } table.it td, table.it th { padding: 8px 5px; }
   .lista-box { overflow: visible; }
   .conf-totais { grid-template-columns: 1fr 1fr; }
@@ -270,10 +275,7 @@ html.tema-claro .rod .trava { color: #92400e; }
         <h2>Novo item</h2><p class="sub">Um item para cada combinação de processo, motivo e lado.</p>
         <div id="blocoTipo" hidden>
           <span class="rot" style="margin-bottom:6px">TIPO DE APONTAMENTO <kbd>T</kbd> <span class="dica-k">alterna</span></span>
-          <div class="grade" id="gradeTipos" style="grid-template-columns:1fr 1fr">
-            <button type="button" class="op-b ref" data-tipo="REFUGO">REFUGO</button>
-            <button type="button" class="op-b ret" data-tipo="RETRABALHO">RETRABALHO</button>
-          </div>
+          <div class="grade" id="gradeTipos" style="grid-template-columns:1fr 1fr"></div>
         </div>
         <span class="rot" id="rotuloProcesso">PROCESSO</span>
         <div class="grade g4" id="gradeProcessos"></div>
@@ -297,8 +299,8 @@ html.tema-claro .rod .trava { color: #92400e; }
           </div>
         </div>
         <div class="lin qp" style="grid-template-columns:1fr 1fr 1.1fr">
-          <div class="cmp"><span class="rot">QTD (peças)</span><input id="qtd" inputmode="numeric" autocomplete="off"><span class="msg" id="msgQtd"></span></div>
-          <div class="cmp"><span class="rot">PESO LÍQ. (kg)</span><input id="peso" inputmode="decimal" autocomplete="off" placeholder="0,000"><span class="msg" id="msgPeso"></span></div>
+          <div class="cmp"><span class="rot" id="rotuloQtd">QTD (peças)</span><input id="qtd" inputmode="numeric" autocomplete="off"><span class="msg" id="msgQtd"></span></div>
+          <div class="cmp"><span class="rot" id="rotuloPeso">PESO LÍQ. (kg)</span><input id="peso" inputmode="decimal" autocomplete="off" placeholder="0,000"><span class="msg" id="msgPeso"></span></div>
           <div class="cmp"><span class="rot">&nbsp;</span><button type="button" class="add" id="btnAdicionar" disabled><svg class="i"><use href="#i-mais"/></svg>ADICIONAR <span class="dica-k">(Enter)</span></button></div>
         </div>
         <div class="aviso" id="avisoLimite" hidden></div>
@@ -422,16 +424,25 @@ Sessao.iniciarPagina('refugo').then(function (ctx) {
   function limiteOP() { return estado.op.dados ? Number(estado.op.dados.qtdPrevalece) || 0 : 0; }
   function jaApontado() { return estado.op.jaApontado || 0; }
   function saldoOP() { return limiteOP() - jaApontado(); }            // antes desta lista
-  function saldo() { return saldoOP() - somaQtd(estado.itens); }      // o que ainda cabe agora
-  function temTipo() { return !!estado.cfg.podeRetrabalho; }
+  // Refugo de MOLDE não consome o saldo da OP
+  function consome(t) { return t !== 'MOLDE'; }
+  function somaQtdSaldo(l) { return somaQtd(l.filter(function (it) { return consome(it.tipo); })); }
+  function saldo() { return saldoOP() - somaQtdSaldo(estado.itens); }      // o que ainda cabe agora
+  function tipos() { return estado.cfg.tipos || (estado.cfg.podeRetrabalho ? ['REFUGO', 'RETRABALHO'] : ['REFUGO']); }
+  function temTipo() { return tipos().length > 1; }
+  function temMolde() { return tipos().indexOf('MOLDE') !== -1; }
+  function ehMolde() { return estado.form.tipo === 'MOLDE'; }
   function listaProcessos() { return estado.cfg.processos.map(function (p) { return p.processo; }); }
   function motivosDoTipo() {
-    const t = estado.form.tipo;
+    const t = estado.form.tipo === 'MOLDE' ? 'REFUGO' : estado.form.tipo;   // molde usa os motivos do refugo
     return estado.cfg.motivos.filter(function (m) { return m.tipo === t || m.tipo === 'AMBOS'; }).map(function (m) { return m.motivo; });
   }
-  function tagTipo(t) { return t === 'RETRABALHO' ? '<span class="tt ret">RETRAB.</span>' : '<span class="tt ref">REFUGO</span>'; }
+  function tagTipo(t) { return t === 'RETRABALHO' ? '<span class="tt ret">RETRAB.</span>' : t === 'MOLDE' ? '<span class="tt mol">MOLDE</span>' : '<span class="tt ref">REFUGO</span>'; }
+  const NOME_TIPO_BT = { REFUGO: 'REFUGO', RETRABALHO: 'RETRABALHO', MOLDE: 'REFUGO DE MOLDE' };
+  const CLASSE_TIPO = { REFUGO: 'ref', RETRABALHO: 'ret', MOLDE: 'mol' };
   // Limite atingido: o formulário fica travado até remover um item da lista
-  function formTravado() { return estado.etapa === 3 && estado.op.valida && saldo() <= 0; }
+  // (refugo de molde nunca trava: não consome o saldo)
+  function formTravado() { return estado.etapa === 3 && estado.op.valida && saldo() <= 0 && consome(estado.form.tipo); }
   function haModal() { return !!document.querySelector('.modal-fundo'); }
 
   /* ---------- CABEÇALHO ---------- */
@@ -494,7 +505,7 @@ Sessao.iniciarPagina('refugo').then(function (ctx) {
       $('dLimite').textContent = lim;
       $('dSaldo').innerHTML = jaApontado() + ' <small>· saldo ' + Math.max(saldoOP(), 0) + '</small>';
       if (lim <= 0) setMsg('msgOP', 'OP sem quantidade cadastrada: não será possível lançar refugo', 'erro');
-      else if (saldoOP() <= 0) setMsg('msgOP', 'Esta OP já atingiu o total: ' + jaApontado() + ' de ' + lim + ' peças apontadas.', 'erro');
+      else if (saldoOP() <= 0) setMsg('msgOP', 'Esta OP já atingiu o total: ' + jaApontado() + ' de ' + lim + ' peças apontadas.' + (temMolde() ? ' Ainda dá para apontar refugo de molde.' : ''), temMolde() ? 'aviso' : 'erro');
       else setMsg('msgOP', 'OP encontrada' + (d.status && d.status !== 'ABERTA' && d.status !== 'EM_PRODUCAO' ? ' · situação ' + d.status.replace(/_/g, ' ') : ''), 'ok');
       marcarCampo('op', true);
       b.classList.add('ok');
@@ -563,9 +574,16 @@ Sessao.iniciarPagina('refugo').then(function (ctx) {
     }).join('');
     const setor = estado.cfg.setor ? (NOME_SETOR[estado.cfg.setor] || estado.cfg.setor) : 'TODOS OS SETORES';
     $('rotuloProcesso').innerHTML = 'PROCESSO · ' + esc(setor) + (lista.length ? ' <kbd>1</kbd>–<kbd>' + Math.min(lista.length, 9) + '</kbd>' : '');
-    // Seletor REFUGO | RETRABALHO só aparece para quem pode apontar retrabalho
+    // Seletor de tipo: Usinagem = REFUGO | RETRABALHO · Fundição = REFUGO DE PEÇA | REFUGO DE MOLDE
+    const ts = tipos();
+    $('gradeTipos').style.gridTemplateColumns = 'repeat(' + ts.length + ', minmax(0, 1fr))';
+    $('gradeTipos').innerHTML = ts.map(function (t) {
+      const nome = t === 'REFUGO' && temMolde() ? 'REFUGO DE PEÇA' : NOME_TIPO_BT[t];
+      return '<button type="button" class="op-b ' + CLASSE_TIPO[t] + '" data-tipo="' + t + '">' + nome + '</button>';
+    }).join('');
     $('blocoTipo').hidden = !temTipo();
-    estado.form.tipo = 'REFUGO';
+    // OP sem saldo de peças: só dá para apontar molde
+    estado.form.tipo = temMolde() && estado.op.valida && saldoOP() <= 0 ? 'MOLDE' : 'REFUGO';
   }
 
   function escolherProcesso(nome) {
@@ -575,9 +593,10 @@ Sessao.iniciarPagina('refugo').then(function (ctx) {
     $('motivo').focus();
   }
 
-  // Troca REFUGO ⇄ RETRABALHO. O motivo é limpo: cada tipo tem a sua lista.
+  // Troca o tipo. O motivo é limpo (retrabalho tem lista própria).
   function escolherTipo(tipo) {
-    if (!temTipo() || formTravado() || estado.form.tipo === tipo) return;
+    if (!temTipo() || estado.form.tipo === tipo || tipos().indexOf(tipo) === -1) return;
+    if (formTravado() && !temMolde()) return;
     estado.form.tipo = tipo;
     estado.form.motivo = '';
     $('motivo').value = '';
@@ -669,21 +688,24 @@ Sessao.iniciarPagina('refugo').then(function (ctx) {
   }
   function errosForm() {
     const f = lerForm();
-    const lancado = jaApontado() + somaQtd(estado.itens);
+    const lancado = jaApontado() + somaQtdSaldo(estado.itens);
     const maximo = limiteOP() - lancado;
+    const molde = f.tipo === 'MOLDE';
     const e = { processo: '', motivo: '', lado: '', qtd: '', peso: '', limite: '' };
     if (!f.processo) e.processo = 'Escolha o processo';
     if (!f.motivo) e.motivo = $('motivo').value.trim() ? 'Motivo não encontrado na lista' : 'Informe o motivo';
     if (!f.lado) e.lado = 'Escolha o lado';
     if (!f.qtdTxt) e.qtd = 'Informe a quantidade';
     else if (!/^\d+$/.test(f.qtdTxt) || f.qtd < 1) e.qtd = 'Número inteiro, mínimo 1';
-    else if (f.qtd > maximo) {
+    else if (!molde && f.qtd > maximo) {
       e.qtd = 'Máximo ' + Math.max(maximo, 0);
       e.limite = maximo <= 0
         ? 'A OP já está no limite: ' + lancado + ' de ' + limiteOP() + ' peças apontadas.'
         : 'Passa do limite: já apontado ' + lancado + ' + ' + f.qtd + ' = ' + (lancado + f.qtd) + ', mas a OP tem ' + limiteOP() + '. Máximo para este item: ' + maximo + '.';
     }
-    if (!f.pesoTxt) e.peso = 'Informe o peso';
+    // Molde: peso opcional por enquanto (ainda não temos o peso dos moldes)
+    if (molde) { if (f.pesoTxt && !(f.peso >= 0)) e.peso = 'Peso inválido (ex.: 1,250)'; }
+    else if (!f.pesoTxt) e.peso = 'Informe o peso';
     else if (!(f.peso > 0)) e.peso = 'Peso inválido (ex.: 1,250)';
     return e;
   }
@@ -700,6 +722,8 @@ Sessao.iniciarPagina('refugo').then(function (ctx) {
     const ret = estado.form.tipo === 'RETRABALHO';
     $('motivo').placeholder = ret ? 'Ex.: solda' : 'Ex.: rechupe';
     $('rotuloMotivo').textContent = ret ? 'MOTIVO DE RETRABALHO (digite para buscar)' : 'MOTIVO (digite para buscar)';
+    $('rotuloQtd').textContent = ehMolde() ? 'QTD (moldes)' : 'QTD (peças)';
+    $('rotuloPeso').textContent = ehMolde() ? 'PESO LÍQ. (kg) · opcional' : 'PESO LÍQ. (kg)';
     document.querySelectorAll('#gradeProcessos .op-b').forEach(function (b) { b.classList.toggle('on', b.dataset.processo === estado.form.processo); });
     document.querySelectorAll('#gradeLados .op-b').forEach(function (b) { b.classList.toggle('on', b.dataset.lado === estado.form.lado); });
 
@@ -714,7 +738,7 @@ Sessao.iniciarPagina('refugo').then(function (ctx) {
     // Qtd e peso: só mostra erro depois que o operador digitou algo
     const qtdErro = t.qtd && $('qtd').value && e.qtd;
     if (qtdErro) setMsg('msgQtd', '✖ ' + e.qtd, 'erro');
-    else setMsg('msgQtd', estado.op.valida && saldo() > 0 ? 'saldo da OP: máx. ' + saldo() : '');
+    else setMsg('msgQtd', ehMolde() ? 'molde não consome o saldo da OP' : estado.op.valida && saldo() > 0 ? 'saldo da OP: máx. ' + saldo() : '');
     marcarCampo('qtd', $('qtd').value ? !qtdErro : null);
     const pesoErro = t.peso && $('peso').value && e.peso;
     setMsg('msgPeso', pesoErro ? '✖ ' + e.peso : '', 'erro');
@@ -722,11 +746,12 @@ Sessao.iniciarPagina('refugo').then(function (ctx) {
 
     // Bloqueio por limite atingido
     const travado = formTravado();
-    document.querySelectorAll('#gradeTipos .op-b, #gradeProcessos .op-b, #gradeLados .op-b').forEach(function (b) { b.disabled = travado; });
+    document.querySelectorAll('#gradeProcessos .op-b, #gradeLados .op-b').forEach(function (b) { b.disabled = travado; });
+    document.querySelectorAll('#gradeTipos .op-b').forEach(function (b) { b.disabled = travado && !temMolde(); });
     ['motivo', 'qtd', 'peso'].forEach(function (id) { $(id).disabled = travado; });
     const textoAviso = travado
-      ? 'Limite da OP atingido: ' + (jaApontado() + somaQtd(estado.itens)) + ' de ' + limiteOP() + ' peças (' + jaApontado() + ' já registradas antes + ' + somaQtd(estado.itens) + ' nesta lista).' +
-        (estado.itens.length ? ' Para lançar outro item, remova um item da lista (×).' : '')
+      ? 'Limite da OP atingido: ' + (jaApontado() + somaQtdSaldo(estado.itens)) + ' de ' + limiteOP() + ' peças (' + jaApontado() + ' já registradas antes + ' + somaQtdSaldo(estado.itens) + ' nesta lista).' +
+        (temMolde() ? ' Ainda dá para apontar REFUGO DE MOLDE.' : estado.itens.length ? ' Para lançar outro item, remova um item da lista (×).' : '')
       : e.limite;
     $('avisoLimite').textContent = textoAviso;
     $('avisoLimite').classList.toggle('trava', travado);
@@ -743,7 +768,7 @@ Sessao.iniciarPagina('refugo').then(function (ctx) {
       return false;
     }
     const f = lerForm();
-    estado.itens.push({ tipo: f.tipo, processo: f.processo, motivo: f.motivo, lado: f.lado, qtd: f.qtd, peso: f.peso });
+    estado.itens.push({ tipo: f.tipo, processo: f.processo, motivo: f.motivo, lado: f.lado, qtd: f.qtd, peso: f.pesoTxt ? f.peso : 0 });
     estado.idReq = null;                    // lista mudou: novo envio
     limparForm();
     renderItens();
@@ -794,7 +819,7 @@ Sessao.iniciarPagina('refugo').then(function (ctx) {
     const lista = estado.itens;
     $('contItens').textContent = lista.length ? '· ' + lista.length : '';
     $('boxItens').innerHTML = lista.length ? tabelaItens(lista, true) : '<div class="lista-vazia">Nenhum item lançado ainda.</div>';
-    const total = jaApontado() + somaQtd(lista);
+    const total = jaApontado() + somaQtdSaldo(lista);
     const limite = limiteOP();
     $('medTxt').textContent = total + ' de ' + limite;
     $('medPeso').textContent = kg(somaPeso(lista)) + ' kg';
@@ -809,12 +834,14 @@ Sessao.iniciarPagina('refugo').then(function (ctx) {
     const d = estado.op.dados;
     $('resumoOP').textContent = 'OP ' + estado.op.numero + ' · ' + (d.cliente || '-') + ' · ' + (d.codigo || '-') + ' · ' + (d.descricao || '-');
     $('boxResumo').innerHTML = tabelaItens(estado.itens, false);
-    $('totPecas').innerHTML = somaQtd(estado.itens) + ' <small>de ' + Math.max(saldoOP(), 0) + ' de saldo</small>';
+    $('totPecas').innerHTML = somaQtdSaldo(estado.itens) + ' <small>de ' + Math.max(saldoOP(), 0) + ' de saldo</small>';
     $('totPeso').textContent = kg(somaPeso(estado.itens)) + ' kg';
     if (temTipo()) {
-      const ref = estado.itens.filter(function (it) { return it.tipo !== 'RETRABALHO'; });
-      const ret = estado.itens.filter(function (it) { return it.tipo === 'RETRABALHO'; });
-      $('totItens').innerHTML = estado.itens.length + ' <small>· refugo ' + somaQtd(ref) + ' pç / ' + kg(somaPeso(ref)) + ' kg · retrabalho ' + somaQtd(ret) + ' pç / ' + kg(somaPeso(ret)) + ' kg</small>';
+      const de = function (t) { return estado.itens.filter(function (it) { return it.tipo === t; }); };
+      const ref = de('REFUGO'), ret = de('RETRABALHO'), mol = de('MOLDE');
+      $('totItens').innerHTML = estado.itens.length + ' <small>· ' + (temMolde() ? 'peça ' : 'refugo ') + somaQtd(ref) + ' pç / ' + kg(somaPeso(ref)) + ' kg' +
+        (tipos().indexOf('RETRABALHO') !== -1 ? ' · retrabalho ' + somaQtd(ret) + ' pç / ' + kg(somaPeso(ret)) + ' kg' : '') +
+        (temMolde() ? ' · molde ' + somaQtd(mol) + ' un / ' + kg(somaPeso(mol)) + ' kg' : '') + '</small>';
     } else {
       $('totItens').textContent = estado.itens.length;
     }
@@ -878,7 +905,7 @@ Sessao.iniciarPagina('refugo').then(function (ctx) {
       if (!estado.op.valida) return 'Busque e valide a OP';
       if (!ctx.podeEditar) return 'Seu perfil só pode consultar';
       if (limiteOP() <= 0) return 'OP sem quantidade cadastrada';
-      if (saldoOP() <= 0) return 'OP já atingiu o total de peças';
+      if (saldoOP() <= 0 && !temMolde()) return 'OP já atingiu o total de peças';
     }
     if (etapa === 3) {
       if (estado.itens.length === 0 && !formValido()) return 'Adicione pelo menos 1 item';
@@ -943,7 +970,7 @@ Sessao.iniciarPagina('refugo').then(function (ctx) {
       const lista = (r.itens || []).map(function (x) {
         return {
           horaTxt: String(x.dataHora || '').slice(11, 16), op: x.op, cliente: x.cliente,
-          tipo: x.tipo === 'RETRABALHO' ? 'RETRABALHO' : 'REFUGO', processo: x.processo, motivo: x.motivo, lado: x.lado,
+          tipo: x.tipo === 'RETRABALHO' || x.tipo === 'MOLDE' ? x.tipo : 'REFUGO', processo: x.processo, motivo: x.motivo, lado: x.lado,
           qtd: Number(x.qtdRefugo) || 0, peso: Number(x.pesoLiquidoInformado) || 0, estornado: Number(x.qtdEstornada) || 0
         };
       }).sort(function (a, b) { return a.horaTxt.localeCompare(b.horaTxt); });
@@ -954,15 +981,19 @@ Sessao.iniciarPagina('refugo').then(function (ctx) {
   }
 
   function renderConferencia(lista, fonte) {
-    const ref = lista.filter(function (x) { return x.tipo !== 'RETRABALHO'; });
+    const ref = lista.filter(function (x) { return x.tipo === 'REFUGO'; });
     const ret = lista.filter(function (x) { return x.tipo === 'RETRABALHO'; });
-    const comTipo = temTipo() || ret.length > 0;
+    const mol = lista.filter(function (x) { return x.tipo === 'MOLDE'; });
+    const comRet = tipos().indexOf('RETRABALHO') !== -1 || ret.length > 0;
+    const comMol = temMolde() || mol.length > 0;
+    const comTipo = comRet || comMol;
     $('confTotais').innerHTML =
       '<div class="dado"><span>APONTAMENTOS</span><b>' + lista.length + '</b></div>' +
-      '<div class="dado"><span>REFUGO</span><b>' + somaQtd(ref) + ' pç · ' + kg(somaPeso(ref)) + ' kg</b></div>' +
-      (comTipo ? '<div class="dado"><span>RETRABALHO</span><b>' + somaQtd(ret) + ' pç · ' + kg(somaPeso(ret)) + ' kg</b></div>' : '') +
+      '<div class="dado"><span>' + (comMol ? 'REFUGO DE PEÇA' : 'REFUGO') + '</span><b>' + somaQtd(ref) + ' pç · ' + kg(somaPeso(ref)) + ' kg</b></div>' +
+      (comRet ? '<div class="dado"><span>RETRABALHO</span><b>' + somaQtd(ret) + ' pç · ' + kg(somaPeso(ret)) + ' kg</b></div>' : '') +
+      (comMol ? '<div class="dado"><span>REFUGO DE MOLDE</span><b>' + somaQtd(mol) + ' un · ' + kg(somaPeso(mol)) + ' kg</b></div>' : '') +
       '<div class="dado"><span>OPs</span><b>' + new Set(lista.map(function (x) { return String(x.op); })).size + '</b></div>';
-    $('confTotais').style.gridTemplateColumns = window.innerWidth <= 760 ? '' : 'repeat(' + (comTipo ? 4 : 3) + ', minmax(0, 1fr))';
+    $('confTotais').style.gridTemplateColumns = window.innerWidth <= 760 ? '' : 'repeat(' + (2 + (comRet ? 1 : 0) + (comMol ? 1 : 0)) + ', minmax(0, 1fr))';
     setMsg('confFonte',
       fonte === 'carregando' ? 'buscando o dia completo no servidor…'
         : fonte === 'falhou' ? '⚠ servidor indisponível: mostrando só o que foi apontado neste terminal'
@@ -972,12 +1003,12 @@ Sessao.iniciarPagina('refugo').then(function (ctx) {
       $('boxConf').innerHTML = '<div class="lista-vazia">' + (fonte === 'carregando' ? 'Buscando…' : 'Nenhum apontamento hoje.') + '</div>';
       return;
     }
-    $('boxConf').innerHTML = '<table class="it"><thead><tr><th>HORA</th><th>OP</th><th class="c-lado">CLIENTE</th>' + (comTipo ? '<th>TIPO</th>' : '') +
+    $('boxConf').innerHTML = '<table class="it"><thead><tr><th>HORA</th><th>OP</th><th class="c-lado">CLIENTE</th>' + (comTipo ? '<th class="c-tipo">TIPO</th>' : '') +
       '<th>PROCESSO</th><th>MOTIVO</th><th class="c-lado">LADO</th><th class="n">QTD</th><th class="n">KG</th></tr></thead><tbody>' +
       lista.map(function (x) {
         return '<tr><td>' + esc(x.horaTxt) + '</td><td><b>' + esc(x.op) + '</b></td><td class="c-lado">' + esc(x.cliente) + '</td>' +
-          (comTipo ? '<td>' + tagTipo(x.tipo) + '</td>' : '') +
-          '<td>' + esc(x.processo) + '</td><td>' + esc(x.motivo) + (x.estornado ? ' <span class="tt est">estornado ' + x.estornado + '</span>' : '') + '</td>' +
+          (comTipo ? '<td class="c-tipo">' + tagTipo(x.tipo) + '</td>' : '') +
+          '<td>' + esc(x.processo) + '</td><td>' + (comTipo && x.tipo !== 'REFUGO' ? '<span class="tt-mob">' + tagTipo(x.tipo) + ' </span>' : '') + esc(x.motivo) + (x.estornado ? ' <span class="tt est">estornado ' + x.estornado + '</span>' : '') + '</td>' +
           '<td class="c-lado">' + esc(x.lado) + '</td><td class="n">' + x.qtd + '</td><td class="n">' + kg(x.peso) + '</td></tr>';
       }).join('') + '</tbody></table>';
   }
@@ -1010,7 +1041,11 @@ Sessao.iniciarPagina('refugo').then(function (ctx) {
   function irPara(n) {
     estado.etapa = n;
     document.querySelectorAll('.etapa').forEach(function (s) { s.classList.toggle('ativa', s.id === 'etapa' + n); });
-    if (n === 3) { renderItens(); renderForm(); }
+    if (n === 3) {
+      // OP sem saldo de peças (Fundição): já entra em REFUGO DE MOLDE
+      if (temMolde() && consome(estado.form.tipo) && estado.op.valida && saldo() <= 0) estado.form.tipo = 'MOLDE';
+      renderItens(); renderForm();
+    }
     if (n === 4) renderResumo();
     render();
     // Foco automático no campo certo de cada etapa
@@ -1025,7 +1060,7 @@ Sessao.iniciarPagina('refugo').then(function (ctx) {
   const DICAS = {
     2: '<kbd>Enter</kbd> buscar / avançar',
     3: function () {
-      return (temTipo() ? '<kbd>T</kbd> refugo/retrabalho · ' : '') + '<kbd>1</kbd>–<kbd>' + Math.min(listaProcessos().length, 9) + '</kbd> processo · <kbd>D</kbd>/<kbd>E</kbd>/<kbd>N</kbd> lado · <kbd>Enter</kbd> adicionar · <kbd>Ctrl</kbd>+<kbd>Enter</kbd> revisar · <kbd>Esc</kbd> voltar';
+      return (temTipo() ? '<kbd>T</kbd> ' + (temMolde() && tipos().indexOf('RETRABALHO') === -1 ? 'peça/molde' : 'tipo') + ' · ' : '') + '<kbd>1</kbd>–<kbd>' + Math.min(listaProcessos().length, 9) + '</kbd> processo · <kbd>D</kbd>/<kbd>E</kbd>/<kbd>N</kbd> lado · <kbd>Enter</kbd> adicionar · <kbd>Ctrl</kbd>+<kbd>Enter</kbd> revisar · <kbd>Esc</kbd> voltar';
     },
     4: '<kbd>Ctrl</kbd>+<kbd>Enter</kbd> registrar · <kbd>Esc</kbd> voltar e editar itens'
   };
@@ -1099,7 +1134,7 @@ Sessao.iniciarPagina('refugo').then(function (ctx) {
     const num = Number(e.key);
     if (num >= 1 && num <= Math.min(lista.length, 9)) { e.preventDefault(); escolherProcesso(lista[num - 1]); return; }
     const k = e.key.toLowerCase();
-    if (k === 't' && temTipo()) { e.preventDefault(); escolherTipo(estado.form.tipo === 'RETRABALHO' ? 'REFUGO' : 'RETRABALHO'); return; }
+    if (k === 't' && temTipo()) { e.preventDefault(); const ts = tipos(); escolherTipo(ts[(ts.indexOf(estado.form.tipo) + 1) % ts.length]); return; }
     const lados = { d: 'LD', e: 'LE', n: 'N/A' };
     if (lados[k]) { e.preventDefault(); escolherLado(lados[k]); }
   }
@@ -1123,7 +1158,7 @@ Sessao.iniciarPagina('refugo').then(function (ctx) {
     // se o operador digitar mais, o campo volta ao último valor válido.
     $('qtd').addEventListener('input', function () {
       let v = $('qtd').value.replace(/\D/g, '');
-      if (v && Number(v) > saldo()) {
+      if (v && !ehMolde() && Number(v) > saldo()) {
         v = estado.qtdAnterior || '';
         $('qtd').value = v;
         estado.tocado.qtd = true;
