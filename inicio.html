@@ -108,12 +108,12 @@ Sessao.iniciarPagina('inicio').then(function (ctx) {
     const k = [
       { c: '#3b82f6', ic: 'i-tabela', rot: 'Carteira ativa', val: cart.length, det: clientes + ' cliente' + (clientes === 1 ? '' : 's') },
       { c: '#22c55e', ic: 'i-relogio', rot: 'Em produção', val: prod, det: pct + '% da carteira' },
-      { c: '#a855f7', ic: 'i-clip', rot: 'Engenharia (sem OP)', val: eng.length, det: criticos + (criticos === 1 ? ' crítico' : ' críticos') + ' · passou do prazo da engenharia', alerta: criticos > 0 },
+      { c: '#a855f7', ic: 'i-clip', rot: 'Engenharia (sem OP)', val: eng.length, det: criticos + (criticos === 1 ? ' item' : ' itens') + ' · Prazo Eng. Vencido' },
       { c: Cronograma.COR.VENCIDO, ic: 'i-alerta', rot: 'Prazo vencido', val: venc, det: fcr + ' fora do crono.' }
     ];
     $('kpis').innerHTML = k.map(function (x) {
       return '<div class="kpi" style="--c:' + x.c + '"><div class="rot">' + Ui.ic(x.ic) + x.rot + '</div>' +
-             '<div class="val">' + x.val + '</div><div class="det"' + (x.alerta ? ' style="color:#ef4444;font-weight:700"' : '') + '>' + Ui.esc(x.det) + '</div></div>';
+             '<div class="val">' + x.val + '</div><div class="det">' + Ui.esc(x.det) + '</div></div>';
     }).join('');
     $('kpis-mob').innerHTML = k.map(function (x, i) {
       return '<span class="km' + (i === 3 && x.val > 0 ? ' piscando' : '') + '" style="--c:' + x.c + '">' + x.rot.replace(' (sem OP)', '') + ' <b>' + x.val + '</b></span>';
