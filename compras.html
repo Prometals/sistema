@@ -373,7 +373,7 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
   const n = function (v) { return e(Fmt.num(v)); };
 
   // ============================================================
-  // LISTA: Insumo · Tem · Comprar · Para quê. Clicou, abre embaixo
+  // LISTA: Insumo · Estoque · Comprar · Motivo. Clicou, abre embaixo
   // as OPs que vão consumir aquele insumo.
   // ============================================================
   const celular = window.matchMedia('(max-width: 760px)');
@@ -382,7 +382,7 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
   const insumoPorCod = function (cod) { return painel.insumos.find(function (x) { return x.cod_insumo === cod; }); };
   function detalhe(i) {
     const lista = opsAtual[i.cod_insumo] || [];
-    const conta = 'Tem ' + Fmt.num(i.saldo) + ' · OPs vão usar ' + Fmt.num(i.vai_sair) + ' · mínimo ' + Fmt.num(i.minimo) + ' · lead time ' + Fmt.num(i.lead_time) + ' dias' +
+    const conta = 'Estoque ' + Fmt.num(i.saldo) + ' · OPs vão usar ' + Fmt.num(i.vai_sair) + ' · mínimo ' + Fmt.num(i.minimo) + ' · lead time ' + Fmt.num(i.lead_time) + ' dias' +
       (i.sugerido > 0 ? ' → comprar ' + Fmt.num(i.sugerido) + ' ' + unid(i) : '');
     return '<div class="dt-box">' + (lista.length
       ? '<table><thead><tr><th>OP</th><th>Cliente</th><th>Processo</th><th class="num">Precisa</th></tr></thead><tbody>' +
@@ -404,13 +404,13 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
       $('#lista-tab').innerHTML = l.map(function (i) {
         const ab = !!aberto[i.cod_insumo];
         return '<div class="li" data-abre="' + e(i.cod_insumo) + '">' + e(i.descricao) + '<span class="cod">' + e(i.cod_insumo) + '</span>' +
-          '<small>comprar ' + n(i.sugerido) + ' ' + e(unid(i)) + ' · ' + paraQue(i) + ' · tem ' + n(i.saldo) + '</small></div>' +
+          '<small>comprar ' + n(i.sugerido) + ' ' + e(unid(i)) + ' · ' + paraQue(i) + ' · estoque ' + n(i.saldo) + '</small></div>' +
           (ab ? detalhe(i) : '');
       }).join('') || '<div class="vazio">' + vazio + '</div>';
       return;
     }
     $('#lista-tab').innerHTML = '';
-    $('#cab').innerHTML = '<tr><th>Insumo</th><th class="c-tem">Tem</th><th class="c-comp">Comprar</th><th class="c-pq">Para quê</th><th class="c-sv"></th></tr>';
+    $('#cab').innerHTML = '<tr><th>Insumo</th><th class="c-tem">Estoque</th><th class="c-comp">Comprar</th><th class="c-pq">Motivo</th><th class="c-sv"></th></tr>';
     $('#linhas').innerHTML = l.map(function (i) {
       const ab = !!aberto[i.cod_insumo];
       return '<tr class="lin' + (ab ? ' ab' : '') + '" data-abre="' + e(i.cod_insumo) + '">' +
@@ -569,7 +569,7 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
 </style></head><body>
   <h2>${e(tituloRelatorio())}</h2>
   <div class="sub">Emitido em ${new Date().toLocaleString('pt-BR')} &nbsp;·&nbsp; ${l.length} insumo${l.length === 1 ? '' : 's'}</div>
-  <table><thead><tr><th>INSUMO</th><th>CÓDIGO</th><th>TEM</th><th>COMPRAR</th><th>UN.</th><th>PARA QUÊ</th><th>OPs</th></tr></thead>
+  <table><thead><tr><th>INSUMO</th><th>CÓDIGO</th><th>ESTOQUE</th><th>COMPRAR</th><th>UN.</th><th>MOTIVO</th><th>OPs</th></tr></thead>
   <tbody>${l.map(function (r) {
     return '<tr' + (r.rup ? ' style="background:#fde2e2"' : '') + '><td>' + e(r.desc) + '</td><td>' + e(r.cod) + '</td><td class="n">' + Fmt.num(r.saldo) + '</td>' +
       '<td class="c">' + Fmt.num(r.comprar) + '</td><td>' + e(r.un) + '</td><td>' + e(r.pq) + '</td><td>' + e(r.ops || '—') + '</td></tr>';
@@ -627,7 +627,7 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
       await carregarSheetJS();
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.json_to_sheet(l.map(function (r) {
-        return { 'Insumo': r.desc, 'Código': r.cod, 'Tem': r.saldo, 'Comprar': r.comprar, 'Unidade': r.un, 'Para quê': r.pq, 'OPs': r.ops,
+        return { 'Insumo': r.desc, 'Código': r.cod, 'Estoque': r.saldo, 'Comprar': r.comprar, 'Unidade': r.un, 'Motivo': r.pq, 'OPs': r.ops,
           'OPs vão usar': r.sair, 'Mínimo': r.min, 'Lead time (dias)': r.lead };
       }));
       ws['!cols'] = [42, 12, 10, 10, 8, 14, 30, 12, 10, 14].map(function (c) { return { wch: c }; });
