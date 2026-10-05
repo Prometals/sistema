@@ -119,7 +119,7 @@ const Fmt = {
   num(n, casas) {
     if (n === '' || n === null || n === undefined || isNaN(Number(n))) return '';
     const k = casas === undefined ? 'p' : casas;
-    const f = this._fmt[k] || (this._fmt[k] = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: casas || 0, maximumFractionDigits: casas === undefined ? 3 : casas }));
+    const f = Fmt._fmt[k] || (Fmt._fmt[k] = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: casas || 0, maximumFractionDigits: casas === undefined ? 3 : casas }));
     return f.format(Number(n));
   },
   // O servidor manda datas como "2026-09-28T10:45:00" (ou já "dd/mm/aaaa").
