@@ -540,10 +540,11 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
   // ---------- Relatório de compras: imprimir e Excel ----------
   // Sai exatamente a lista da tela (o card escolhido), na mesma ordem.
   function linhasRelatorio() {
+    const opsRel = opsPorInsumo(avisosPorOP());
     return insumosFiltrados().map(function (i) {
       return { cod: i.cod_insumo, desc: i.descricao, un: String(i.unidade || ''), saldo: i.saldo, sair: i.vai_sair,
         min: i.minimo, lead: i.lead_time, comprar: i.sugerido > 0 ? i.sugerido : 0, pq: paraQueTxt(i), rup: ruptura(i),
-        ops: ((opsPorInsumo(avisosPorOP())[i.cod_insumo]) || []).map(function (o) { return o.op; }).join(', ') };
+        opsLista: opsRel[i.cod_insumo] || [] };
     });
   }
   function tituloRelatorio() { return 'NECESSIDADE DE COMPRA — ' + NOME_MODO[modo].toUpperCase(); }
@@ -566,14 +567,25 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
   th,td{border:1px solid #ccc;padding:5px 6px;font-size:10.5px;text-align:left}
   th{background:#efefef} td.n{text-align:right} td.c{text-align:right;font-weight:bold;font-size:11.5px}
   tr,th{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  tbody.ins{page-break-inside:avoid}
+  tr.op td{font-size:9.5px;color:#333;border-top:0;padding:3px 6px;background:#fafafa}
+  tr.op td.r{padding-left:22px}
+  tr.op-cab td{font-size:8.5px;color:#666;font-weight:bold;text-transform:uppercase;letter-spacing:.3px;border-top:0;padding:3px 6px;background:#fafafa}
 </style></head><body>
   <h2>${e(tituloRelatorio())}</h2>
   <div class="sub">Emitido em ${new Date().toLocaleString('pt-BR')} &nbsp;·&nbsp; ${l.length} insumo${l.length === 1 ? '' : 's'}</div>
-  <table><thead><tr><th>INSUMO</th><th>CÓDIGO</th><th>ESTOQUE</th><th>COMPRAR</th><th>UN.</th><th>MOTIVO</th><th>OPs</th></tr></thead>
-  <tbody>${l.map(function (r) {
-    return '<tr' + (r.rup ? ' style="background:#fde2e2"' : '') + '><td>' + e(r.desc) + '</td><td>' + e(r.cod) + '</td><td class="n">' + Fmt.num(r.saldo) + '</td>' +
-      '<td class="c">' + Fmt.num(r.comprar) + '</td><td>' + e(r.un) + '</td><td>' + e(r.pq) + '</td><td>' + e(r.ops || '—') + '</td></tr>';
-  }).join('')}</tbody></table>
+  <table><thead><tr><th>INSUMO</th><th>CÓDIGO</th><th>ESTOQUE</th><th>COMPRAR</th><th>UN.</th><th>MOTIVO</th></tr></thead>
+  ${l.map(function (r) {
+    // linha do insumo + (se tiver OP) as OPs que vão consumir, embaixo, como no painel
+    const un = String(r.un || '').toLowerCase();
+    return '<tbody class="ins"><tr' + (r.rup ? ' style="background:#fde2e2"' : '') + '><td><b>' + e(r.desc) + '</b></td><td>' + e(r.cod) + '</td><td class="n">' + Fmt.num(r.saldo) + '</td>' +
+      '<td class="c">' + Fmt.num(r.comprar) + '</td><td>' + e(r.un) + '</td><td>' + e(r.pq) + '</td></tr>' +
+      (r.opsLista.length ? '<tr class="op-cab"><td class="r" style="padding-left:22px">OP · Produto</td><td colspan="3">Cliente · Processo</td><td colspan="2" style="text-align:right">Consumo previsto</td></tr>' +
+        r.opsLista.map(function (o) {
+          return '<tr class="op"><td class="r">OP ' + e(o.op) + (o.codigo ? ' · ' + e(o.codigo) : '') + '</td><td colspan="3">' + e(titulo(o.cliente)) + ' · ' + e(titulo(o.processo)) + '</td>' +
+            '<td colspan="2" style="text-align:right">' + Fmt.num(o.precisa) + ' ' + e(un) + '</td></tr>';
+        }).join('') : '') + '</tbody>';
+  }).join('')}</table>
   <script>window.onload=()=>window.print();<\/script></body></html>`);
     w.document.close();
   }
@@ -627,11 +639,22 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
       await carregarSheetJS();
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.json_to_sheet(l.map(function (r) {
-        return { 'Insumo': r.desc, 'Código': r.cod, 'Estoque': r.saldo, 'Comprar': r.comprar, 'Unidade': r.un, 'Motivo': r.pq, 'OPs': r.ops,
+        return { 'Insumo': r.desc, 'Código': r.cod, 'Estoque': r.saldo, 'Comprar': r.comprar, 'Unidade': r.un, 'Motivo': r.pq, 'OPs': r.opsLista.map(function (o) { return o.op; }).join(', '),
           'OPs vão usar': r.sair, 'Mínimo': r.min, 'Lead time (dias)': r.lead };
       }));
       ws['!cols'] = [42, 12, 10, 10, 8, 14, 30, 12, 10, 14].map(function (c) { return { wch: c }; });
       XLSX.utils.book_append_sheet(wb, ws, NOME_MODO[modo].slice(0, 31));
+      const opsRows = [];
+      l.forEach(function (r) {
+        r.opsLista.forEach(function (o) {
+          opsRows.push({ 'Insumo': r.desc, 'Código insumo': r.cod, 'OP': o.op, 'Produto': o.codigo, 'Cliente': o.cliente, 'Processo': o.processo, 'Consumo previsto': o.precisa, 'Unidade': r.un });
+        });
+      });
+      if (opsRows.length) {
+        const ws2 = XLSX.utils.json_to_sheet(opsRows);
+        ws2['!cols'] = [42, 14, 8, 16, 34, 18, 16, 8].map(function (c) { return { wch: c }; });
+        XLSX.utils.book_append_sheet(wb, ws2, 'OPs por insumo');
+      }
       const hoje = new Date();
       const nome = 'compras_' + modo.toLowerCase() + '_' + hoje.getFullYear() + String(hoje.getMonth() + 1).padStart(2, '0') + String(hoje.getDate()).padStart(2, '0') + '.xlsx';
       XLSX.writeFile(wb, nome);
