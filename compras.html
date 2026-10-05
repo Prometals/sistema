@@ -581,6 +581,7 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
   th{font-weight:bold} td.n{text-align:right} td.c{text-align:right}
   tr,th{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   tbody.ins{page-break-inside:avoid}
+  tr.ins-op td{font-weight:bold;background:#f2f2f2}
   tr.op td{font-size:9.5px;border-top:0;padding:3px 6px}
   tr.op td.r{padding-left:22px}
   tr.op-cab td{font-size:8.5px;text-transform:uppercase;letter-spacing:.3px;border-top:0;padding:3px 6px}
@@ -591,7 +592,7 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
   ${l.map(function (r) {
     // linha do insumo + (se tiver OP) as OPs que vão consumir, embaixo, como no painel
     const un = String(r.un || '').toLowerCase();
-    return '<tbody class="ins"><tr><td>' + e(r.desc) + '</td><td>' + e(r.cod) + '</td><td class="n">' + Fmt.num(r.saldo) + '</td>' +
+    return '<tbody class="ins"><tr' + (modo === 'OP' ? ' class="ins-op"' : '') + '><td>' + e(r.desc) + '</td><td>' + e(r.cod) + '</td><td class="n">' + Fmt.num(r.saldo) + '</td>' +
       '<td class="c">' + Fmt.num(r.comprar) + '</td><td>' + e(r.un) + '</td><td>' + e(r.pq) + '</td></tr>' +
       (r.opsLista.length ? '<tr class="op-cab"><td class="r" style="padding-left:22px">OP · Produto</td><td colspan="3">Cliente · Processo</td><td colspan="2" style="text-align:right">Consumo previsto</td></tr>' +
         r.opsLista.map(function (o) {
