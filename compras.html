@@ -574,16 +574,16 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
     w.document.write(`<html><head><title>${e(tituloRelatorio())}</title>
 <style>
   body{font-family:Arial;padding:20px;color:#111}
-  h2{font-size:16px;margin:0 0 4px}
+  h2{font-size:16px;font-weight:normal;margin:0 0 4px}
   .sub{font-size:10px;color:#555;margin-bottom:14px}
   table{width:100%;border-collapse:collapse}
   th,td{border:1px solid #ccc;padding:5px 6px;font-size:10.5px;text-align:left}
-  th{background:#efefef} td.n{text-align:right} td.c{text-align:right;font-weight:bold;font-size:11.5px}
+  th{font-weight:normal} td.n{text-align:right} td.c{text-align:right}
   tr,th{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   tbody.ins{page-break-inside:avoid}
-  tr.op td{font-size:9.5px;color:#333;border-top:0;padding:3px 6px;background:#fafafa}
+  tr.op td{font-size:9.5px;border-top:0;padding:3px 6px}
   tr.op td.r{padding-left:22px}
-  tr.op-cab td{font-size:8.5px;color:#666;font-weight:bold;text-transform:uppercase;letter-spacing:.3px;border-top:0;padding:3px 6px;background:#fafafa}
+  tr.op-cab td{font-size:8.5px;text-transform:uppercase;letter-spacing:.3px;border-top:0;padding:3px 6px}
 </style></head><body>
   <h2>${e(tituloRelatorio())}</h2>
   <div class="sub">Emitido em ${new Date().toLocaleString('pt-BR')} &nbsp;·&nbsp; ${l.length} insumo${l.length === 1 ? '' : 's'}</div>
@@ -591,7 +591,7 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
   ${l.map(function (r) {
     // linha do insumo + (se tiver OP) as OPs que vão consumir, embaixo, como no painel
     const un = String(r.un || '').toLowerCase();
-    return '<tbody class="ins"><tr' + (r.rup ? ' style="background:#fde2e2"' : '') + '><td><b>' + e(r.desc) + '</b></td><td>' + e(r.cod) + '</td><td class="n">' + Fmt.num(r.saldo) + '</td>' +
+    return '<tbody class="ins"><tr><td>' + e(r.desc) + '</td><td>' + e(r.cod) + '</td><td class="n">' + Fmt.num(r.saldo) + '</td>' +
       '<td class="c">' + Fmt.num(r.comprar) + '</td><td>' + e(r.un) + '</td><td>' + e(r.pq) + '</td></tr>' +
       (r.opsLista.length ? '<tr class="op-cab"><td class="r" style="padding-left:22px">OP · Produto</td><td colspan="3">Cliente · Processo</td><td colspan="2" style="text-align:right">Consumo previsto</td></tr>' +
         r.opsLista.map(function (o) {
@@ -611,10 +611,10 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
     const w = window.open('');
     if (!w) { Ui.toast('O navegador bloqueou a janela de impressão. Libere pop-ups para este site.', 'erro'); return; }
     const nomeF = (FILTROS_CX.find(function (x) { return x.f === f; }) || {}).t || '';
-    w.document.write('<html><head><title>CAIXAS (EMBALAGEM)</title><style>body{font-family:Arial;padding:20px;color:#111}h2{font-size:16px;margin:0 0 4px}' +
-      '.flt{font-size:10.5px;margin-bottom:14px;padding:5px 8px;background:#f3f4f6;border:1px solid #ddd;border-radius:4px}table{width:100%;border-collapse:collapse}' +
-      'th,td{border:1px solid #ccc;padding:4px 6px;font-size:10px;text-align:left}th{background:#efefef}td.n{text-align:right}tr,.flt{-webkit-print-color-adjust:exact;print-color-adjust:exact}</style></head><body>' +
-      html.replace('<h2 style="margin-top:22px">CAIXAS (EMBALAGEM) EM ABERTO</h2>', '<h2>CAIXAS (EMBALAGEM)</h2><div class="flt"><b>Filtros:</b> ' + e(nomeF) + ' · emitido em ' + new Date().toLocaleString('pt-BR') + '</div>') +
+    w.document.write('<html><head><title>CAIXAS (EMBALAGEM)</title><style>body{font-family:Arial;padding:20px;color:#111}h2{font-size:16px;font-weight:normal;margin:0 0 4px}' +
+      '.flt{font-size:10.5px;margin-bottom:14px}table{width:100%;border-collapse:collapse}' +
+      'th,td{border:1px solid #ccc;padding:4px 6px;font-size:10px;text-align:left}th{font-weight:normal}td.n{text-align:right}tr,.flt{-webkit-print-color-adjust:exact;print-color-adjust:exact}</style></head><body>' +
+      html.replace('<h2 style="margin-top:22px">CAIXAS (EMBALAGEM) EM ABERTO</h2>', '<h2>CAIXAS (EMBALAGEM)</h2><div class="flt">Filtros: ' + e(nomeF) + ' · emitido em ' + new Date().toLocaleString('pt-BR') + '</div>') +
       '<script>window.onload=()=>window.print();<\/script></body></html>');
     w.document.close();
   }
@@ -630,7 +630,7 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
     if (!l.length) return '';
     return '<h2 style="margin-top:22px">CAIXAS (EMBALAGEM) EM ABERTO</h2><table><thead><tr><th>COMPRAR ATÉ</th><th>VAI USAR EM</th><th>OP</th><th>CLIENTE</th><th>INSUMO</th><th>DESCRIÇÃO</th><th>QTD</th><th>CIENTE</th></tr></thead><tbody>' +
       l.map(function (r) {
-        return '<tr' + (r.sem ? ' style="background:#fff4d6"' : '') + '><td><b>' + e(r.ate) + '</b></td><td>' + e(r.uso) + '</td><td><b>' + e(r.op) + '</b></td><td>' + e(r.cliente) + '</td><td>' + e(r.cod) + '</td><td>' + e(r.desc) + '</td>' +
+        return '<tr><td>' + e(r.ate) + '</td><td>' + e(r.uso) + '</td><td>' + e(r.op) + '</td><td>' + e(r.cliente) + '</td><td>' + e(r.cod) + '</td><td>' + e(r.desc) + '</td>' +
           '<td class="n">' + Fmt.num(r.qtd) + ' ' + e(r.un.toLowerCase()) + '</td><td>' + e(r.ciente) + '</td></tr>';
       }).join('') + '</tbody></table>';
   }
