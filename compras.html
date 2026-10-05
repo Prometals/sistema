@@ -23,7 +23,9 @@
 .kq.piscando { animation: pisca 1.8s infinite; }
 /* Compras só lê: os cards (filtros) continuam clicáveis enquanto os dados novos
    chegam do servidor (o api.js trava os botões da página nesse intervalo). */
-html.atualizando main.conteudo #cards .kq, html.atualizando main.conteudo #cards-mob .km { pointer-events: auto; }
+html.atualizando main.conteudo #cards .kq, html.atualizando main.conteudo #cards-mob .km,
+html.atualizando main.conteudo [data-imprimir-compras], html.atualizando main.conteudo [data-excel-compras],
+html.atualizando .barra-mob [data-imprimir-compras], html.atualizando .barra-mob [data-excel-compras] { pointer-events: auto; }
 .km { cursor: pointer; border: 0; font: inherit; color: inherit; }
 .cp { display: grid; grid-template-columns: 1fr; gap: 14px; align-items: start; }
 .cx-lista { max-height: 60vh; overflow: auto; margin: -16px -18px 0; }
@@ -235,21 +237,30 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
   carregar();
   // Recalcula a cada 60 s (não atrapalha quem está digitando ou com janela aberta)
   setInterval(function () {
-    const f = document.activeElement;
     if (document.hidden || document.querySelector('.modal-fundo')) return;
     carregar(true);
-  }, 60000);
+  }, 120000);
 
+  // Só redesenha quando os dados mudaram de verdade (a recarga automática
+  // não refaz a tela à toa enquanto a pessoa está usando).
+  let ultimoJSON = '';
   async function carregar(silencioso) {
     try {
-      painel = await Api.chamar('painelCompras', { categorias: 'TODAS' }, { rapido: function () {
-        const f = document.activeElement;
+      const novo = await Api.chamar('painelCompras', { categorias: 'TODAS' }, { rapido: function () {
         if (!document.querySelector('.modal-fundo')) carregar(true);
       } });
-      desenhar();
+      const j = JSON.stringify(novo);
+      if (silencioso && j === ultimoJSON) return;
+      ultimoJSON = j;
+      painel = novo;
+      seguro(desenhar);
     } catch (err) {
       if (!silencioso) Ui.erro(err);
     }
+  }
+  // Se algo der errado ao desenhar, mostra a mensagem (em vez de a tela parar sem aviso)
+  function seguro(fn) {
+    try { fn(); } catch (err) { console.error(err); Ui.toast('Erro na tela de Compras: ' + err.message + ' — atualize a página (F5).', 'erro'); }
   }
   // ---------- Apoio ----------
   function catClasse(c) { return { LUVA: 'luva', FILTRO: 'filtro', EMBALAGEM: 'emb' }[c] || ''; }
@@ -509,11 +520,11 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
       modo = m.dataset.modo;
       // volta a lista para o topo ANTES de redesenhar (depois forçaria o navegador a recalcular tudo)
       const w = document.querySelector('.tab-wrap'); if (w) w.scrollTop = 0;
-      desenhar();
+      seguro(desenhar);
       return;
     }
     const ab = ev.target.closest('[data-abre]');
-    if (ab) { alternarLinha(ab); return; }
+    if (ab) { seguro(function () { alternarLinha(ab); }); return; }
     const cx = ev.target.closest('[data-caixas]');
     if (cx) abrirCaixas(cx.dataset.caixas);
   });
