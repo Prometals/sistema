@@ -8,12 +8,18 @@
 <link rel="stylesheet" href="css/sistema.css">
 <style>
 /* ---------- específico desta página (mockup-compras aprovado) ---------- */
-.kl { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; }
+.kl { display: grid; grid-template-columns: repeat(4, 1fr) 24px 1fr; gap: 12px; margin-bottom: 14px; }
+.kl .esp { visibility: hidden; }
 .kq { background: var(--painel); border: 1px solid var(--linha); border-radius: 12px; padding: 10px 14px; cursor: pointer; position: relative; overflow: hidden; text-align: left; font: inherit; color: inherit; }
 .kq::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--c); }
 .kq.sel { border-color: var(--c); box-shadow: 0 0 0 1px var(--c) inset; }
 .kq .l { font-size: 11px; font-weight: 800; color: var(--texto-suave); letter-spacing: .4px; text-transform: uppercase; }
-.kq b { display: block; font-size: 26px; font-variant-numeric: tabular-nums; } .kq .s { font-size: 12px; color: var(--texto-suave); }
+.kq b { display: block; font-size: 28px; font-variant-numeric: tabular-nums; margin-top: 2px; } .kq .s { font-size: 12px; color: var(--texto-suave); }
+.kq.sel { background: color-mix(in srgb, var(--c) 9%, var(--painel)); }
+.kq.sel .l { color: var(--c); }
+.pq-rup { color: #f87171; font-weight: 800; } html.tema-claro .pq-rup { color: #b91c1c; }
+.pq-txt { color: var(--texto-suave); font-size: 12.5px; }
+@media (max-width: 1100px) { .kl { grid-template-columns: repeat(3, 1fr); } .kl .esp { display: none; } }
 .kq.alerta b { color: var(--c); }
 .kq.piscando { animation: pisca 1.8s infinite; }
 .km { cursor: pointer; border: 0; font: inherit; color: inherit; }
@@ -129,7 +135,6 @@ td.op-n { font-weight: 800; white-space: nowrap; }
 .lista-tab .li:first-child { border-top: 0; }
 .lista-tab .li small { display: block; color: var(--texto-suave); font-size: 11.5px; margin-top: 2px; }
 @media (max-width: 760px) {
-  .bx-cab .dir #fOrd { display: none; }
   .bx-cab .s { display: none; }
   #bx-tab { margin-bottom: 12px; }
 }
@@ -159,7 +164,7 @@ td.op-n { font-weight: 800; white-space: nowrap; }
      mudar, pisca de novo. Entrada e inventário ficam no Insumos. -->
 <main class="conteudo">
   <div class="tit-pagina">
-    <div><h1>Compras</h1><p>O que precisa comprar · por insumo ou por OP · de OP e sem OP</p></div>
+    <div><h1>Compras</h1><p>O que precisa comprar e para quê</p></div>
     <div class="acoes-pagina so-desk">
       <button class="btn2" data-imprimir-compras title="Imprimir a lista do que está na tela"><svg class="i"><use href="#i-imp"/></svg>Imprimir</button>
       <button class="btn2" data-excel-compras title="Baixar a lista em Excel (.xlsx)"><svg class="i"><use href="#i-xls"/></svg>Excel</button>
@@ -171,14 +176,7 @@ td.op-n { font-weight: 800; white-space: nowrap; }
   <div class="cp">
     <div class="kpi-mini so-mob" id="cards-mob"></div>
     <section class="bx" id="bx-tab">
-      <div class="bx-cab"><h3>O que comprar</h3>
-        <div class="seg" role="tablist"><button type="button" data-visao="INS" class="on">Por insumo</button><button type="button" data-visao="OP">Por OP</button></div>
-        <button type="button" class="tg-falta on" id="bSoFalta" title="Mostrar só o que falta / mostrar tudo">Só o que falta</button>
-        <span class="filtro-on" id="filtro-ins"></span>
-        <div class="dir">
-          <select id="fCat" title="De OP = luva e filtro (consumo das OPs) · Sem OP = outros (manutenção, retirada sem OP)"><option value="TODAS">Todos</option><option value="OP">De OP (luva e filtro)</option><option value="SEM">Sem OP (outros)</option></select>
-          <select id="fOrd" title="Ordem"><option value="urg">Precisa comprar primeiro</option><option value="cod">Código</option></select>
-        </div></div>
+      <div class="bx-cab"><h3 id="tit-tab">Necessidade total</h3><span class="s" id="sub-tab"></span></div>
       <div class="tab-wrap so-desk">
         <table class="tab"><thead id="cab"></thead>
           <tbody id="linhas"><tr><td colspan="8"><div class="carregando">Carregando…</div></td></tr></tbody></table>
@@ -206,12 +204,22 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
   const e = Ui.esc;
 
   let painel = { indicadores: {}, insumos: [], solicitacoes: [] };
-  let modo = '';              // filtro dos cards: RUPTURA | ABAIXO | SEM_CIENTE | SEMANA
-  const CATS_FILTRO = { TODAS: 'TODAS', OP: ['LUVA', 'FILTRO'], SEM: ['OUTROS'] };
-  const NOME_CAT = { TODAS: 'Todos', OP: 'De OP (luva e filtro)', SEM: 'Sem OP (outros)' };
-  let visao = 'INS';          // tabela: INS (por insumo) | OP (por OP)
-  let soFalta = true;         // mostra só o que falta
-  const aberto = { INS: {}, OP: {} };   // linhas abertas (detalhe embaixo da linha)
+  // Card escolhido (é o filtro da lista)
+  //   TOTAL   = Necessidade total: tudo que tem quantidade para comprar
+  //   OP      = Demanda de OP: precisa comprar E alguma OP vai usar
+  //   REPOR   = Reposição de estoque: precisa comprar E nenhuma OP usa (só o mínimo)
+  //   RUPTURA = Ruptura prevista: o saldo fica negativo com as OPs (vai faltar)
+  // Demanda de OP + Reposição = Necessidade total.
+  let modo = 'TOTAL';
+  const aberto = {};          // insumos com as OPs abertas embaixo da linha
+  const CARDS = [
+    { m: 'TOTAL', t: 'Necessidade total', c: '#3b82f6' },
+    { m: 'OP', t: 'Demanda de OP', c: '#f07a1f' },
+    { m: 'REPOR', t: 'Reposição de estoque', c: '#eab308' },
+    { m: 'RUPTURA', t: '⚠ Ruptura prevista', c: '#dc2626' }
+  ];
+  const NOME_MODO = {};
+  CARDS.forEach(function (k) { NOME_MODO[k.m] = k.t.replace('⚠ ', ''); });
 
   carregar();
   // Recalcula a cada 60 s (não atrapalha quem está digitando ou com janela aberta)
@@ -223,7 +231,7 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
 
   async function carregar(silencioso) {
     try {
-      painel = await Api.chamar('painelCompras', { categorias: CATS_FILTRO[$('#fCat').value] }, { rapido: function () {
+      painel = await Api.chamar('painelCompras', { categorias: 'TODAS' }, { rapido: function () {
         const f = document.activeElement;
         if (!document.querySelector('.modal-fundo')) carregar(true);
       } });
@@ -240,7 +248,6 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
   function hojeMais(dias) { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + dias); return d; }
 
   // ---------- Regras dos filtros (mesmas contas do servidor) ----------
-  const abaixo = function (i) { return i.projetado < i.minimo || i.situacao === 'RUPTURA'; };
   // Caixas: "vai usar em" = início da INSPEÇÃO FINAL no cronograma da OP
   // (prazo + liga); sem prazo, usa a data de necessidade gravada.
   // "Comprar até" = vai usar em − lead time do insumo (dias corridos).
@@ -266,16 +273,29 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
   const dataMudou = function (s) { return s.status === 'COMPRADO' && semCiente(s); };
   const nestaSemana = function (s) { const d = comprarAteDe(s); return aberta(s) && d && d <= hojeMais(7); };
   const urgente = function (s) { const d = comprarAteDe(s); return aberta(s) && (s.processo === 'INSPEÇÃO FINAL' || (d && d <= hojeMais(0))); };
-  const MODOS_INS = { RUPTURA: 1, ABAIXO: 1 }, MODOS_SC = { SEM_CIENTE: 1, SEMANA: 1 };
-  const ROTULO = { RUPTURA: 'Ruptura prevista', ABAIXO: 'Abaixo do mínimo', SEM_CIENTE: 'Caixas sem ciente', SEMANA: 'Comprar esta semana' };
-
+  // ---------- Regras dos cards ----------
+  const precisa = function (i) { return i.sugerido > 0; };
+  const temOP = function (i) { return i.vai_sair > 0; };
+  const ruptura = function (i) { return i.projetado < 0; };
+  const REGRA = {
+    TOTAL: precisa,
+    OP: function (i) { return precisa(i) && temOP(i); },
+    REPOR: function (i) { return precisa(i) && !temOP(i); },
+    RUPTURA: ruptura
+  };
+  // grau: 0 ruptura · 1 demanda de OP · 2 reposição (mais grave primeiro)
+  const grau = function (i) { return ruptura(i) ? 0 : temOP(i) ? 1 : 2; };
   function insumosFiltrados() {
-    let l = painel.insumos.slice();
-    if (modo === 'RUPTURA') l = l.filter(function (i) { return i.situacao === 'RUPTURA'; });
-    if (modo === 'ABAIXO') l = l.filter(abaixo);
-    if ($('#fOrd').value === 'cod') l.sort(function (a, b) { return a.cod_insumo.localeCompare(b.cod_insumo); });
-    return l;
+    return painel.insumos.filter(REGRA[modo]).slice().sort(function (a, b) {
+      return grau(a) - grau(b) || String(a.descricao).localeCompare(String(b.descricao));
+    });
   }
+  function paraQue(i) {
+    if (ruptura(i)) return '<span class="pq-rup">⚠ Ruptura</span>';
+    return '<span class="pq-txt">' + (temOP(i) ? 'Demanda OP' : 'Reposição') + '</span>';
+  }
+  const paraQueTxt = function (i) { return ruptura(i) ? 'Ruptura' : temOP(i) ? 'Demanda OP' : 'Reposição'; };
+
   function solicitacoesFiltradas(f) {
     let l = painel.solicitacoes;
     if (f === 'SEM_CIENTE') l = l.filter(semCiente);
@@ -288,23 +308,17 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
 
   // ---------- Desenho ----------
   function desenhar() {
-    const ind = painel.indicadores;
-    const nSem = painel.solicitacoes.filter(semCiente).length;
-    const nMud = painel.solicitacoes.filter(dataMudou).length;
-    const nSemana = painel.solicitacoes.filter(nestaSemana).length;
-    const k = [
-      { m: 'RUPTURA', c: '#dc2626', n: ind.ruptura, s: 'o projetado fica negativo', mob: 'Ruptura', pisca: ind.ruptura > 0 },
-      { m: 'ABAIXO', c: '#eab308', n: ind.abaixoMinimo, s: 'sugerido comprar', mob: 'Abaixo mín.' },
-      { m: 'SEM_CIENTE', c: '#f07a1f', n: nSem, s: nMud ? nMud + ' com data de uso alterada' : 'novas · dê ✔ Ciente', mob: 'Sem ciente', pisca: nSem > 0 },
-      { m: 'SEMANA', c: '#3b82f6', n: nSemana, s: '"comprar até" nos próximos 7 dias', mob: 'Esta semana', neutro: true }
-    ];
-    $('#cards').innerHTML = k.map(function (x) {
-      return '<button class="kq' + (x.n > 0 && !x.neutro ? ' alerta' : '') + (x.pisca ? ' piscando' : '') + (modo === x.m ? ' sel' : '') + '" ' + (MODOS_SC[x.m] ? 'data-caixas' : 'data-modo') + '="' + x.m + '" style="--c:' + x.c + '"' + (MODOS_SC[x.m] ? ' title="Abrir a lista de caixas"' : '') + '>' +
-        '<span class="l">' + ROTULO[x.m] + '</span><b>' + e(x.n || 0) + '</b><span class="s">' + e(x.s) + '</span></button>';
-    }).join('');
-    $('#cards-mob').innerHTML = k.map(function (x) {
-      return '<button class="km' + (x.pisca ? ' piscando' : '') + (modo === x.m ? ' sel' : '') + '" ' + (MODOS_SC[x.m] ? 'data-caixas' : 'data-modo') + '="' + x.m + '" style="--c:' + x.c + '"><b>' + e(x.n || 0) + '</b> ' + x.mob + '</button>';
-    }).join('');
+    const nEmb = painel.solicitacoes.filter(semCiente).length;
+    const cont = function (m) { return painel.insumos.filter(REGRA[m]).length; };
+    $('#cards').innerHTML = CARDS.map(function (k) {
+      const nn = cont(k.m);
+      return '<button class="kq' + (modo === k.m ? ' sel' : '') + (k.m === 'RUPTURA' && nn > 0 ? ' piscando alerta' : '') + '" data-modo="' + k.m + '" style="--c:' + k.c + '">' +
+        '<span class="l">' + k.t + '</span><b>' + nn + '</b></button>';
+    }).join('') + '<span class="esp"></span>' +
+      '<button class="kq' + (nEmb ? ' piscando alerta' : '') + '" data-caixas="SEM_CIENTE" style="--c:#8b5cf6" title="Abrir as caixas para dar ✔ Ciente"><span class="l">📦 Embalagens pendentes</span><b>' + nEmb + '</b></button>';
+    $('#cards-mob').innerHTML = CARDS.map(function (k) {
+      return '<button class="km' + (modo === k.m ? ' sel' : '') + (k.m === 'RUPTURA' && cont(k.m) ? ' piscando' : '') + '" data-modo="' + k.m + '" style="--c:' + k.c + '"><b>' + cont(k.m) + '</b> ' + k.t.replace('⚠ ', '') + '</button>';
+    }).join('') + '<button class="km' + (nEmb ? ' piscando' : '') + '" data-caixas="SEM_CIENTE" style="--c:#8b5cf6"><b>' + nEmb + '</b> Embalagens</button>';
     desenharTabela();
     redesenharCaixas();
   }
@@ -346,52 +360,17 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
   }
 
   const n = function (v) { return e(Fmt.num(v)); };
-  function catClasseLinha(i) { return i.situacao === 'RUPTURA' ? 'rup' : (i.situacao === 'COMPRAR' || i.situacao === 'ATENCAO') ? 'comprar' : ''; }
-  // Por que comprar: OP (as OPs vão usar mais do que tem), Estoque mínimo
-  // (nenhuma OP falta, mas o saldo fica abaixo do mínimo) ou os dois.
-  function porQue(i) {
-    if (i.politica === 'SOB_DEMANDA') return { cls: 'cx', txt: 'Caixa · ver ao lado' };
-    if (i.projetado < 0 && i.minimo > 0) return { cls: 'op', txt: 'OP + mínimo' };
-    if (i.projetado < 0) return { cls: 'op', txt: 'OP' };
-    if (i.projetado < i.minimo) return { cls: 'min', txt: 'Estoque mínimo' };
-    return null;
-  }
-  const falta = function (i) { return i.sugerido > 0 || i.projetado < 0; };
 
-  function insumosFiltrados() {
-    let l = painel.insumos.slice();
-    if (modo === 'RUPTURA') l = l.filter(function (i) { return i.situacao === 'RUPTURA'; });
-    if (modo === 'ABAIXO') l = l.filter(abaixo);
-    if (soFalta && !MODOS_INS[modo]) l = l.filter(falta);
-    if ($('#fOrd').value === 'cod') l.sort(function (a, b) { return a.cod_insumo.localeCompare(b.cod_insumo); });
-    return l;
-  }
-  // Por OP: uma linha por OP + insumo
-  function linhasPorOP() {
-    const l = [];
-    avisosPorOP().forEach(function (a) {
-      const itens = soFalta ? a.itens.filter(function (it) { return it.faltam > 0; }) : a.itens;
-      itens.forEach(function (it, k) { l.push({ a: a, it: it, ini: k === 0 }); });
-    });
-    return l;
-  }
-
+  // ============================================================
+  // LISTA: Insumo · Tem · Comprar · Para quê. Clicou, abre embaixo
+  // as OPs que vão consumir aquele insumo.
+  // ============================================================
   function desenharTabela() {
-    document.querySelectorAll('[data-visao]').forEach(function (b) { b.classList.toggle('on', b.dataset.visao === visao); });
-    $('#bSoFalta').classList.toggle('on', soFalta);
-    $('#fOrd').hidden = visao !== 'INS';
-    $('#filtro-ins').innerHTML = MODOS_INS[modo] ? 'Filtro: ' + ROTULO[modo] + '<button type="button" data-modo="' + modo + '">limpar</button>' : '';
-    if (visao === 'OP') desenharPorOP(); else desenharPorInsumo();
-  }
-
-  // ============================================================
-  // POR INSUMO: lista simples (insumo · tem · comprar). Clicou, abre
-  // embaixo as OPs que vão consumir aquele insumo.
-  // ============================================================
-  function desenharPorInsumo() {
     const l = insumosFiltrados();
     const ops = opsPorInsumo(avisosPorOP());
     const unid = function (i) { return String(i.unidade || '').toLowerCase(); };
+    $('#tit-tab').textContent = NOME_MODO[modo];
+    $('#sub-tab').textContent = l.length + ' insumo' + (l.length === 1 ? '' : 's') + ' · clique para ver as OPs';
     const detalhe = function (i) {
       const lista = ops[i.cod_insumo] || [];
       const conta = 'Tem ' + Fmt.num(i.saldo) + ' · OPs vão usar ' + Fmt.num(i.vai_sair) + ' · mínimo ' + Fmt.num(i.minimo) + ' · lead time ' + Fmt.num(i.lead_time) + ' dias' +
@@ -399,60 +378,27 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
       return '<div class="dt-box">' + (lista.length
         ? '<table><thead><tr><th>OP</th><th>Cliente</th><th>Processo</th><th class="num">Precisa</th></tr></thead><tbody>' +
           lista.map(function (o) { return '<tr><td><b>' + e(o.op) + '</b></td><td>' + e(titulo(o.cliente)) + '</td><td class="res">' + e(titulo(o.processo)) + '</td><td class="num">' + n(o.precisa) + '</td></tr>'; }).join('') + '</tbody></table>'
-        : '<div class="dt-inf" style="border-top:0">Nenhuma OP vai usar este insumo agora' + (i.minimo > 0 ? ' · a compra é pelo estoque mínimo.' : '.') + '</div>') +
+        : '<div class="dt-inf" style="border-top:0">Nenhuma OP vai usar este insumo agora · a compra é para repor o estoque mínimo.</div>') +
         '<div class="dt-inf">' + e(conta) + '</div></div>';
     };
-    $('#cab').innerHTML = '<tr><th>Insumo</th><th class="num">Tem</th><th class="num">Comprar</th><th></th></tr>';
+    const vazio = modo === 'RUPTURA' ? '✅ Nada vai faltar para as OPs.' : '✅ Nada para comprar aqui.';
+    $('#cab').innerHTML = '<tr><th>Insumo</th><th class="num">Tem</th><th class="num">Comprar</th><th>Para quê</th><th></th></tr>';
     $('#linhas').innerHTML = l.map(function (i) {
-      const ab = !!aberto.INS[i.cod_insumo];
-      return '<tr class="lin' + (ab ? ' ab' : '') + '" data-abre="INS" data-k="' + e(i.cod_insumo) + '">' +
+      const ab = !!aberto[i.cod_insumo];
+      return '<tr class="lin' + (ab ? ' ab' : '') + '" data-abre="' + e(i.cod_insumo) + '">' +
         '<td class="ins">' + e(i.descricao) + '<span class="cod">' + e(i.cod_insumo) + '</span></td>' +
         '<td class="num res">' + n(i.saldo) + '</td>' +
-        '<td class="num qc">' + (i.sugerido > 0 ? n(i.sugerido) : '<span class="res" style="font-weight:400">—</span>') + '</td>' +
-        '<td class="sv">' + (ab ? '▾' : '▸') + '</td></tr>' +
-        (ab ? '<tr class="dt"><td colspan="4">' + detalhe(i) + '</td></tr>' : '');
-    }).join('') || '<tr><td colspan="4"><div class="vazio">' + (soFalta && !modo ? '✅ Nada para comprar.' : 'Nenhum insumo neste filtro.') + '</div></td></tr>';
+        '<td class="num qc">' + n(i.sugerido) + ' <span class="res" style="font-weight:400;font-size:11.5px">' + e(unid(i)) + '</span></td>' +
+        '<td>' + paraQue(i) + '</td><td class="sv">' + (ab ? '▾' : '▸') + '</td></tr>' +
+        (ab ? '<tr class="dt"><td colspan="5">' + detalhe(i) + '</td></tr>' : '');
+    }).join('') || '<tr><td colspan="5"><div class="vazio">' + vazio + '</div></td></tr>';
     $('#lista-tab').innerHTML = l.map(function (i) {
-      const ab = !!aberto.INS[i.cod_insumo];
-      return '<div class="li" data-abre="INS" data-k="' + e(i.cod_insumo) + '">' + e(i.descricao) + '<span class="cod">' + e(i.cod_insumo) + '</span>' +
-        '<small>tem ' + n(i.saldo) + (i.sugerido > 0 ? ' · <b style="color:var(--texto)">comprar ' + n(i.sugerido) + '</b>' : '') + '</small></div>' +
+      const ab = !!aberto[i.cod_insumo];
+      return '<div class="li" data-abre="' + e(i.cod_insumo) + '">' + e(i.descricao) + '<span class="cod">' + e(i.cod_insumo) + '</span>' +
+        '<small><b style="color:var(--texto)">comprar ' + n(i.sugerido) + ' ' + e(unid(i)) + '</b> · ' + paraQue(i) + ' · tem ' + n(i.saldo) + '</small></div>' +
         (ab ? detalhe(i) : '');
-    }).join('') || '<div class="vazio">' + (soFalta && !modo ? '✅ Nada para comprar.' : 'Nenhum insumo neste filtro.') + '</div>';
-    const nComprar = painel.insumos.filter(function (i) { return i.sugerido > 0; }).length;
-    $('#rod-tab').textContent = nComprar + ' insumo' + (nComprar === 1 ? '' : 's') + ' para comprar' + (soFalta && !modo ? '' : ' · ' + l.length + ' na lista') + ' · clique no insumo para ver as OPs';
-  }
-
-  // ============================================================
-  // POR OP: uma linha por OP (resumo dos insumos). Clicou, abre embaixo
-  // os insumos daquela OP (precisa · tem · falta).
-  // ============================================================
-  function desenharPorOP() {
-    const todos = avisosPorOP();
-    const l = soFalta ? todos.filter(function (a) { return a.falta; }) : todos;
-    const resumo = function (a) {
-      const f = a.itens.filter(function (it) { return it.faltam > 0; }).length;
-      return a.itens.length + ' insumo' + (a.itens.length === 1 ? '' : 's') + ' · ' + (f ? '<span class="f">' + f + ' faltando</span>' : '<span class="okc">ok</span>');
-    };
-    const detalhe = function (a) {
-      return '<div class="dt-box"><table><thead><tr><th>Insumo</th><th class="num">Precisa</th><th class="num">Tem</th><th class="num">Falta</th></tr></thead><tbody>' +
-        a.itens.map(function (it) {
-          return '<tr><td>' + e(it.desc) + '<span class="cod">' + e(it.cod) + '</span></td><td class="num">' + n(it.precisa) + '</td><td class="num">' + n(it.tem) + '</td>' +
-            '<td class="num">' + (it.faltam > 0 ? '<span class="f">' + n(it.faltam) + (it.un ? ' ' + e(it.un) : '') + '</span>' : '<span class="okc">ok</span>') + '</td></tr>';
-        }).join('') + '</tbody></table></div>';
-    };
-    $('#cab').innerHTML = '<tr><th>OP</th><th>Cliente</th><th>Processo</th><th>Insumos</th><th></th></tr>';
-    $('#linhas').innerHTML = l.map(function (a) {
-      const ab = !!aberto.OP[a.id];
-      return '<tr class="lin' + (ab ? ' ab' : '') + '" data-abre="OP" data-k="' + e(a.id) + '"><td class="op-n">' + e(a.op) + '</td><td>' + e(titulo(a.cliente)) + '</td>' +
-        '<td class="res">' + e(titulo(a.processo)) + '</td><td>' + resumo(a) + '</td><td class="sv">' + (ab ? '▾' : '▸') + '</td></tr>' +
-        (ab ? '<tr class="dt"><td colspan="5">' + detalhe(a) + '</td></tr>' : '');
-    }).join('') || '<tr><td colspan="5"><div class="vazio">' + (todos.length ? '✅ As ' + todos.length + ' OPs têm material no estoque.' : 'Nenhuma OP em Planejamento, Modelação ou Moldagem vai consumir agora.') + '</div></td></tr>';
-    $('#lista-tab').innerHTML = l.map(function (a) {
-      const ab = !!aberto.OP[a.id];
-      return '<div class="li" data-abre="OP" data-k="' + e(a.id) + '"><b>OP ' + e(a.op) + '</b> · ' + e(titulo(a.cliente)) + '<small>' + e(titulo(a.processo)) + ' · ' + resumo(a) + '</small></div>' + (ab ? detalhe(a) : '');
-    }).join('') || '<div class="vazio">' + (todos.length ? '✅ Todas as OPs têm material.' : 'Nenhuma OP vai consumir agora.') + '</div>';
-    const opsFalta = todos.filter(function (a) { return a.falta; }).length;
-    $('#rod-tab').textContent = opsFalta + ' de ' + todos.length + ' OP' + (todos.length === 1 ? '' : 's') + ' com falta de material · clique na OP para ver os insumos';
+    }).join('') || '<div class="vazio">' + vazio + '</div>';
+    $('#rod-tab').textContent = 'Demanda de OP + Reposição de estoque = Necessidade total · ⚠ Ruptura = vai faltar material para as OPs';
   }
 
   function tagSolic(s) {
@@ -520,22 +466,12 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
   document.addEventListener('click', function (ev) {
     if (ev.target.closest('.modal-fundo')) return;
     const m = ev.target.closest('[data-modo]');
-    if (m) { modo = m.dataset.modo === modo ? '' : m.dataset.modo; if (MODOS_INS[modo]) visao = 'INS'; desenhar(); return; }
-    const vs = ev.target.closest('[data-visao]');
-    if (vs) { visao = vs.dataset.visao; desenharTabela(); return; }
-    if (ev.target.closest('#bSoFalta')) { soFalta = !soFalta; desenharTabela(); return; }
+    if (m) { modo = m.dataset.modo; desenhar(); return; }
     const ab = ev.target.closest('[data-abre]');
-    if (ab) {
-      const g = aberto[ab.dataset.abre], k = ab.dataset.k;
-      g[k] = !g[k];
-      desenharTabela();
-      return;
-    }
+    if (ab) { aberto[ab.dataset.abre] = !aberto[ab.dataset.abre]; desenharTabela(); return; }
     const cx = ev.target.closest('[data-caixas]');
     if (cx) abrirCaixas(cx.dataset.caixas);
   });
-  $('#fCat').addEventListener('change', function () { carregar(); });
-  $('#fOrd').addEventListener('change', function () { desenharTabela(); });
 
   // ✔ Ciente: grava a data de uso que a pessoa está vendo agora.
   // Se o PCP mudar o prazo depois, a data muda e a caixa volta a piscar.
@@ -557,60 +493,42 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
   }
 
   // ---------- Relatório de compras: imprimir e Excel ----------
-  // Sai o que está na tela: o filtro do card (Ruptura / Abaixo do mínimo),
-  // a categoria e a ordem escolhidas. Sem filtro, sai a categoria inteira.
+  // Sai exatamente a lista da tela (o card escolhido), na mesma ordem.
   function linhasRelatorio() {
     return insumosFiltrados().map(function (i) {
-      return { cod: i.cod_insumo, desc: i.descricao, cat: i.categoria, un: String(i.unidade || ''), saldo: i.saldo, sair: i.vai_sair,
-        proj: i.projetado, min: i.minimo, lead: i.lead_time, sit: i.situacao || '', comprar: i.sugerido > 0 ? i.sugerido : 0,
-        pq: (porQue(i) || { txt: '' }).txt };
+      return { cod: i.cod_insumo, desc: i.descricao, un: String(i.unidade || ''), saldo: i.saldo, sair: i.vai_sair,
+        min: i.minimo, lead: i.lead_time, comprar: i.sugerido > 0 ? i.sugerido : 0, pq: paraQueTxt(i), rup: ruptura(i),
+        ops: ((opsPorInsumo(avisosPorOP())[i.cod_insumo]) || []).map(function (o) { return o.op; }).join(', ') };
     });
   }
-  function tituloRelatorio() {
-    return visao === 'OP' ? 'O QUE COMPRAR — POR OP' : 'O QUE COMPRAR — POR INSUMO';
-  }
-  // Linha com os filtros usados (vai no topo da impressão)
-  function filtrosTexto() {
-    const f = ['Visão: ' + (visao === 'OP' ? 'Por OP' : 'Por insumo'), 'Categoria: ' + NOME_CAT[$('#fCat').value],
-      'Só o que falta: ' + (soFalta && !MODOS_INS[modo] ? 'sim' : 'não')];
-    if (MODOS_INS[modo]) f.push('Filtro do card: ' + ROTULO[modo]);
-    if (visao === 'INS') f.push('Ordem: ' + ($('#fOrd').value === 'cod' ? 'código' : 'precisa comprar primeiro'));
-    return f.join(' · ');
-  }
+  function tituloRelatorio() { return 'NECESSIDADE DE COMPRA — ' + NOME_MODO[modo].toUpperCase(); }
   document.addEventListener('click', function (ev) {
     if (ev.target.closest('[data-imprimir-compras]')) imprimirCompras();
     if (ev.target.closest('[data-excel-compras]')) baixarExcel();
   });
 
   function imprimirCompras() {
-    const l = visao === 'OP' ? [] : linhasRelatorio();
-    const lop = visao === 'OP' ? linhasPorOP() : [];
-    if (!l.length && !lop.length) { Ui.toast('Nada neste filtro para imprimir.', 'aviso'); return; }
-    const aComprar = l.filter(function (r) { return r.comprar > 0; }).length;
+    const l = linhasRelatorio();
+    if (!l.length) { Ui.toast('Nada para imprimir neste card.', 'aviso'); return; }
     const w = window.open('');
     if (!w) { Ui.toast('O navegador bloqueou a janela de impressão. Libere pop-ups para este site.', 'erro'); return; }
-    const corLinha = function (r) { return r.sit === 'RUPTURA' ? ' style="background:#fde2e2"' : r.comprar > 0 ? ' style="background:#fff4d6"' : ''; };
     w.document.write(`<html><head><title>${e(tituloRelatorio())}</title>
 <style>
   body{font-family:Arial;padding:20px;color:#111}
-  h2{font-size:16px;margin-bottom:2px}
-  .sub{font-size:10px;color:#555;margin-bottom:4px}
-  .flt{font-size:10.5px;margin-bottom:14px;padding:5px 8px;background:#f3f4f6;border:1px solid #ddd;border-radius:4px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  h2{font-size:16px;margin:0 0 4px}
+  .sub{font-size:10px;color:#555;margin-bottom:14px}
   table{width:100%;border-collapse:collapse}
-  th,td{border:1px solid #ccc;padding:4px 6px;font-size:10px;text-align:left}
-  th{background:#efefef} td.n{text-align:right} td.c{text-align:right;font-weight:bold}
-  tr{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  th,td{border:1px solid #ccc;padding:5px 6px;font-size:10.5px;text-align:left}
+  th{background:#efefef} td.n{text-align:right} td.c{text-align:right;font-weight:bold;font-size:11.5px}
+  tr,th{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 </style></head><body>
   <h2>${e(tituloRelatorio())}</h2>
-  <div class="flt"><b>Filtros:</b> ${e(filtrosTexto())}</div>
-  <div class="sub">Emitido em: ${new Date().toLocaleString('pt-BR')} &nbsp;|&nbsp; ${visao === 'OP' ? lop.length + ' linhas (OP + insumo)' : l.length + ' insumos &nbsp;|&nbsp; ' + aComprar + ' para comprar'} &nbsp;|&nbsp; sobra/falta = saldo − o que as OPs abertas vão consumir</div>
-  ${visao === 'OP' ? porOPHtml(lop) : `<table><thead><tr><th>CÓDIGO</th><th>DESCRIÇÃO</th><th>CATEGORIA</th><th>UN.</th><th>TEM</th><th>VAI USAR</th><th>SOBRA/FALTA</th><th>MÍNIMO</th><th>LEAD (DIAS)</th><th>COMPRAR</th><th>POR QUÊ</th></tr></thead>
+  <div class="sub">Emitido em ${new Date().toLocaleString('pt-BR')} &nbsp;·&nbsp; ${l.length} insumo${l.length === 1 ? '' : 's'}</div>
+  <table><thead><tr><th>INSUMO</th><th>CÓDIGO</th><th>TEM</th><th>COMPRAR</th><th>UN.</th><th>PARA QUÊ</th><th>OPs</th></tr></thead>
   <tbody>${l.map(function (r) {
-    return '<tr' + corLinha(r) + '><td><b>' + e(r.cod) + '</b></td><td>' + e(r.desc) + '</td><td>' + e(r.cat) + '</td><td>' + e(r.un) + '</td>' +
-      '<td class="n">' + Fmt.num(r.saldo) + '</td><td class="n">' + Fmt.num(r.sair) + '</td><td class="n">' + Fmt.num(r.proj) + '</td>' +
-      '<td class="n">' + Fmt.num(r.min) + '</td><td class="n">' + Fmt.num(r.lead) + '</td>' +
-      '<td class="c">' + (r.comprar > 0 ? Fmt.num(r.comprar) : '—') + '</td><td>' + e(r.pq) + '</td></tr>';
-  }).join('')}</tbody></table>`}
+    return '<tr' + (r.rup ? ' style="background:#fde2e2"' : '') + '><td>' + e(r.desc) + '</td><td>' + e(r.cod) + '</td><td class="n">' + Fmt.num(r.saldo) + '</td>' +
+      '<td class="c">' + Fmt.num(r.comprar) + '</td><td>' + e(r.un) + '</td><td>' + e(r.pq) + '</td><td>' + e(r.ops || '—') + '</td></tr>';
+  }).join('')}</tbody></table>
   <script>window.onload=()=>window.print();<\/script></body></html>`);
     w.document.close();
   }
@@ -647,16 +565,6 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
       }).join('') + '</tbody></table>';
   }
 
-  // Por OP no relatório impresso
-  function porOPHtml(l) {
-    return '<table><thead><tr><th>OP</th><th>CLIENTE</th><th>PROCESSO</th><th>INSUMO</th><th>DESCRIÇÃO</th><th>PRECISA</th><th>TEM</th><th>FALTA</th></tr></thead><tbody>' +
-      l.map(function (x) {
-        const a = x.a, it = x.it;
-        return '<tr' + (it.faltam > 0 ? ' style="background:#fde2e2"' : '') + '><td><b>' + (x.ini ? e(a.op) : '') + '</b></td><td>' + (x.ini ? e(a.cliente) : '') + '</td><td>' + (x.ini ? e(a.processo) : '') + '</td><td>' + e(it.cod) + '</td><td>' + e(it.desc) + '</td>' +
-          '<td class="n">' + Fmt.num(it.precisa) + '</td><td class="n">' + Fmt.num(it.tem) + '</td><td class="c">' + (it.faltam > 0 ? Fmt.num(it.faltam) : 'ok') + '</td></tr>';
-      }).join('') + '</tbody></table>';
-  }
-
   // Excel: biblioteca SheetJS, carregada só quando o botão é usado.
   function carregarSheetJS() {
     if (window.XLSX) return Promise.resolve();
@@ -668,65 +576,23 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
     });
   }
   async function baixarExcel() {
-    // Duas abas (Por insumo e Por OP) com o filtro "só o que falta" da tela;
-    // a aba da visão aberta vem primeiro. Mais a aba das caixas.
     const l = linhasRelatorio();
-    const av = [];
-    linhasPorOP().forEach(function (x) {
-      av.push({ 'OP': x.a.op, 'Cliente': x.a.cliente, 'Processo': x.a.processo, 'Insumo': x.it.cod, 'Descrição': x.it.desc, 'Precisa': x.it.precisa, 'Tem': x.it.tem, 'Falta': x.it.faltam });
-    });
-    if (!l.length && !av.length && !linhasCaixas().length) { Ui.toast('Nada neste filtro para exportar.', 'aviso'); return; }
+    if (!l.length) { Ui.toast('Nada para exportar neste card.', 'aviso'); return; }
     try {
       await carregarSheetJS();
       const wb = XLSX.utils.book_new();
-      const abaInsumo = function () {
-        const ws = XLSX.utils.json_to_sheet(l.map(function (r) {
-          return { 'Código': r.cod, 'Descrição': r.desc, 'Categoria': r.cat, 'Unidade': r.un, 'Tem': r.saldo, 'Vai usar (OPs)': r.sair,
-            'Sobra/falta': r.proj, 'Mínimo': r.min, 'Lead (dias)': r.lead, 'Comprar': r.comprar, 'Por quê': r.pq };
-        }));
-        ws['!cols'] = [12, 42, 12, 8, 10, 12, 11, 10, 11, 10, 16].map(function (c) { return { wch: c }; });
-        XLSX.utils.book_append_sheet(wb, ws, 'Por insumo');
-      };
-      const abaOP = function () {
-        if (!av.length) return;
-        const ws2 = XLSX.utils.json_to_sheet(av);
-        ws2['!cols'] = [8, 30, 16, 12, 40, 10, 10, 10].map(function (c) { return { wch: c }; });
-        XLSX.utils.book_append_sheet(wb, ws2, 'Por OP');
-      };
-      if (visao === 'OP') { abaOP(); abaInsumo(); } else { abaInsumo(); abaOP(); }
-      const cx = linhasCaixas().map(function (r) {
-        return { 'Comprar até': r.ate, 'Vai usar em': r.uso, 'OP': r.op, 'Cliente': r.cliente, 'Insumo': r.cod, 'Descrição': r.desc, 'Qtd': r.qtd, 'Unidade': r.un, 'Ciente': r.ciente };
-      });
-      if (cx.length) {
-        const ws3 = XLSX.utils.json_to_sheet(cx);
-        ws3['!cols'] = [12, 12, 8, 28, 12, 40, 8, 8, 24].map(function (c) { return { wch: c }; });
-        XLSX.utils.book_append_sheet(wb, ws3, 'Caixas');
-      }
+      const ws = XLSX.utils.json_to_sheet(l.map(function (r) {
+        return { 'Insumo': r.desc, 'Código': r.cod, 'Tem': r.saldo, 'Comprar': r.comprar, 'Unidade': r.un, 'Para quê': r.pq, 'OPs': r.ops,
+          'OPs vão usar': r.sair, 'Mínimo': r.min, 'Lead time (dias)': r.lead };
+      }));
+      ws['!cols'] = [42, 12, 10, 10, 8, 14, 30, 12, 10, 14].map(function (c) { return { wch: c }; });
+      XLSX.utils.book_append_sheet(wb, ws, NOME_MODO[modo].slice(0, 31));
       const hoje = new Date();
-      const nome = 'compras_' + hoje.getFullYear() + String(hoje.getMonth() + 1).padStart(2, '0') + String(hoje.getDate()).padStart(2, '0') + '.xlsx';
+      const nome = 'compras_' + modo.toLowerCase() + '_' + hoje.getFullYear() + String(hoje.getMonth() + 1).padStart(2, '0') + String(hoje.getDate()).padStart(2, '0') + '.xlsx';
       XLSX.writeFile(wb, nome);
-      Ui.toast('Planilha gerada · ' + nome, 'ok', 'Excel');
+      Ui.toast(l.length + ' insumos · ' + nome, 'ok', 'Excel');
     } catch (err) { Ui.erro(err); }
   }
-
-  // ---------- OPs que vão consumir o insumo ----------
-  function verOPs(cod) {
-    const i = painel.insumos.find(function (x) { return x.cod_insumo === cod; });
-    if (!i) return;
-    const lista = opsPorInsumo(avisosPorOP())[cod] || [];
-    const un = String(i.unidade || '').toLowerCase();
-    const corpo = (lista.length ? '<div class="ops-lista"><table class="tab"><thead><tr><th>OP</th><th>Cliente</th><th>Processo</th><th class="num">Precisa</th><th class="num">Tem</th><th class="num">Falta</th></tr></thead><tbody>' +
-      lista.map(function (o) {
-        return '<tr><td><b>' + e(o.op) + '</b></td><td>' + e(titulo(o.cliente)) + '</td><td>' + e(titulo(o.processo)) + '</td><td class="num">' + n(o.precisa) + '</td><td class="num">' + n(o.tem) + '</td>' +
-          '<td class="num">' + (o.faltam > 0 ? '<span class="f">' + n(o.faltam) + '</span>' : '<span class="okc">ok</span>') + '</td></tr>';
-      }).join('') + '</tbody></table></div>'
-      : '<p class="mut" style="margin:0">Nenhuma OP aberta vai usar este insumo' + (i.categoria === 'OUTROS' ? ' (item sem OP: a compra é pelo estoque mínimo).' : '.') + '</p>') +
-      '<p style="margin:12px 0 0;font-size:12.5px">Tem <b>' + n(i.saldo) + '</b> − vai usar <b>' + n(i.vai_sair) + '</b> = <b' + (i.projetado < 0 ? ' class="neg"' : '') + '>' + n(i.projetado) + '</b> · mínimo ' + n(i.minimo) + ' · lead ' + n(i.lead_time) + ' dias' +
-      (i.sugerido > 0 ? ' · <b style="color:var(--destaque)">comprar ' + n(i.sugerido) + ' ' + e(un) + '</b>' : '') + '</p>';
-    Ui.janela({ titulo: i.descricao, subtitulo: i.cod_insumo + ' · OPs abertas que vão usar este insumo (da mais antiga para a mais nova)', largura: 620, corpo: corpo, botoes: [{ texto: 'Fechar', valor: null }] });
-
-  }
-
 });
 </script>
 </body>
