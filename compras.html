@@ -118,7 +118,7 @@ tr.dt > td { padding: 0 0 12px 0 !important; background: color-mix(in srgb, var(
 .dt-box table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
 .dt-box th { text-align: left; font-size: 10px; font-weight: 800; color: var(--texto-suave); letter-spacing: .4px; text-transform: uppercase; padding: 6px 12px; background: var(--painel-2); }
 .dt-box td { padding: 6px 12px; border-top: 1px solid var(--linha); white-space: nowrap; }
-.dt-box .num { text-align: right; }
+.dt-box .num, main.conteudo .dt-box table th.num { text-align: right; }
 .dt-inf { padding: 7px 12px; font-size: 11.5px; color: var(--texto-suave); border-top: 1px solid var(--linha); }
 .lista-tab .dt-box { margin: 0 10px 10px; }
 .lista-tab .dt-box td, .lista-tab .dt-box th { padding: 5px 8px; }
@@ -344,7 +344,7 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
       if (i.politica === 'SOB_DEMANDA') return;   // caixa tem o fluxo próprio (coluna da direita)
       (i.ops || []).forEach(function (o) {
         let a = porOP[o.id_item];
-        if (!a) { a = porOP[o.id_item] = { id: o.id_item, op: o.op, cliente: o.cliente, processo: o.processo, itens: [] }; ordem.push(a); }
+        if (!a) { a = porOP[o.id_item] = { id: o.id_item, op: o.op, codigo: o.codigo || '', cliente: o.cliente, processo: o.processo, itens: [] }; ordem.push(a); }
         a.itens.push({ cod: i.cod_insumo, desc: i.descricao, un: String(i.unidade || '').toLowerCase(), precisa: o.falta, saldo: i.saldo });
       });
     });
@@ -366,7 +366,7 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
   // cod do insumo → OPs que vão usar (com precisa / tem / faltam)
   function opsPorInsumo(lista) {
     const m = {};
-    lista.forEach(function (a) { a.itens.forEach(function (it) { (m[it.cod] = m[it.cod] || []).push({ op: a.op, cliente: a.cliente, processo: a.processo, precisa: it.precisa, tem: it.tem, faltam: it.faltam }); }); });
+    lista.forEach(function (a) { a.itens.forEach(function (it) { (m[it.cod] = m[it.cod] || []).push({ op: a.op, codigo: a.codigo, cliente: a.cliente, processo: a.processo, precisa: it.precisa, tem: it.tem, faltam: it.faltam }); }); });
     return m;
   }
 
@@ -382,11 +382,11 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
   const insumoPorCod = function (cod) { return painel.insumos.find(function (x) { return x.cod_insumo === cod; }); };
   function detalhe(i) {
     const lista = opsAtual[i.cod_insumo] || [];
-    const conta = 'Estoque ' + Fmt.num(i.saldo) + ' · OPs vão usar ' + Fmt.num(i.vai_sair) + ' · mínimo ' + Fmt.num(i.minimo) + ' · lead time ' + Fmt.num(i.lead_time) + ' dias' +
-      (i.sugerido > 0 ? ' → comprar ' + Fmt.num(i.sugerido) + ' ' + unid(i) : '');
+    const conta = 'Estoque ' + Fmt.num(i.saldo) + ' · Consumo previsto ' + Fmt.num(i.vai_sair) + ' · Mínimo ' + Fmt.num(i.minimo) + ' · Lead time ' + Fmt.num(i.lead_time) + ' dias' +
+      (i.sugerido > 0 ? ' → Comprar ' + Fmt.num(i.sugerido) + ' ' + unid(i) : '');
     return '<div class="dt-box">' + (lista.length
-      ? '<table><thead><tr><th>OP</th><th>Cliente</th><th>Processo</th><th class="num">Precisa</th></tr></thead><tbody>' +
-        lista.map(function (o) { return '<tr><td><b>' + e(o.op) + '</b></td><td>' + e(titulo(o.cliente)) + '</td><td class="res">' + e(titulo(o.processo)) + '</td><td class="num">' + n(o.precisa) + '</td></tr>'; }).join('') + '</tbody></table>'
+      ? '<table><thead><tr><th>OP</th><th>Produto</th><th>Cliente</th><th>Processo</th><th class="num">Consumo previsto</th></tr></thead><tbody>' +
+        lista.map(function (o) { return '<tr><td><b>' + e(o.op) + '</b></td><td>' + e(o.codigo || '—') + '</td><td>' + e(titulo(o.cliente)) + '</td><td class="res">' + e(titulo(o.processo)) + '</td><td class="num">' + n(o.precisa) + ' ' + e(unid(i)) + '</td></tr>'; }).join('') + '</tbody></table>'
       : '<div class="dt-inf" style="border-top:0">Nenhuma OP vai usar este insumo agora · a compra é para repor o estoque mínimo.</div>') +
       '<div class="dt-inf">' + e(conta) + '</div></div>';
   }
