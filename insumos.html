@@ -62,6 +62,19 @@ tr.lin.sel td { background: color-mix(in srgb, var(--destaque) 10%, transparent)
 .lista-tab .li .tx { flex: 1; min-width: 0; }
 .lista-tab .li small { display: block; color: var(--texto-suave); font-size: 11.5px; margin-top: 2px; }
 .lista-tab { padding-bottom: 80px; }
+/* corrigir em lote */
+.lt-top { display: flex; gap: 10px; align-items: end; flex-wrap: wrap; margin-bottom: 10px; }
+.lt-top label { display: grid; gap: 5px; font-size: 11px; font-weight: 800; color: var(--texto-suave); letter-spacing: .4px; }
+.lt-top select { height: 36px; font-size: 13.5px; min-width: 190px; }
+.lt-top .f-busca { width: 240px; }
+.lt-top .dir { margin-left: auto; display: flex; gap: 8px; }
+.lt-wrap { max-height: 52vh; overflow: auto; border: 1px solid var(--linha); border-radius: 10px; }
+.lt-wrap table.tab th { position: sticky; top: 0; z-index: 1; }
+.lt-wrap table.tab td, .lt-wrap table.tab th { padding: 6px 10px; }
+main.conteudo .lt-wrap table.tab th.c, .modal-caixa .lt-wrap table.tab th.c, .modal-caixa .lt-wrap td.c { text-align: center !important; }
+.lt-wrap input.in { width: 100px !important; height: 30px; text-align: center; font-weight: 700; padding: 0 6px; }
+.lt-wrap tr.tem td { background: color-mix(in srgb, #16a34a 9%, transparent); }
+.rodape .t-lt { margin-right: auto; font-size: 12px; color: var(--texto-suave); align-self: center; }
 .cat { font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 5px; white-space: nowrap; }
 .cat.luva { background: rgba(59,130,246,.18); color: #93c5fd; }
 .cat.filtro { background: rgba(20,184,166,.18); color: #5eead4; }
@@ -150,6 +163,7 @@ html.tema-claro .estq b.baixo { color: #b91c1c; } html.tema-claro .estq b.ok { c
     <div class="acoes-pagina so-desk">
       <button class="btn2" data-imprimir title="Imprimir a lista da tela"><svg class="i"><use href="#i-imp"/></svg>Imprimir</button>
       <button class="btn2" data-excel title="Baixar a lista da tela em Excel"><svg class="i"><use href="#i-xls"/></svg>Excel</button>
+      <button class="btn2 com-texto" data-lote hidden title="Corrigir o saldo de vários insumos de uma vez (contagem geral)">✏ Corrigir em lote</button>
       <button class="btn2" data-acao="novo" data-editar hidden><svg class="i"><use href="#i-mais"/></svg>Novo insumo</button>
     </div>
   </div>
@@ -226,6 +240,7 @@ Sessao.iniciarPagina('insumos').then(function (ctx) {
   const pendente = {};                  // idReq reaproveitado se o MESMO envio cair por conexão
 
   if (pode) document.querySelectorAll('[data-editar]').forEach(function (b) { b.hidden = false; });
+  if (podeAjustar) document.querySelectorAll('[data-lote]').forEach(function (b) { b.hidden = false; });
 
   carregar();
 
@@ -374,6 +389,7 @@ Sessao.iniciarPagina('insumos').then(function (ctx) {
     if (m) { modo = m.dataset.modo; const w = document.querySelector('.tab-wrap'); if (w) w.scrollTop = 0; desenhar(); return; }
     const d = ev.target.closest('[data-dias]');
     if (d) { dias = Number(d.dataset.dias); desenhar(); return; }
+    if (ev.target.closest('[data-lote]')) { abrirLote(); return; }
     if (ev.target.closest('[data-imprimir]')) { imprimir(); return; }
     if (ev.target.closest('[data-excel]')) { baixarExcel(); return; }
     const linha = ev.target.closest('#linhas tr.lin[data-cod], #lista-tab .li[data-cod]');
@@ -452,6 +468,162 @@ Sessao.iniciarPagina('insumos').then(function (ctx) {
       el.innerHTML = d === 0 ? 'Bate com o sistema (fica registrado que foi contado)' : 'Diferença: ' + difHtml(d) + ' ' + e(un);
     });
     setTimeout(function () { inp.focus(); }, 30);
+  }
+
+  // ============================================================
+  // ✏ CORRIGIR EM LOTE — vários insumos de uma vez (contagem geral / carga)
+  // Preenche só o que contou (ou cola do Excel: código + quantidade),
+  // um motivo para o lote, confere antes → depois e grava tudo de uma vez.
+  // ============================================================
+  let lote = null;   // { motivo, qtd: { cod: texto }, busca }
+  const ativos = function () { return itens.filter(function (x) { return x.ativo; }); };
+  function preenchidos() {
+    return ativos().filter(function (x) { return String(lote.qtd[x.cod] || '').trim() !== ''; })
+      .map(function (x) { return { x: x, q: num(lote.qtd[x.cod]) }; });
+  }
+  function abrirLote() {
+    if (!podeAjustar) return;
+    if (!itens.length) { Ui.toast('Aguarde a lista carregar.', 'aviso'); return; }
+    if (!lote) lote = { motivo: 'CONTAGEM', qtd: {}, busca: '' };
+    // lista: os insumos do card escolhido (no card Ajustes, todos)
+    const base = (modo === 'AJUSTES' ? ativos() : ativos().filter(REGRA[modo]));
+    const nomeCard = modo === 'AJUSTES' ? 'Todos' : (FILTROS.find(function (f) { return f.m === modo; }) || {}).t;
+    const corpo = '<div class="msg-erro"></div><div class="lt-top">' +
+      '<label>MOTIVO (vale para o lote)<select name="mot">' + MOTIVOS.map(function (m) { return '<option value="' + m.v + '"' + (lote.motivo === m.v ? ' selected' : '') + '>' + m.t + '</option>'; }).join('') + '</select></label>' +
+      '<div class="f-busca"><svg class="i"><use href="#i-busca"/></svg><input name="busca" autocomplete="off" placeholder="Filtrar…" value="' + e(lote.busca) + '"></div>' +
+      '<div class="dir"><button type="button" class="btn2 com-texto" data-baixar-cont title="Excel com Código · Insumo · Estoque · Contado (em branco) para contar no papel">⬇ Planilha de contagem</button>' +
+      '<button type="button" class="btn2 com-texto" data-colar>📋 Colar do Excel</button></div></div>' +
+      '<div class="lt-wrap"><table class="tab"><thead><tr><th>Insumo</th><th class="c" style="width:150px">Estoque no sistema</th><th class="c" style="width:150px">Quanto tem agora</th><th class="c" style="width:110px">Diferença</th></tr></thead><tbody data-lt></tbody></table></div>';
+    Ui.janela({
+      titulo: 'Corrigir saldo em lote · ' + nomeCard, subtitulo: 'Preencha só o que contou · em branco fica como está', largura: 900, corpo: corpo, enterConfirma: false,
+      botoes: [{ texto: 'Cancelar', valor: null }, { texto: 'Limpar', valor: 'limpar' }, { texto: 'Conferir →', classe: 'pri', valor: 'conf' }],
+      antesDeFechar: async function (v, cx) {
+        const erro = cx.querySelector('.msg-erro');
+        if (v === 'limpar') {
+          if (!(await Ui.confirmar({ titulo: 'Limpar', texto: 'Apagar todas as quantidades digitadas?', ok: 'Limpar', perigo: true }))) return false;
+          lote = null; return true;
+        }
+        const l = preenchidos();
+        if (!l.length) { Ui.msgErro(erro, 'Preencha a quantidade de pelo menos um insumo.'); return false; }
+        const ruim = l.find(function (i) { return i.q === null || isNaN(i.q) || i.q < 0; });
+        if (ruim) { Ui.msgErro(erro, ruim.x.cod + ': quantidade inválida.'); return false; }
+        return true;
+      }
+    }).then(function (v) { if (v === 'conf') conferirLote(); if (v === 'limpar') abrirLote(); });
+    const caixas = document.querySelectorAll('.modal-fundo .modal-caixa'), cx = caixas[caixas.length - 1];
+    const rod = cx.querySelector('.rodape'), info = document.createElement('span');
+    info.className = 't-lt'; rod.insertBefore(info, rod.firstChild);
+    const resumo = function () { const k = preenchidos().length; info.textContent = k + ' insumo' + (k === 1 ? '' : 's') + ' preenchido' + (k === 1 ? '' : 's'); };
+    function linhas() {
+      const p = lote.busca.toUpperCase().split(/\s+/).filter(Boolean);
+      const l = base.filter(function (x) { const t = (x.cod + ' ' + x.descricao).toUpperCase(); return p.every(function (w) { return t.indexOf(w) !== -1; }); });
+      cx.querySelector('[data-lt]').innerHTML = l.slice(0, 600).map(function (x) {
+        const t = lote.qtd[x.cod] || '', q = num(t), s0 = x.saldo || 0;
+        const dif = t !== '' && q !== null && !isNaN(q) ? Math.round((q - s0) * 1000) / 1000 : null;
+        return '<tr data-lc="' + e(x.cod) + '"' + (t !== '' ? ' class="tem"' : '') + '><td class="ins">' + e(x.descricao) + '<span class="cod">' + e(x.cod) + '</span></td>' +
+          '<td class="c">' + n(s0) + ' <span class="res" style="font-size:11px">' + e(x.unidade.toLowerCase()) + '</span></td>' +
+          '<td class="c"><input class="in" inputmode="decimal" value="' + e(t) + '"></td><td class="c" data-d>' + (dif === null ? '<span class="res">—</span>' : difHtml(dif)) + '</td></tr>';
+      }).join('') || '<tr><td colspan="4"><div class="vazio">Nenhum insumo com esse filtro.</div></td></tr>';
+      resumo();
+    }
+    cx.addEventListener('input', function (ev) {
+      const t = ev.target;
+      if (t.name === 'busca') { lote.busca = t.value; linhas(); return; }
+      const tr = t.closest('tr[data-lc]');
+      if (!tr) return;
+      lote.qtd[tr.dataset.lc] = t.value;
+      tr.classList.toggle('tem', t.value.trim() !== '');
+      const x = itens.find(function (i) { return i.cod === tr.dataset.lc; }), q = num(t.value);
+      tr.querySelector('[data-d]').innerHTML = t.value.trim() === '' || q === null || isNaN(q) ? '<span class="res">—</span>' : difHtml(Math.round((q - (x.saldo || 0)) * 1000) / 1000);
+      resumo();
+    });
+    cx.addEventListener('change', function (ev) { if (ev.target.name === 'mot') lote.motivo = ev.target.value; });
+    cx.addEventListener('keydown', function (ev) {   // Enter desce para a próxima linha
+      if (ev.key !== 'Enter' || !ev.target.closest('tr[data-lc]')) return;
+      ev.preventDefault();
+      const prox = ev.target.closest('tr').nextElementSibling;
+      if (prox && prox.querySelector('input')) prox.querySelector('input').focus();
+    });
+    cx.querySelector('[data-colar]').addEventListener('click', function () { colarLote(linhas); });
+    cx.querySelector('[data-baixar-cont]').addEventListener('click', function () { planilhaContagem(base, nomeCard); });
+    linhas();
+  }
+
+  // Colar do Excel: duas colunas (código e quantidade). 1ª linha pode ser o cabeçalho.
+  function colarLote(redesenhar) {
+    const corpo = '<div class="msg-erro"></div><p class="mut" style="margin:0 0 8px;font-size:12.5px">No Excel, selecione as colunas <b>Código</b> e <b>Quantidade</b> (ou Código e Contado da planilha de contagem), copie (Ctrl+C) e cole aqui (Ctrl+V).</p>' +
+      '<textarea name="cola" rows="10" style="width:100%;font-family:monospace;font-size:13px" placeholder="MP00021&#9;1200&#10;MP00314&#9;150"></textarea>';
+    Ui.janela({
+      titulo: 'Colar do Excel', largura: 520, corpo: corpo, enterConfirma: false,
+      botoes: [{ texto: 'Voltar', valor: null }, { texto: 'Usar', classe: 'pri', valor: 'ok' }],
+      antesDeFechar: function (v, cx) {
+        const erro = cx.querySelector('.msg-erro');
+        const ls = cx.querySelector('[name="cola"]').value.split(/\r?\n/).map(function (l) { return l.trim(); }).filter(Boolean);
+        if (!ls.length) { Ui.msgErro(erro, 'Nada colado.'); return false; }
+        const ok = [], ruins = [];
+        ls.forEach(function (l, i) {
+          const p = l.split(/\t|;/).map(function (c) { return c.trim(); });
+          const cod = (p[0] || '').toUpperCase(), q = num(p[p.length - 1]);
+          const x = itens.find(function (k) { return k.cod === cod && k.ativo; });
+          if (p.length < 2 || p[p.length - 1] === '') { if (x) return; if (i === 0) return; ruins.push(l); return; }   // sem quantidade: ignora
+          if (!x || q === null || isNaN(q) || q < 0) { if (i === 0 && !x) return; ruins.push(l); return; }               // 1ª linha pode ser cabeçalho
+          ok.push({ cod: cod, q: q });
+        });
+        if (ruins.length) { Ui.msgErro(erro, ruins.length + ' linha(s) com código inexistente/inativo ou quantidade inválida: ' + ruins.slice(0, 5).join(' | ') + (ruins.length > 5 ? '…' : '')); return false; }
+        ok.forEach(function (o) { lote.qtd[o.cod] = String(o.q).replace('.', ','); });
+        Ui.toast(ok.length + ' insumo(s) preenchido(s).', 'ok', 'Colado');
+        return true;
+      }
+    }).then(function (v) { if (v === 'ok') redesenhar(); });
+  }
+
+  // Planilha de contagem (Excel): Código · Insumo · Unidade · Estoque no sistema · Contado (em branco)
+  async function planilhaContagem(base, nomeCard) {
+    try {
+      await carregarSheetJS();
+      const ws = XLSX.utils.aoa_to_sheet([['Código', 'Insumo', 'Unidade', 'Estoque no sistema', 'Contado']]
+        .concat(base.map(function (x) { return [x.cod, x.descricao, x.unidade, x.saldo || 0, '']; })));
+      ws['!cols'] = [14, 44, 9, 18, 12].map(function (c) { return { wch: c }; });
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Contagem');
+      const h = new Date();
+      const nome = 'contagem_' + String(nomeCard || 'todos').toLowerCase().replace(/[^a-z0-9]+/g, '_') + '_' + h.getFullYear() + String(h.getMonth() + 1).padStart(2, '0') + String(h.getDate()).padStart(2, '0') + '.xlsx';
+      XLSX.writeFile(wb, nome);
+      Ui.toast('Preencha a coluna Contado e cole Código + Contado em "Colar do Excel".', 'ok', 'Planilha de contagem');
+    } catch (err) { Ui.erro(err); }
+  }
+
+  function conferirLote() {
+    const l = preenchidos();
+    const mot = (MOTIVOS.find(function (m) { return m.v === lote.motivo; }) || {}).t;
+    const muda = l.filter(function (i) { return Math.abs(i.q - (i.x.saldo || 0)) > 1e-9; }).length;
+    const corpo = '<div class="msg-erro"></div><p style="margin:0 0 10px">Motivo: <b>' + e(mot) + '</b> · ' + l.length + ' insumo' + (l.length === 1 ? '' : 's') + ' · ' + muda + ' com diferença</p>' +
+      '<div class="lt-wrap"><table class="tab"><thead><tr><th>Insumo</th><th class="c" style="width:110px">Antes</th><th class="c" style="width:110px">Depois</th><th class="c" style="width:110px">Diferença</th></tr></thead><tbody>' +
+      l.map(function (i) {
+        const s0 = i.x.saldo || 0, d = Math.round((i.q - s0) * 1000) / 1000;
+        return '<tr><td class="ins">' + e(i.x.descricao) + '<span class="cod">' + e(i.x.cod) + '</span></td><td class="c">' + n(s0) + '</td><td class="c">' + n(i.q) + '</td><td class="c">' + difHtml(d) + '</td></tr>';
+      }).join('') + '</tbody></table></div>';
+    Ui.janela({
+      titulo: 'Conferir correção em lote', subtitulo: 'Confira antes de gravar · cada item fica registrado em Ajustes de saldo', largura: 820, corpo: corpo, enterConfirma: false,
+      botoes: [{ texto: '← Voltar e corrigir', valor: 'voltar' }, { texto: 'Gravar ' + l.length, classe: 'verde', valor: 'ok' }],
+      antesDeFechar: async function (v, cx) {
+        if (v !== 'ok') return true;
+        const bt = cx.querySelector('.rodape button.verde'); if (bt) { bt.disabled = true; bt.textContent = 'Gravando…'; }
+        try {
+          const r = await enviar('corrigirSaldoLote', { motivo: lote.motivo, itens: l.map(function (i) { return { cod_insumo: i.x.cod, qtd_real: i.q }; }) });
+          if (r.duplicado) Ui.toast('Este lote já tinha sido gravado.', 'aviso');
+          else Ui.toast(r.itens + ' insumo(s) gravado(s) · ' + r.mudaram + ' com diferença.', 'ok', 'Saldo corrigido em lote');
+          return true;
+        } catch (err) {
+          Ui.msgErro(cx.querySelector('.msg-erro'), err.message);
+          if (bt) { bt.disabled = false; bt.textContent = 'Gravar ' + l.length; }
+          return false;
+        }
+      }
+    }).then(function (v) {
+      if (v === 'voltar') abrirLote();
+      if (v === 'ok') { lote = null; carregar(); }
+    });
   }
 
   // ============================================================
