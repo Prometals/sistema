@@ -574,11 +574,11 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
     w.document.write(`<html><head><title>${e(tituloRelatorio())}</title>
 <style>
   body{font-family:Arial;padding:20px;color:#111}
-  h2{font-size:16px;font-weight:normal;margin:0 0 4px}
+  h2{font-size:16px;margin:0 0 4px}
   .sub{font-size:10px;color:#555;margin-bottom:14px}
   table{width:100%;border-collapse:collapse}
   th,td{border:1px solid #ccc;padding:5px 6px;font-size:10.5px;text-align:left}
-  th{font-weight:normal} td.n{text-align:right} td.c{text-align:right}
+  th{font-weight:bold} td.n{text-align:right} td.c{text-align:right}
   tr,th{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   tbody.ins{page-break-inside:avoid}
   tr.op td{font-size:9.5px;border-top:0;padding:3px 6px}
@@ -611,9 +611,9 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
     const w = window.open('');
     if (!w) { Ui.toast('O navegador bloqueou a janela de impressão. Libere pop-ups para este site.', 'erro'); return; }
     const nomeF = (FILTROS_CX.find(function (x) { return x.f === f; }) || {}).t || '';
-    w.document.write('<html><head><title>CAIXAS (EMBALAGEM)</title><style>body{font-family:Arial;padding:20px;color:#111}h2{font-size:16px;font-weight:normal;margin:0 0 4px}' +
+    w.document.write('<html><head><title>CAIXAS (EMBALAGEM)</title><style>body{font-family:Arial;padding:20px;color:#111}h2{font-size:16px;margin:0 0 4px}' +
       '.flt{font-size:10.5px;margin-bottom:14px}table{width:100%;border-collapse:collapse}' +
-      'th,td{border:1px solid #ccc;padding:4px 6px;font-size:10px;text-align:left}th{font-weight:normal}td.n{text-align:right}tr,.flt{-webkit-print-color-adjust:exact;print-color-adjust:exact}</style></head><body>' +
+      'th,td{border:1px solid #ccc;padding:4px 6px;font-size:10px;text-align:left}th{font-weight:bold}td.n{text-align:right}tr,.flt{-webkit-print-color-adjust:exact;print-color-adjust:exact}</style></head><body>' +
       html.replace('<h2 style="margin-top:22px">CAIXAS (EMBALAGEM) EM ABERTO</h2>', '<h2>CAIXAS (EMBALAGEM)</h2><div class="flt">Filtros: ' + e(nomeF) + ' · emitido em ' + new Date().toLocaleString('pt-BR') + '</div>') +
       '<script>window.onload=()=>window.print();<\/script></body></html>');
     w.document.close();
