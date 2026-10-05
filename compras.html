@@ -458,7 +458,7 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
     return '<span class="stt">' + e(s.status) + '</span>';
   }
   function detalheSolic(s) {
-    return 'OP ' + s.op + ' · ' + titulo(s.cliente) + ' · ' + Fmt.num(s.qtd) + ' ' + String(s.unidade || '').toLowerCase() + ' · ' +
+    return 'OP ' + s.op + (s.codigo ? ' · ' + s.codigo : '') + ' · ' + titulo(s.cliente) + ' · ' + Fmt.num(s.qtd) + ' ' + String(s.unidade || '').toLowerCase() + ' · ' +
       (s.processo === 'INSPEÇÃO FINAL' ? 'na Inspeção Final agora' : 'em ' + titulo(s.processo));
   }
   function datasSolic(s) {
@@ -622,16 +622,16 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
   function linhasCaixas(f) {
     return (f ? solicitacoesFiltradas(f) : painel.solicitacoes.filter(aberta)).slice().sort(function (a, b) { return (comprarAteDe(a) || 0) - (comprarAteDe(b) || 0); }).map(function (s) {
       const u = usoDe(s), c = comprarAteDe(s);
-      return { op: s.op, cliente: s.cliente, cod: s.cod_insumo, desc: s.descricao, qtd: s.qtd, un: String(s.unidade || ''),
+      return { op: s.op, prod: s.codigo || '', cliente: s.cliente, cod: s.cod_insumo, desc: s.descricao, qtd: s.qtd, un: String(s.unidade || ''),
         uso: u ? dataBR(u) : '', ate: c ? dataBR(c) : '', ciente: semCiente(s) ? (dataMudou(s) ? 'DATA MUDOU' : 'SEM CIENTE') : 'CIENTE · ' + (s.ciente_por || ''), sem: semCiente(s) };
     });
   }
   function caixasHtml(f) {
     const l = linhasCaixas(f);
     if (!l.length) return '';
-    return '<h2 style="margin-top:22px">CAIXAS (EMBALAGEM) EM ABERTO</h2><table><thead><tr><th>COMPRAR ATÉ</th><th>VAI USAR EM</th><th>OP</th><th>CLIENTE</th><th>INSUMO</th><th>DESCRIÇÃO</th><th>QTD</th><th>CIENTE</th></tr></thead><tbody>' +
+    return '<h2 style="margin-top:22px">CAIXAS (EMBALAGEM) EM ABERTO</h2><table><thead><tr><th>COMPRAR ATÉ</th><th>VAI USAR EM</th><th>OP</th><th>PRODUTO</th><th>CLIENTE</th><th>INSUMO</th><th>DESCRIÇÃO</th><th>QTD</th><th>CIENTE</th></tr></thead><tbody>' +
       l.map(function (r) {
-        return '<tr><td>' + e(r.ate) + '</td><td>' + e(r.uso) + '</td><td>' + e(r.op) + '</td><td>' + e(r.cliente) + '</td><td>' + e(r.cod) + '</td><td>' + e(r.desc) + '</td>' +
+        return '<tr><td>' + e(r.ate) + '</td><td>' + e(r.uso) + '</td><td>' + e(r.op) + '</td><td>' + e(r.prod || '—') + '</td><td>' + e(r.cliente) + '</td><td>' + e(r.cod) + '</td><td>' + e(r.desc) + '</td>' +
           '<td class="n">' + Fmt.num(r.qtd) + ' ' + e(r.un.toLowerCase()) + '</td><td>' + e(r.ciente) + '</td></tr>';
       }).join('') + '</tbody></table>';
   }
