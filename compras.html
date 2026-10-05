@@ -541,10 +541,12 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
   // Sai exatamente a lista da tela (o card escolhido), na mesma ordem.
   function linhasRelatorio() {
     const opsRel = opsPorInsumo(avisosPorOP());
+    const comOPs = modo === 'OP';
     return insumosFiltrados().map(function (i) {
       return { cod: i.cod_insumo, desc: i.descricao, un: String(i.unidade || ''), saldo: i.saldo, sair: i.vai_sair,
         min: i.minimo, lead: i.lead_time, comprar: i.sugerido > 0 ? i.sugerido : 0, pq: paraQueTxt(i), rup: ruptura(i),
-        opsLista: opsRel[i.cod_insumo] || [] };
+        // as OPs só entram no relatório do card "Demanda de OP" (um assunto por relatório)
+        opsLista: comOPs ? (opsRel[i.cod_insumo] || []) : [] };
     });
   }
   function tituloRelatorio() { return 'NECESSIDADE DE COMPRA — ' + NOME_MODO[modo].toUpperCase(); }
@@ -639,7 +641,7 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
       await carregarSheetJS();
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.json_to_sheet(l.map(function (r) {
-        return { 'Insumo': r.desc, 'Código': r.cod, 'Estoque': r.saldo, 'Comprar': r.comprar, 'Unidade': r.un, 'Motivo': r.pq, 'OPs': r.opsLista.map(function (o) { return o.op; }).join(', '),
+        return { 'Insumo': r.desc, 'Código': r.cod, 'Estoque': r.saldo, 'Comprar': r.comprar, 'Unidade': r.un, 'Motivo': r.pq,
           'OPs vão usar': r.sair, 'Mínimo': r.min, 'Lead time (dias)': r.lead };
       }));
       ws['!cols'] = [42, 12, 10, 10, 8, 14, 30, 12, 10, 14].map(function (c) { return { wch: c }; });
