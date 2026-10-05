@@ -493,12 +493,33 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
     cxAberta.caixa.querySelector('.cx-lista').innerHTML = l.map(caixaHtml).join('') ||
       '<div class="vazio">' + (cxAberta.filtro === 'SEM_CIENTE' ? '✅ Todas as caixas já têm ciente.' : 'Nenhuma caixa neste filtro.') + '</div>';
   }
+  // ✔ Ciente em todas: as caixas sem ciente do filtro aberto no pop-up, de uma vez
+  async function cienteEmTodas() {
+    const l = solicitacoesFiltradas(cxAberta ? cxAberta.filtro : '').filter(podeCiente);
+    if (!l.length) { Ui.toast('Nenhuma caixa sem ciente neste filtro.', 'aviso'); return; }
+    const ok = await Ui.confirmar({ titulo: 'Ciente em todas', texto: 'Dar ciente em ' + l.length + ' caixa' + (l.length > 1 ? 's' : '') + ' de uma vez? Cada uma grava a data de uso que está aparecendo agora.', ok: 'Dar ciente em ' + l.length });
+    if (!ok) return;
+    const bt = cxAberta && cxAberta.caixa.querySelector('.rodape button.verde');
+    if (bt) { bt.disabled = true; bt.textContent = 'Gravando ' + l.length + '…'; }
+    try {
+      const r = await Api.chamar('cienteSolicitacoesLote', { itens: l.map(function (s) { const u = usoDe(s); return { id_solicitacao: s.id_solicitacao, data_uso: u ? dataBR(u) : '' }; }) });
+      Ui.toast(r.feitas + ' caixa' + (r.feitas === 1 ? '' : 's') + ' com ciente' + (r.puladas ? ' · ' + r.puladas + ' já não estava' + (r.puladas === 1 ? '' : 'm') + ' pendente' + (r.puladas === 1 ? '' : 's') : '') + '.', 'ok', 'Ciente');
+      await carregar(true);
+    } catch (err) { Ui.erro(err); }
+    if (bt) { bt.disabled = false; bt.textContent = '✔ Ciente em todas'; }
+  }
+
   function abrirCaixas(filtro) {
     Ui.janela({
       titulo: 'Caixas (embalagem)', subtitulo: 'Aparecem quando o PCP abre a OP · dê ✔ Ciente (se a data de uso mudar, pede de novo)',
       largura: 620, corpo: '<div class="cx-filtro"></div><div class="cx-lista"></div>', enterConfirma: false,
-      botoes: [{ texto: 'Imprimir', classe: 'esq', valor: 'imp' }, { texto: 'Fechar', valor: null }],
-      antesDeFechar: function (v) { if (v === 'imp') { imprimirCaixas(); return false; } return true; }
+      botoes: [{ texto: 'Imprimir', classe: 'esq', valor: 'imp' }, { texto: 'Fechar', valor: null }]
+        .concat(ctx.podeEditar ? [{ texto: '✔ Ciente em todas', classe: 'verde', valor: 'todas' }] : []),
+      antesDeFechar: function (v) {
+        if (v === 'imp') { imprimirCaixas(); return false; }
+        if (v === 'todas') { cienteEmTodas(); return false; }
+        return true;
+      }
     }).then(function () { cxAberta = null; });
     const l = document.querySelectorAll('.modal-fundo .modal-caixa');
     cxAberta = { filtro: filtro, caixa: l[l.length - 1] };
