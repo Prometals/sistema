@@ -8,26 +8,60 @@
 <link rel="stylesheet" href="css/sistema.css">
 <style>
 /* ---------- específico desta página ---------- */
-/* contadores-filtro */
-.kl { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 14px; }
-.kq { background: var(--painel); border: 1px solid var(--linha); border-radius: 12px; padding: 10px 14px; cursor: pointer; position: relative; overflow: hidden; text-align: left; display: flex; align-items: center; gap: 12px; min-width: 0; }
+/* cards = filtros (um escolhido por vez) + Ajustes de saldo à direita */
+.kl { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 12px; margin-bottom: 14px; }
+.kq { background: var(--painel); border: 1px solid var(--linha); border-radius: 12px; padding: 10px 14px; cursor: pointer; position: relative; overflow: hidden; text-align: left; font: inherit; color: inherit; min-width: 0; }
 .kq::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--c); }
-.kq.sel { border-color: var(--c); box-shadow: 0 0 0 1px var(--c) inset; }
-.kq b { font-size: 24px; }
-.kq span { font-size: 11px; font-weight: 800; color: var(--texto-suave); letter-spacing: .4px; text-transform: uppercase; min-width: 0; }
-.kq small { display: block; font-size: 11px; color: var(--texto-suave); font-weight: 600; text-transform: none; letter-spacing: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.kq.piscando { animation: pisca 1.8s infinite; }
-.kpi-mini .km { cursor: pointer; }
-/* barra de filtros */
-.barra { display: flex; gap: 10px; align-items: center; background: var(--painel); border: 1px solid var(--linha); border-radius: 12px; padding: 10px 12px; margin-bottom: 14px; flex-wrap: wrap; }
-.barra select { height: 36px; font-size: 13px; padding: 0 10px; width: auto; }
-.barra .f-busca { flex: 1; min-width: 220px; position: relative; }
-.barra .f-busca input { width: 100%; padding-left: 34px; height: 36px; font-size: 13px; }
-.barra .f-busca svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--texto-suave); }
-.barra .info { font-size: 12px; color: var(--texto-suave); }
-/* tabela */
-.tab-wrap { overflow: auto; max-height: calc(100vh - 330px); }
+.kq.sel { border-color: var(--c); }
+.kq.sel .l { color: var(--c); }
+.kq .l { display: block; font-size: 11px; font-weight: 800; color: var(--texto-suave); letter-spacing: .4px; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kq b { display: block; font-size: 28px; font-variant-numeric: tabular-nums; margin-top: 2px; }
+.kq.alerta b { color: var(--c); }
+.km { cursor: pointer; border: 0; font: inherit; color: inherit; }
+/* bloco da tabela */
+.bx { background: var(--painel); border: 1px solid var(--linha); border-radius: 14px; overflow: hidden; }
+.bx-cab { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-bottom: 1px solid var(--linha); flex-wrap: wrap; }
+.bx-cab h3 { margin: 0; font-size: 15px; } .bx-cab .s { font-size: 12px; color: var(--texto-suave); }
+.bx-cab .dir { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+.f-busca { position: relative; width: 280px; }
+.f-busca input { width: 100%; padding-left: 34px; height: 34px; font-size: 13px; }
+.f-busca svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--texto-suave); }
+.chk-l { display: flex; gap: 6px; align-items: center; font-size: 12px; color: var(--texto-suave); white-space: nowrap; cursor: pointer; }
+.chk-l input { width: 15px; height: 15px; accent-color: var(--destaque); }
+.per { display: inline-flex; border: 1px solid var(--borda); border-radius: 9px; overflow: hidden; height: 32px; }
+.per button { border: 0; background: transparent; font: inherit; font-size: 12.5px; font-weight: 700; color: var(--texto-suave); padding: 0 12px; cursor: pointer; }
+.per button.on { background: var(--destaque); color: #fff; }
+.tab-wrap { overflow: auto; max-height: calc(100vh / var(--escala, 1) - 330px); }
 .tab-wrap table.tab th { position: sticky; top: 0; z-index: 1; }
+/* o sistema.css compacta todas as tabelas com !important: aqui precisa vencer */
+main.conteudo #bx-tab table.tab th, main.conteudo #bx-tab table.tab td { white-space: nowrap !important; padding-top: 7px; padding-bottom: 7px; }
+main.conteudo #bx-tab table.tab th.c, main.conteudo #bx-tab table.tab td.c { text-align: center !important; }
+#bx-tab table.tab { table-layout: fixed; width: 100%; }
+#bx-tab tbody tr.lin { cursor: pointer; }
+#bx-tab tbody tr.lin:hover td { background: color-mix(in srgb, var(--destaque) 5%, transparent); }
+td.ins { overflow: hidden; text-overflow: ellipsis; }
+.cod { color: var(--texto-suave); font-size: 11px; margin-left: 6px; }
+.res { color: var(--texto-suave); }
+.baixo { color: #f87171; } html.tema-claro .baixo { color: #b91c1c; }
+.mais { color: #34d399; } html.tema-claro .mais { color: #166534; }
+tr.inat td { opacity: .45; }
+tr.lin.sel td { background: color-mix(in srgb, var(--destaque) 10%, transparent); }
+.bt-aj { height: 28px; padding: 0 10px; border: 1px solid var(--borda); border-radius: 8px; background: transparent; font: inherit; font-size: 12px; font-weight: 700; color: var(--texto); cursor: pointer; white-space: nowrap; }
+.bt-aj:hover { border-color: var(--destaque); color: var(--destaque); }
+.btn2.verde { background: #16a34a; border-color: #16a34a; color: #fff; }
+/* pop-up corrigir saldo */
+.cs { display: grid; gap: 14px; }
+.cs .lin2 { display: flex; justify-content: space-between; font-size: 13.5px; }
+.cs .lin2 b { font-size: 15px; }
+.cs label { display: grid; gap: 6px; font-size: 11px; font-weight: 800; color: var(--texto-suave); letter-spacing: .4px; }
+.cs input { height: 52px; font-size: 24px; font-weight: 800; text-align: center; }
+.cs select { height: 42px; font-size: 15px; }
+.cs .dif { text-align: center; font-size: 14px; color: var(--texto-suave); min-height: 20px; }
+.lista-tab .li { padding: 10px 14px; border-top: 1px solid var(--linha); font-size: 13px; cursor: pointer; display: flex; gap: 10px; align-items: center; }
+.lista-tab .li:first-child { border-top: 0; }
+.lista-tab .li .tx { flex: 1; min-width: 0; }
+.lista-tab .li small { display: block; color: var(--texto-suave); font-size: 11.5px; margin-top: 2px; }
+.lista-tab { padding-bottom: 80px; }
 .cat { font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 5px; white-space: nowrap; }
 .cat.luva { background: rgba(59,130,246,.18); color: #93c5fd; }
 .cat.filtro { background: rgba(20,184,166,.18); color: #5eead4; }
@@ -92,82 +126,55 @@ html.tema-claro .estq b.baixo { color: #b91c1c; } html.tema-claro .estq b.ok { c
 .hist div { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--linha); padding-bottom: 6px; }
 .hist span { color: var(--texto-suave); }
 .filtros-mob { display: grid; gap: 12px; }
-.btn2.verde { background: #16a34a; border-color: #16a34a; color: #fff; }
-/* entrada em lote · inventário · movimentos */
-.lt-nf { display: grid; grid-template-columns: 200px auto 230px minmax(0, 1fr); gap: 12px; align-items: end; margin-bottom: 12px; }
-.lt-sn { display: flex; gap: 8px; align-items: center; font-weight: 700; font-size: 13px; height: 38px; white-space: nowrap; }
-.chk { width: 16px; height: 16px; accent-color: var(--destaque); flex: none; padding: 0; }
-.lt-barra { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
-.lt-barra .f-busca { flex: 1; min-width: 200px; position: relative; }
-.lt-barra .f-busca input { width: 100%; padding-left: 34px; height: 36px; font-size: 13px; }
-.lt-barra .f-busca svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--texto-suave); }
-.lt-barra .btn2.on { border-color: var(--destaque); color: var(--destaque); }
-.lt-wrap, .inv-wrap, .mv-wrap { max-height: 50vh; overflow: auto; border: 1px solid var(--linha); border-radius: 10px; }
-.lt-wrap table.tab td, .lt-wrap table.tab th, .inv-wrap table.tab td, .inv-wrap table.tab th, .mv-wrap table.tab td, .mv-wrap table.tab th { padding: 7px 10px; }
-.lt-wrap table.tab th, .inv-wrap table.tab th, .mv-wrap table.tab th { position: sticky; top: 0; z-index: 1; }
-.lt-wrap tbody tr, .inv-wrap tbody tr, .mv-wrap tbody tr { cursor: default; }
-.lt-wrap tr.tem td { background: color-mix(in srgb, #16a34a 10%, transparent); }
-.lt-wrap input.in, .inv-wrap input.in { width: 96px; height: 32px; text-align: right; font-weight: 800; padding: 0 8px; margin-left: auto; display: block; }
-b.ent { color: #34d399; } b.sai { color: #f87171; } html.tema-claro b.ent { color: #166534; } html.tema-claro b.sai { color: #b91c1c; }
-.dif.neg2 { color: #f87171; font-weight: 800; } .dif.pos { color: #34d399; font-weight: 800; } .dif.zero { color: var(--texto-suave); }
-html.tema-claro .dif.neg2 { color: #b91c1c; } html.tema-claro .dif.pos { color: #166534; }
-.rodape .t-inv { margin-right: auto; font-size: 12px; color: var(--texto-suave); align-self: center; }
-.mv-wrap td.det { max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.mv-wrap tr.est td { opacity: .5; }
-.mv-wrap .tg { font-size: 10px; font-weight: 800; padding: 1px 6px; border-radius: 5px; background: var(--painel-2); }
-.mv-wrap .btn2 { height: 28px; }
-
-@media (max-width: 1100px) { .kl { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 1100px) { .kl { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 @media (max-width: 760px) {
-  .lt-nf { grid-template-columns: 1fr 1fr; }
-  .lt-nf .lt-obs { grid-column: 1 / -1; }
-  .col-desc { display: none; }
-  .lt-wrap input.in, .inv-wrap input.in { width: 76px; }
-  .rodape { flex-wrap: wrap; } .rodape .t-inv { width: 100%; }
   .gaveta { width: 100%; }
   .gv-corpo { grid-template-columns: 1fr 1fr; }
   .gv-rod { padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
+  .bx-cab .dir { margin-left: 0; width: 100%; flex-wrap: wrap; }
+  .f-busca { width: 100%; }
 }
 </style>
 </head>
 <body>
 
-<!-- Estoque · Insumos (cadastro + saldo + ENTRADA EM LOTE + inventário + movimentos/estorno).
-     Contadores-filtro (Luva / Filtro / Embalagem / Outros / Abaixo do mínimo),
-     tabela e edição num painel lateral. Saldo, "vai sair" e projetado vêm do
-     Estoque. Entrada (NF obrigatória ou "sem nota" + motivo), inventário e
-     estorno: quem tem EDITAR na página. -->
+<!-- Estoque · Insumos (simples).
+     Cards = filtros (Todos, Luva, Filtro, Embalagem, Outros, Abaixo do mínimo)
+     e, à direita, "Ajustes de saldo" (histórico de quem corrigiu, antes → depois, motivo).
+     Lista: Insumo · Categoria · Estoque · Mínimo · ✏ Corrigir saldo.
+     Corrigir saldo: quem tem EDITAR no Insumos OU no Estoque · Operador (almoxarifado).
+     Novo insumo / editar cadastro: EDITAR no Insumos (ficha lateral). -->
 <main class="conteudo">
   <div class="tit-pagina">
-    <div><h1>Insumos</h1><p>Luva, filtro, embalagem e demais materiais · política de estoque e mínimos</p></div>
+    <div><h1>Insumos</h1><p>Cadastro, estoque e ajustes de saldo</p></div>
     <div class="acoes-pagina so-desk">
-      <button class="btn2" data-acao="inventario" data-editar hidden title="Contar o estoque físico e ajustar"><svg class="i"><use href="#i-lista"/></svg>Inventário</button>
+      <button class="btn2" data-imprimir title="Imprimir a lista da tela"><svg class="i"><use href="#i-imp"/></svg>Imprimir</button>
+      <button class="btn2" data-excel title="Baixar a lista da tela em Excel"><svg class="i"><use href="#i-xls"/></svg>Excel</button>
       <button class="btn2" data-acao="novo" data-editar hidden><svg class="i"><use href="#i-mais"/></svg>Novo insumo</button>
-      <button class="btn2 verde" data-acao="entrada" data-editar hidden title="Lançar a nota que chegou (vários insumos de uma vez)"><svg class="i"><use href="#i-saida"/></svg>Entrada</button>
     </div>
   </div>
 
-  <div class="kl so-desk" id="cont"></div>
-  <div class="barra so-desk">
-    <div class="f-busca"><svg class="i"><use href="#i-busca"/></svg><input id="busca" autocomplete="off" placeholder="Código ou descrição…"></div>
-    <select id="f-pol"><option value="">Todas as políticas</option><option value="ESTOCADO">Estocado</option><option value="SOB_DEMANDA">Sob demanda</option></select>
-    <select id="f-sit"><option value="ATIVOS">Ativos</option><option value="INATIVOS">Inativos</option><option value="TODOS">Todos</option></select>
-    <span class="info" id="info"></span>
-  </div>
-  <div class="bloco so-desk"><div class="tab-wrap">
-    <table class="tab"><thead><tr><th>Código</th><th>Descrição</th><th>Categoria</th><th>Un.</th><th>Política</th><th>Consumido em</th><th class="num">Mínimo</th><th class="num">Lead time</th><th class="num">Usado em</th><th class="num">Saldo</th></tr></thead>
-    <tbody id="linhas"><tr><td colspan="10"><div class="carregando">Carregando…</div></td></tr></tbody></table>
-  </div></div>
+  <div class="kl so-desk" id="cards"></div>
+  <div class="kpi-mini so-mob" id="cards-mob"></div>
 
-  <div class="kpi-mini so-mob" id="cont-mob"></div>
-  <div class="busca-mob so-mob"><div class="f"><svg class="i"><use href="#i-busca"/></svg><input id="busca-mob" autocomplete="off" placeholder="Código ou descrição…"></div>
-    <button class="bt" data-acao="filtros-mob" title="Filtros"><svg class="i"><use href="#i-filtro"/></svg><span class="pt" id="n-filtros" hidden></span></button></div>
-  <div class="info-mob so-mob" id="info-mob"></div>
-  <div class="lista-mob so-mob" id="cartoes"></div>
-  <div class="barra-mob so-mob" id="barra-mob" hidden>
-    <button class="ic" data-acao="inventario" title="Inventário"><svg class="i"><use href="#i-lista"/></svg></button>
-    <button class="ic" data-acao="novo" title="Novo insumo"><svg class="i"><use href="#i-mais"/></svg></button>
-    <button class="pri" data-acao="entrada" style="background:#16a34a;border-color:#16a34a"><svg class="i"><use href="#i-saida"/></svg>Entrada</button>
+  <section class="bx" id="bx-tab">
+    <div class="bx-cab"><h3 id="tit-tab">Todos</h3><span class="s" id="sub-tab"></span>
+      <div class="dir">
+        <div class="per" id="periodo" hidden><button type="button" data-dias="1">Hoje</button><button type="button" data-dias="7">7 dias</button><button type="button" data-dias="30" class="on">30 dias</button></div>
+        <label class="chk-l" id="l-inat"><input type="checkbox" id="f-inat"> Mostrar inativos</label>
+        <div class="f-busca"><svg class="i"><use href="#i-busca"/></svg><input id="busca" autocomplete="off" placeholder="Código ou descrição…"></div>
+      </div></div>
+    <div class="tab-wrap so-desk">
+      <table class="tab"><thead id="cab"></thead>
+        <tbody id="linhas"><tr><td><div class="carregando">Carregando…</div></td></tr></tbody></table>
+    </div>
+    <div class="lista-tab so-mob" id="lista-tab"></div>
+  </section>
+
+  <div class="barra-mob so-mob">
+    <button class="ic" data-imprimir title="Imprimir"><svg class="i"><use href="#i-imp"/></svg></button>
+    <button class="ic" data-excel title="Excel"><svg class="i"><use href="#i-xls"/></svg></button>
+    <button class="pri" data-acao="novo" data-editar hidden style="background:var(--destaque);border-color:var(--destaque)"><svg class="i"><use href="#i-mais"/></svg>Novo insumo</button>
   </div>
 </main>
 
@@ -183,41 +190,52 @@ html.tema-claro .dif.neg2 { color: #b91c1c; } html.tema-claro .dif.pos { color: 
 <script>
 Sessao.iniciarPagina('insumos').then(function (ctx) {
   const $ = function (s) { return document.querySelector(s); };
-  const pode = ctx.podeEditar;
+  const e = Ui.esc;
+  const pode = ctx.podeEditar;                                          // cadastro (novo / editar)
+  const podeAjustar = ctx.podeEditar || ctx.nivelDe('estoque') === 'EDITAR';   // corrigir saldo (inclui almoxarifado)
   const CATS = [
-    { id: 'LUVA', nome: 'Luva', cls: 'luva', c: '#3b82f6', sub: 'por molde · estocado' },
-    { id: 'FILTRO', nome: 'Filtro', cls: 'filtro', c: '#14b8a6', sub: 'por molde · estocado' },
-    { id: 'EMBALAGEM', nome: 'Embalagem', cls: 'emb', c: '#f07a1f', sub: 'por peça · sob demanda' },
-    { id: 'OUTROS', nome: 'Outros', cls: 'out', c: '#64748b', sub: 'fora do controle da OP' }
+    { id: 'LUVA', nome: 'Luva', cls: 'luva', c: '#3b82f6' },
+    { id: 'FILTRO', nome: 'Filtro', cls: 'filtro', c: '#14b8a6' },
+    { id: 'EMBALAGEM', nome: 'Embalagem', cls: 'emb', c: '#f07a1f' },
+    { id: 'OUTROS', nome: 'Outros', cls: 'out', c: '#64748b' }
   ];
-  const CLS_CAT = { LUVA: 'luva', FILTRO: 'filtro', EMBALAGEM: 'emb', OUTROS: 'out' };
   // Lista mestre de processos (a mesma da aba CAD_PROCESSO e do PCP)
   const PROCESSOS = ['VALIDAÇÃO TÉCNICA', 'ENGENHARIA', 'PLANEJAMENTO', 'FILA DE PRODUÇÃO', 'MODELAÇÃO',
     'MOLDAGEM', 'PINTURA', 'FUSÃO', 'REBARBAÇÃO', 'TRATAMENTO TÉRMICO', 'JATEAMENTO',
     'USINAGEM', 'BALANCEAMENTO EXTERNO', 'INSPEÇÃO FINAL', 'EXPEDIÇÃO'];
-  const PADRAO_CATS = ['LUVA', 'FILTRO', 'EMBALAGEM'];
+  const MOTIVOS = [{ v: 'CONTAGEM', t: 'Contagem' }, { v: 'CHEGOU MATERIAL', t: 'Chegou material' }, { v: 'PERDA', t: 'Perda' }];
+  const NOME_MOTIVO = { CONTAGEM: 'Contagem', 'CHEGOU MATERIAL': 'Chegou material', PERDA: 'Perda', 'INVENTÁRIO': 'Inventário' };
   const MAX_LINHAS = 600;
 
-  let itens = [];                       // insumos + situação do estoque
-  let cats = PADRAO_CATS.slice();       // categorias marcadas nos contadores (vazio = todas)
-  let abaixo = false;                   // contador "Abaixo do mínimo" ligado
+  // Cards (um escolhido por vez). AJUSTES troca a lista pelo histórico dos ajustes de saldo.
+  const FILTROS = [
+    { m: 'TODOS', t: 'Todos', c: '#3b82f6' },
+    { m: 'LUVA', t: 'Luva', c: '#3b82f6' },
+    { m: 'FILTRO', t: 'Filtro', c: '#14b8a6' },
+    { m: 'EMBALAGEM', t: 'Embalagem', c: '#f07a1f' },
+    { m: 'OUTROS', t: 'Outros', c: '#64748b' },
+    { m: 'ABAIXO', t: 'Abaixo do mínimo', c: '#dc2626' }
+  ];
+  let modo = 'TODOS';
+  let itens = [];                       // insumos + saldo
+  let ajustes = [];                     // histórico de ajustes (últimos 30 dias)
+  let dias = 30;                        // período do histórico na tela
   let busca = '';
-  let g = null;                         // insumo aberto na gaveta
+  let g = null;                         // insumo aberto na ficha (gaveta)
   let salvando = false;
+  const pendente = {};                  // idReq reaproveitado se o MESMO envio cair por conexão
 
   if (pode) document.querySelectorAll('[data-editar]').forEach(function (b) { b.hidden = false; });
-  $('#barra-mob').hidden = !pode;
 
   carregar();
 
   // ---------- Dados ----------
-  // listarInsumos traz o cadastro (inclusive inativos); situacaoInsumos traz
-  // saldo / vai sair / projetado / usado em (só dos ativos) vindos do Estoque.
   async function carregar() {
     try {
       const r = await Promise.all([
         Api.chamar('listarInsumos', { incluirInativos: true }),
-        Api.chamar('situacaoInsumos', {}).catch(function (e) { Ui.erro(e); return []; })
+        Api.chamar('situacaoInsumos', {}).catch(function (er) { Ui.erro(er); return []; }),
+        Api.chamar('ajustesSaldo', { dias: 30 }).catch(function () { return []; })
       ]);
       const sit = {};
       r[1].forEach(function (s) { sit[s.cod_insumo] = s; });
@@ -230,164 +248,272 @@ Sessao.iniciarPagina('insumos').then(function (ctx) {
           sit: s || null, saldo: s ? s.saldo : null, vaiSair: s ? s.vai_sair : null, projetado: s ? s.projetado : null,
           usadoEm: s ? s.usado_em : null
         };
-      }).sort(function (a, b) {
-        // ordem da fábrica: luva, filtro, embalagem, outros; depois pelo código
-        return ordemCat(a.categoria) - ordemCat(b.categoria) || a.cod.localeCompare(b.cod);
-      });
+      }).sort(function (a, b) { return ordemCat(a.categoria) - ordemCat(b.categoria) || a.descricao.localeCompare(b.descricao); });
+      ajustes = r[2] || [];
       desenhar();
-    } catch (e) {
-      Ui.erro(e);
-      $('#linhas').innerHTML = '<tr><td colspan="10"><div class="vazio">Não foi possível carregar. ' + Ui.esc(e.message) + '</div></td></tr>';
+    } catch (er) {
+      Ui.erro(er);
+      $('#linhas').innerHTML = '<tr><td><div class="vazio">Não foi possível carregar. ' + e(er.message) + '</div></td></tr>';
     }
   }
 
-  // Abaixo do mínimo: insumo ativo, estocado, com mínimo, fora de OUTROS, saldo < mínimo.
-  function ehAbaixo(x) {
-    return x.ativo && x.politica === 'ESTOCADO' && x.categoria !== 'OUTROS' && x.minimo > 0 && (x.saldo || 0) < x.minimo;
-  }
-
-  // ---------- Filtro ----------
+  // ---------- Regras ----------
+  const ehAbaixo = function (x) { return x.ativo && x.politica === 'ESTOCADO' && x.minimo > 0 && (x.saldo || 0) < x.minimo; };
+  const REGRA = {
+    TODOS: function () { return true; },
+    LUVA: function (x) { return x.categoria === 'LUVA'; }, FILTRO: function (x) { return x.categoria === 'FILTRO'; },
+    EMBALAGEM: function (x) { return x.categoria === 'EMBALAGEM'; }, OUTROS: function (x) { return x.categoria === 'OUTROS'; },
+    ABAIXO: ehAbaixo
+  };
+  const casaBusca = function (txt) {
+    const p = busca.toUpperCase().split(/\s+/).filter(Boolean);
+    const t = String(txt).toUpperCase();
+    return p.every(function (w) { return t.indexOf(w) !== -1; });
+  };
   function visiveis() {
-    const pol = $('#f-pol').value, st = $('#f-sit').value;
-    const palavras = busca.toUpperCase().split(/\s+/).filter(Boolean);
-    return itens.filter(function (x) {
-      if (st === 'ATIVOS' && !x.ativo) return false;
-      if (st === 'INATIVOS' && x.ativo) return false;
-      if (cats.length && cats.indexOf(x.categoria) === -1) return false;
-      if (abaixo && !ehAbaixo(x)) return false;
-      if (pol && x.politica !== pol) return false;
-      const txt = x.cod + ' ' + x.descricao + ' ' + x.categoria;
-      return palavras.every(function (w) { return txt.indexOf(w) !== -1; });
-    });
+    const inat = $('#f-inat').checked;
+    return itens.filter(function (x) { return (inat || x.ativo) && REGRA[modo](x) && casaBusca(x.cod + ' ' + x.descricao); });
   }
+  const hoje0 = function () { const d = new Date(); d.setHours(0, 0, 0, 0); return d; };
+  function deBRhora(t) { const m = /^(\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2})/.exec(t || ''); return m ? new Date(+m[3], m[2] - 1, +m[1], +m[4], +m[5]) : null; }
+  function ajustesVisiveis() {
+    const desde = hoje0(); desde.setDate(desde.getDate() - (dias - 1));
+    return ajustes.filter(function (a) { const d = deBRhora(a.data); return d && d >= desde && casaBusca(a.cod_insumo + ' ' + a.descricao + ' ' + a.usuario); });
+  }
+  const nAjustesHoje = function () { const h = hoje0(); return ajustes.filter(function (a) { const d = deBRhora(a.data); return d && d >= h; }).length; };
 
   // ---------- Desenho ----------
+  const n = function (v) { return e(Fmt.num(v)); };
+  const celular = window.matchMedia('(max-width: 760px)');
+  celular.addEventListener('change', function () { desenhar(); });
+
   function desenhar() {
-    desenharContadores();
-    const lista = visiveis();
-    desenharTabela(lista);
-    desenharCartoes(lista);
-    const nomes = cats.length ? cats.map(function (c) { return CATS.find(function (k) { return k.id === c; }).nome; }).join(', ') : 'todas as categorias';
-    const txt = 'Filtro: <b>' + Ui.esc(nomes) + (abaixo ? ' · abaixo do mínimo' : '') + '</b> · ' + lista.length + ' de ' + itens.length;
-    $('#info').innerHTML = txt;
-    $('#info-mob').innerHTML = txt;
-    const extras = ($('#f-pol').value ? 1 : 0) + ($('#f-sit').value !== 'ATIVOS' ? 1 : 0);
-    $('#n-filtros').hidden = !extras;
-    $('#n-filtros').textContent = extras;
-  }
-
-  function desenharContadores() {
     const ativos = itens.filter(function (x) { return x.ativo; });
-    const n = function (id) { return ativos.filter(function (x) { return x.categoria === id; }).length; };
-    const nAbaixo = ativos.filter(ehAbaixo).length;
-    $('#cont').innerHTML = CATS.map(function (k) {
-      return '<button class="kq' + (cats.indexOf(k.id) !== -1 ? ' sel' : '') + '" style="--c:' + k.c + '" data-cat="' + k.id + '"><b>' + n(k.id) + '</b><span>' + k.nome + '<small>' + k.sub + '</small></span></button>';
+    const cont = function (m) { return ativos.filter(REGRA[m]).length; };
+    const nAj = nAjustesHoje();
+    $('#cards').innerHTML = FILTROS.map(function (k) {
+      return '<button class="kq' + (modo === k.m ? ' sel' : '') + (k.m === 'ABAIXO' && cont(k.m) ? ' alerta' : '') + '" data-modo="' + k.m + '" style="--c:' + k.c + '"><span class="l">' + k.t + '</span><b>' + cont(k.m) + '</b></button>';
     }).join('') +
-      '<button class="kq' + (abaixo ? ' sel' : '') + (nAbaixo ? ' piscando' : '') + '" style="--c:#dc2626" data-cat="ABAIXO"><b>' + nAbaixo + '</b><span>Abaixo do mínimo<small>saldo &lt; estoque mínimo</small></span></button>';
-    $('#cont-mob').innerHTML = CATS.slice(0, 3).map(function (k) {
-      return '<span class="km' + (cats.indexOf(k.id) !== -1 ? ' sel' : '') + '" style="--c:' + k.c + '" data-cat="' + k.id + '"><b>' + n(k.id) + '</b>' + k.nome + '</span>';
-    }).join('') +
-      '<span class="km' + (abaixo ? ' sel' : '') + (nAbaixo ? ' piscando' : '') + '" style="--c:#dc2626" data-cat="ABAIXO"><b>' + nAbaixo + '</b>Abaixo mín.</span>' +
-      '<span class="km' + (cats.indexOf('OUTROS') !== -1 ? ' sel' : '') + '" style="--c:#64748b" data-cat="OUTROS"><b>' + n('OUTROS') + '</b>Outros</span>';
+      '<button class="kq' + (modo === 'AJUSTES' ? ' sel' : '') + '" data-modo="AJUSTES" style="--c:#8b5cf6" title="Quem corrigiu o saldo, de quanto para quanto e por quê"><span class="l">🕘 Ajustes de saldo</span><b>' + nAj + '</b></button>';
+    $('#cards-mob').innerHTML = FILTROS.concat([{ m: 'AJUSTES', t: 'Ajustes hoje', c: '#8b5cf6' }]).map(function (k) {
+      return '<button class="km' + (modo === k.m ? ' sel' : '') + '" data-modo="' + k.m + '" style="--c:' + k.c + '"><b>' + (k.m === 'AJUSTES' ? nAj : cont(k.m)) + '</b> ' + k.t + '</button>';
+    }).join('');
+    const aj = modo === 'AJUSTES';
+    $('#periodo').hidden = !aj;
+    $('#l-inat').hidden = aj;
+    $('#busca').placeholder = aj ? 'Insumo ou quem fez…' : 'Código ou descrição…';
+    if (aj) desenharAjustes(); else desenharTabela();
   }
 
-  function htmlSaldo(x) {
-    if (!x.ativo || x.saldo === null) return { cls: '', txt: '—' };
-    if (x.politica === 'SOB_DEMANDA') return { cls: '', txt: x.saldo ? Fmt.num(x.saldo) : '—' };
-    if (x.categoria === 'OUTROS' || !(x.minimo > 0)) return { cls: '', txt: Fmt.num(x.saldo) };
-    return { cls: x.saldo < x.minimo ? ' baixo' : ' ok', txt: Fmt.num(x.saldo) };
-  }
-  function htmlPol(x) {
-    return x.politica === 'SOB_DEMANDA' ? '<span class="pol sd">SOB DEMANDA</span>' : '<span class="pol">Estocado</span>';
-  }
-
-  function desenharTabela(lista) {
+  function desenharTabela() {
+    const l = visiveis();
+    const k = FILTROS.find(function (f) { return f.m === modo; });
+    $('#tit-tab').textContent = k ? k.t : 'Todos';
+    $('#sub-tab').textContent = l.length + ' insumo' + (l.length === 1 ? '' : 's') + (pode ? ' · clique para editar o cadastro' : '');
     const sel = g && !g.novo ? g.orig.cod : null;
-    $('#linhas').innerHTML = lista.slice(0, MAX_LINHAS).map(function (x) {
-      const s = htmlSaldo(x);
-      return '<tr class="' + (x.cod === sel ? 'sel' : '') + (x.ativo ? '' : ' inat') + '" data-cod="' + Ui.esc(x.cod) + '">' +
-        '<td><b>' + Ui.esc(x.cod) + '</b></td><td class="desc" title="' + Ui.esc(x.descricao) + '">' + Ui.esc(x.descricao) + '</td>' +
-        '<td><span class="cat ' + (CLS_CAT[x.categoria] || 'out') + '">' + Ui.esc(x.categoria) + '</span></td>' +
-        '<td>' + Ui.esc(x.unidade) + '</td><td>' + htmlPol(x) + '</td><td>' + Ui.esc(x.consumo || '—') + '</td>' +
-        '<td class="num">' + (x.minimo === null ? '—' : Fmt.num(x.minimo)) + '</td>' +
-        '<td class="num">' + (x.lead === null ? '—' : Fmt.num(x.lead) + ' d') + '</td>' +
-        '<td class="num">' + (x.usadoEm === null ? '—' : Fmt.num(x.usadoEm)) + '</td>' +
-        '<td class="num sal' + s.cls + '">' + s.txt + '</td></tr>';
-    }).join('') || '<tr><td colspan="10"><div class="vazio">Nenhum insumo com esse filtro.</div></td></tr>';
-    if (lista.length > MAX_LINHAS) {
-      $('#linhas').insertAdjacentHTML('beforeend', '<tr><td colspan="10" class="mut">Mostrando ' + MAX_LINHAS + ' de ' + lista.length + ' · refine a busca</td></tr>');
-    }
-  }
-
-  function desenharCartoes(lista) {
-    $('#cartoes').innerHTML = lista.slice(0, 150).map(function (x) {
-      const s = htmlSaldo(x);
-      const dir = x.politica === 'SOB_DEMANDA' ? '<span class="pol sd">SOB DEMANDA</span>'
-        : '<span>mín. ' + (x.minimo === null ? '—' : Fmt.num(x.minimo)) + ' · saldo <b class="sal' + s.cls + '">' + s.txt + '</b></span>';
-      return '<div class="cm' + (x.ativo ? '' : ' inat') + '" data-cod="' + Ui.esc(x.cod) + '">' +
-        '<div class="cm-top"><span class="op">' + Ui.esc(x.cod) + '</span><span class="cli">' + (x.ativo ? '' : 'inativo') + '</span><span class="cat ' + (CLS_CAT[x.categoria] || 'out') + '">' + Ui.esc(x.categoria) + '</span></div>' +
-        '<div class="cm-desc">' + Ui.esc(x.descricao) + '<small>' + Ui.esc([x.unidade, x.consumo || 'sem processo', 'usado em ' + (x.usadoEm || 0) + ' produtos'].join(' · ')) + '</small></div>' +
-        '<div class="lin2"><span>lead time ' + (x.lead === null ? '—' : Fmt.num(x.lead) + ' d') + '</span>' + dir + '</div></div>';
-    }).join('') || '<div class="vazio">Nenhum insumo com esse filtro.</div>';
-    if (lista.length > 150) $('#cartoes').insertAdjacentHTML('beforeend', '<div class="vazio">Mostrando 150 de ' + lista.length + ' · refine a busca</div>');
-  }
-
-  // ---------- Eventos da lista ----------
-  $('#busca').addEventListener('input', function () { busca = this.value.trim(); $('#busca-mob').value = this.value; desenhar(); });
-  $('#busca-mob').addEventListener('input', function () { busca = this.value.trim(); $('#busca').value = this.value; desenhar(); });
-  $('#f-pol').addEventListener('change', desenhar);
-  $('#f-sit').addEventListener('change', desenhar);
-
-  document.addEventListener('click', function (ev) {
-    const k = ev.target.closest('[data-cat]');
-    if (k) {
-      const id = k.dataset.cat;
-      if (id === 'ABAIXO') abaixo = !abaixo;
-      else if (cats.indexOf(id) !== -1) cats = cats.filter(function (c) { return c !== id; });
-      else cats.push(id);
-      desenhar();
+    const estq = function (x) {
+      if (!x.ativo || x.saldo === null) return '<span class="res">—</span>';
+      return '<span class="' + (ehAbaixo(x) ? 'baixo' : '') + '">' + n(x.saldo) + '</span>';
+    };
+    const nomeCat = function (c) { const k = CATS.find(function (x) { return x.id === c; }); return k ? k.nome : (c || '—'); };
+    const bt = function (x) { return podeAjustar && x.ativo ? '<button type="button" class="bt-aj" data-ajustar="' + e(x.cod) + '" title="Corrigir o saldo (quanto tem agora)">✏ Corrigir saldo</button>' : ''; };
+    if (celular.matches) {
+      $('#linhas').innerHTML = '';
+      $('#lista-tab').innerHTML = l.slice(0, 200).map(function (x) {
+        return '<div class="li" data-cod="' + e(x.cod) + '"><div class="tx">' + e(x.descricao) + '<span class="cod">' + e(x.cod) + '</span>' +
+          '<small>' + e(nomeCat(x.categoria)) + ' · estoque ' + estq(x) + ' ' + e(x.unidade.toLowerCase()) + ' · mín. ' + (x.minimo === null ? '—' : n(x.minimo)) + '</small></div>' + bt(x) + '</div>';
+      }).join('') || '<div class="vazio">Nenhum insumo neste filtro.</div>';
       return;
     }
-    const linha = ev.target.closest('#linhas tr[data-cod], #cartoes .cm[data-cod]');
+    $('#lista-tab').innerHTML = '';
+    $('#cab').innerHTML = '<tr><th>Insumo</th><th style="width:130px">Categoria</th><th class="c" style="width:120px">Estoque</th><th class="c" style="width:110px">Mínimo</th><th style="width:150px"></th></tr>';
+    $('#linhas').innerHTML = l.slice(0, MAX_LINHAS).map(function (x) {
+      return '<tr class="lin' + (x.cod === sel ? ' sel' : '') + (x.ativo ? '' : ' inat') + '" data-cod="' + e(x.cod) + '">' +
+        '<td class="ins" title="' + e(x.descricao) + '">' + e(x.descricao) + '<span class="cod">' + e(x.cod) + '</span>' + (x.ativo ? '' : ' <span class="res">(inativo)</span>') + '</td>' +
+        '<td class="res">' + e(nomeCat(x.categoria)) + '</td>' +
+        '<td class="c">' + estq(x) + ' <span class="res" style="font-size:11px">' + e(x.unidade.toLowerCase()) + '</span></td>' +
+        '<td class="c res">' + (x.minimo === null || x.minimo === 0 ? '—' : n(x.minimo)) + '</td>' +
+        '<td class="c">' + bt(x) + '</td></tr>';
+    }).join('') || '<tr><td colspan="5"><div class="vazio">Nenhum insumo neste filtro.</div></td></tr>';
+    if (l.length > MAX_LINHAS) $('#linhas').insertAdjacentHTML('beforeend', '<tr><td colspan="5" class="res">Mostrando ' + MAX_LINHAS + ' de ' + l.length + ' · refine a busca</td></tr>');
+  }
+
+  const difHtml = function (d) { return d > 0 ? '<span class="mais">+' + n(d) + '</span>' : d < 0 ? '<span class="baixo">' + n(d) + '</span>' : '<span class="res">0</span>'; };
+  function desenharAjustes() {
+    const l = ajustesVisiveis();
+    $('#tit-tab').textContent = 'Ajustes de saldo';
+    $('#sub-tab').textContent = l.length + ' ajuste' + (l.length === 1 ? '' : 's') + ' · ' + (dias === 1 ? 'hoje' : 'últimos ' + dias + ' dias');
+    document.querySelectorAll('#periodo [data-dias]').forEach(function (b) { b.classList.toggle('on', Number(b.dataset.dias) === dias); });
+    if (celular.matches) {
+      $('#linhas').innerHTML = '';
+      $('#lista-tab').innerHTML = l.map(function (a) {
+        return '<div class="li" style="cursor:default"><div class="tx">' + e(a.descricao || a.cod_insumo) + '<span class="cod">' + e(a.cod_insumo) + '</span>' +
+          '<small>' + e(a.data) + ' · ' + e(a.usuario) + ' · ' + e(NOME_MOTIVO[a.motivo] || a.motivo) + '</small>' +
+          '<small>' + (a.antes === null ? '' : n(a.antes) + ' → ' + n(a.depois) + ' · ') + difHtml(a.diferenca) + ' ' + e(String(a.unidade || '').toLowerCase()) + '</small></div></div>';
+      }).join('') || '<div class="vazio">Nenhum ajuste neste período.</div>';
+      return;
+    }
+    $('#lista-tab').innerHTML = '';
+    $('#cab').innerHTML = '<tr><th style="width:140px">Data / hora</th><th style="width:120px">Quem</th><th>Insumo</th><th class="c" style="width:100px">Antes</th><th class="c" style="width:100px">Depois</th><th class="c" style="width:110px">Diferença</th><th style="width:150px">Motivo</th></tr>';
+    $('#linhas').innerHTML = l.map(function (a) {
+      return '<tr><td class="res">' + e(a.data) + '</td><td>' + e(a.usuario) + '</td>' +
+        '<td class="ins" title="' + e(a.descricao) + '">' + e(a.descricao || a.cod_insumo) + '<span class="cod">' + e(a.cod_insumo) + '</span></td>' +
+        '<td class="c">' + (a.antes === null ? '—' : n(a.antes)) + '</td><td class="c">' + (a.depois === null ? '—' : n(a.depois)) + '</td>' +
+        '<td class="c">' + difHtml(a.diferenca) + '</td><td>' + e(NOME_MOTIVO[a.motivo] || a.motivo) + '</td></tr>';
+    }).join('') || '<tr><td colspan="7"><div class="vazio">Nenhum ajuste neste período.</div></td></tr>';
+  }
+
+  // ---------- Eventos ----------
+  $('#busca').addEventListener('input', function () { busca = this.value.trim(); desenhar(); });
+  $('#f-inat').addEventListener('change', desenhar);
+  document.addEventListener('click', function (ev) {
+    if (ev.target.closest('.modal-fundo')) return;
+    const aj = ev.target.closest('[data-ajustar]');
+    if (aj) { corrigirSaldo(aj.dataset.ajustar); return; }
+    const m = ev.target.closest('[data-modo]');
+    if (m) { modo = m.dataset.modo; const w = document.querySelector('.tab-wrap'); if (w) w.scrollTop = 0; desenhar(); return; }
+    const d = ev.target.closest('[data-dias]');
+    if (d) { dias = Number(d.dataset.dias); desenhar(); return; }
+    if (ev.target.closest('[data-imprimir]')) { imprimir(); return; }
+    if (ev.target.closest('[data-excel]')) { baixarExcel(); return; }
+    const linha = ev.target.closest('#linhas tr.lin[data-cod], #lista-tab .li[data-cod]');
     if (linha) { trocarPara(linha.dataset.cod); return; }
     const bt = ev.target.closest('[data-acao]');
     if (!bt || bt.disabled) return;
     const acao = bt.dataset.acao;
     if (acao === 'novo') trocarPara(null);
-    if (acao === 'filtros-mob') filtrosMob();
     if (acao === 'fechar') fecharGaveta();
     if (acao === 'historico') historico();
     if (acao === 'salvar') salvar();
     if (acao === 'ativo') alternarAtivo();
-    if (acao === 'entrada') abrirEntrada();
-    if (acao === 'inventario') abrirInventario();
-    if (acao === 'movimentos') movimentos(g.x.cod);
+    if (acao === 'ajustar' && g && g.x) corrigirSaldo(g.x.cod);
   });
   document.addEventListener('keydown', function (ev) {
     if (ev.key === 'Escape' && g && !document.querySelector('.modal-fundo')) fecharGaveta();
   });
   window.addEventListener('beforeunload', function (ev) { if (g && contar()) { ev.preventDefault(); ev.returnValue = ''; } });
 
-  // Filtros do celular (política e situação) numa janela
-  function filtrosMob() {
-    const corpo = '<div class="filtros-mob">' +
-      '<label class="campo">Política<select data-f="pol">' + $('#f-pol').innerHTML + '</select></label>' +
-      '<label class="campo">Situação<select data-f="sit">' + $('#f-sit').innerHTML + '</select></label></div>';
+  // ============================================================
+  // ✏ CORRIGIR SALDO — uma pergunta: quanto tem agora? + motivo
+  // ============================================================
+  async function enviar(rota, dados) {
+    const chave = rota + JSON.stringify(dados);
+    const idReq = pendente[chave] || Api.idReq();
+    pendente[chave] = idReq;
+    try {
+      const r = await Api.chamar(rota, Object.assign({ idReq: idReq }, dados));
+      delete pendente[chave];
+      return r;
+    } catch (err) {
+      if (err.codigo !== 'SEM_CONEXAO') delete pendente[chave];
+      throw err;
+    }
+  }
+  function num(v) {
+    let t = String(v === undefined || v === null ? '' : v).trim();
+    if (!t) return null;
+    if (t.indexOf(',') !== -1) t = t.replace(/\./g, '').replace(',', '.');
+    const x = Number(t);
+    return isNaN(x) ? NaN : Math.round(x * 1000) / 1000;
+  }
+  function corrigirSaldo(cod) {
+    if (!podeAjustar) return;
+    const x = itens.find(function (i) { return i.cod === cod; });
+    if (!x) return;
+    const un = x.unidade.toLowerCase();
+    const atual = x.saldo || 0;
+    const corpo = '<div class="msg-erro"></div><div class="cs">' +
+      '<div class="lin2"><span>Estoque no sistema</span><b>' + n(atual) + ' ' + e(un) + '</b></div>' +
+      '<label>QUANTO TEM AGORA?<input name="real" inputmode="decimal" autocomplete="off" placeholder="0"></label>' +
+      '<div class="dif" data-dif></div>' +
+      '<label>MOTIVO<select name="mot"><option value="">Escolha…</option>' + MOTIVOS.map(function (m) { return '<option value="' + m.v + '">' + m.t + '</option>'; }).join('') + '</select></label></div>';
     Ui.janela({
-      titulo: 'Filtros', corpo: corpo,
-      botoes: [{ texto: 'Limpar', classe: 'esq', valor: 'limpar' }, { texto: 'Aplicar', classe: 'pri', valor: 'ok' }],
-      antesDeFechar: function (valor, caixa) {
-        const pol = caixa.querySelector('[data-f="pol"]').value, sit = caixa.querySelector('[data-f="sit"]').value;
-        $('#f-pol').value = valor === 'limpar' ? '' : pol;
-        $('#f-sit').value = valor === 'limpar' ? 'ATIVOS' : sit;
-        if (valor === 'limpar') { cats = PADRAO_CATS.slice(); abaixo = false; }
-        desenhar();
-        return true;
+      titulo: 'Corrigir saldo', subtitulo: x.descricao + ' · ' + x.cod, largura: 440, corpo: corpo,
+      botoes: [{ texto: 'Cancelar', valor: null }, { texto: 'Salvar', classe: 'verde', valor: 'ok' }],
+      antesDeFechar: async function (v, cx) {
+        const erro = cx.querySelector('.msg-erro');
+        const q = num(cx.querySelector('[name="real"]').value), mot = cx.querySelector('[name="mot"]').value;
+        if (q === null || isNaN(q) || q < 0) { Ui.msgErro(erro, 'Digite quanto tem agora (zero ou mais).'); return false; }
+        if (!mot) { Ui.msgErro(erro, 'Escolha o motivo.'); return false; }
+        try {
+          const r = await enviar('corrigirSaldo', { cod_insumo: x.cod, qtd_real: q, motivo: mot });
+          if (r.duplicado) Ui.toast('Este ajuste já tinha sido gravado.', 'aviso');
+          else Ui.toast(x.cod + ': ' + Fmt.num(r.antes) + ' → ' + Fmt.num(r.depois) + ' ' + un + (r.diferenca ? ' (' + (r.diferenca > 0 ? '+' : '') + Fmt.num(r.diferenca) + ')' : ' · contagem conferida'), 'ok', 'Saldo corrigido');
+          return true;
+        } catch (err) { Ui.msgErro(erro, err.message); return false; }
       }
+    }).then(function (v) { if (v === 'ok') carregar(); });
+    const l = document.querySelectorAll('.modal-fundo .modal-caixa'), cx = l[l.length - 1];
+    const inp = cx.querySelector('[name="real"]');
+    inp.addEventListener('input', function () {
+      const q = num(inp.value), el = cx.querySelector('[data-dif]');
+      if (q === null || isNaN(q)) { el.textContent = ''; return; }
+      const d = Math.round((q - atual) * 1000) / 1000;
+      el.innerHTML = d === 0 ? 'Bate com o sistema (fica registrado que foi contado)' : 'Diferença: ' + difHtml(d) + ' ' + e(un);
     });
-    const caixa = document.querySelector('.modal-caixa');
-    caixa.querySelector('[data-f="pol"]').value = $('#f-pol').value;
-    caixa.querySelector('[data-f="sit"]').value = $('#f-sit').value;
+    setTimeout(function () { inp.focus(); }, 30);
+  }
+
+  // ============================================================
+  // IMPRIMIR / EXCEL — sai a lista da tela (insumos do card, ou os ajustes)
+  // Relatório profissional: preto no branco, negrito só no título e cabeçalhos.
+  // ============================================================
+  function dadosRelatorio() {
+    if (modo === 'AJUSTES') {
+      return {
+        titulo: 'AJUSTES DE SALDO — ' + (dias === 1 ? 'HOJE' : 'ÚLTIMOS ' + dias + ' DIAS'),
+        cab: ['DATA / HORA', 'QUEM', 'INSUMO', 'CÓDIGO', 'ANTES', 'DEPOIS', 'DIFERENÇA', 'UN.', 'MOTIVO'], num: [4, 5, 6],
+        linhas: ajustesVisiveis().map(function (a) {
+          return [a.data, a.usuario, a.descricao, a.cod_insumo, a.antes, a.depois, a.diferenca, a.unidade, NOME_MOTIVO[a.motivo] || a.motivo];
+        })
+      };
+    }
+    const k = FILTROS.find(function (f) { return f.m === modo; });
+    return {
+      titulo: 'INSUMOS — ' + (k ? k.t : 'Todos').toUpperCase(),
+      cab: ['INSUMO', 'CÓDIGO', 'CATEGORIA', 'ESTOQUE', 'MÍNIMO', 'UN.'], num: [3, 4],
+      linhas: visiveis().map(function (x) { return [x.descricao, x.cod, x.categoria, x.saldo, x.minimo, x.unidade]; })
+    };
+  }
+  function imprimir() {
+    const d = dadosRelatorio();
+    if (!d.linhas.length) { Ui.toast('Nada para imprimir nesta lista.', 'aviso'); return; }
+    const w = window.open('');
+    if (!w) { Ui.toast('O navegador bloqueou a janela de impressão. Libere pop-ups para este site.', 'erro'); return; }
+    const cel = function (v, i) { return '<td' + (d.num.indexOf(i) !== -1 ? ' class="n"' : '') + '>' + (d.num.indexOf(i) !== -1 ? (v === null || v === '' ? '—' : Fmt.num(v)) : e(v === null || v === undefined ? '' : v)) + '</td>'; };
+    w.document.write('<html><head><title>' + e(d.titulo) + '</title><style>' +
+      'body{font-family:Arial;padding:20px;color:#111}h2{font-size:16px;margin:0 0 4px}.sub{font-size:10px;color:#555;margin-bottom:14px}' +
+      'table{width:100%;border-collapse:collapse}th,td{border:1px solid #ccc;padding:5px 6px;font-size:10.5px;text-align:left}th{font-weight:bold}td.n{text-align:right}' +
+      '</style></head><body><h2>' + e(d.titulo) + '</h2><div class="sub">Emitido em ' + new Date().toLocaleString('pt-BR') + ' por ' + e(ctx.usuario ? ctx.usuario.nome || ctx.usuario.login : '') + ' · ' + d.linhas.length + ' linha' + (d.linhas.length === 1 ? '' : 's') + (busca ? ' · busca: ' + e(busca) : '') + '</div>' +
+      '<table><thead><tr>' + d.cab.map(function (c) { return '<th>' + c + '</th>'; }).join('') + '</tr></thead><tbody>' +
+      d.linhas.map(function (l) { return '<tr>' + l.map(cel).join('') + '</tr>'; }).join('') + '</tbody></table>' +
+      '<script>window.onload=()=>window.print();<\/script></body></html>');
+    w.document.close();
+  }
+  function carregarSheetJS() {
+    if (window.XLSX) return Promise.resolve();
+    return new Promise(function (ok, falha) {
+      const sc = document.createElement('script');
+      sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+      sc.onload = ok; sc.onerror = function () { falha(new Error('Não foi possível carregar o gerador de Excel (sem internet?).')); };
+      document.head.appendChild(sc);
+    });
+  }
+  async function baixarExcel() {
+    const d = dadosRelatorio();
+    if (!d.linhas.length) { Ui.toast('Nada para exportar nesta lista.', 'aviso'); return; }
+    try {
+      await carregarSheetJS();
+      const cab = d.cab.map(function (c) { return c.charAt(0) + c.slice(1).toLowerCase(); });
+      const ws = XLSX.utils.aoa_to_sheet([cab].concat(d.linhas));
+      ws['!cols'] = cab.map(function (c, i) { return { wch: i === (modo === 'AJUSTES' ? 2 : 0) ? 42 : 14 }; });
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, modo === 'AJUSTES' ? 'Ajustes de saldo' : 'Insumos');
+      const h = new Date();
+      const nome = (modo === 'AJUSTES' ? 'ajustes_saldo_' : 'insumos_') + h.getFullYear() + String(h.getMonth() + 1).padStart(2, '0') + String(h.getDate()).padStart(2, '0') + '.xlsx';
+      XLSX.writeFile(wb, nome);
+      Ui.toast(d.linhas.length + ' linhas · ' + nome, 'ok', 'Excel');
+    } catch (err) { Ui.erro(err); }
   }
 
   // ---------- Gaveta: abrir / fechar ----------
@@ -410,7 +536,7 @@ Sessao.iniciarPagina('insumos').then(function (ctx) {
     g = { novo: !x, x: x, orig: orig, campos: Object.assign({}, orig) };
     document.body.classList.add('gaveta-aberta');
     desenharGaveta();
-    desenharTabela(visiveis());
+    desenhar();
     if (!x && pode) setTimeout(function () { const c = $('#gaveta [data-campo="cod"]'); if (c) c.focus(); }, 30);
   }
 
@@ -423,7 +549,7 @@ Sessao.iniciarPagina('insumos').then(function (ctx) {
     g = null;
     document.body.classList.remove('gaveta-aberta');
     $('#gaveta').innerHTML = '';
-    desenharTabela(visiveis());
+    desenhar();
   }
 
   function desenharGaveta() {
@@ -467,11 +593,11 @@ Sessao.iniciarPagina('insumos').then(function (ctx) {
         estq +
         (x ? '<div class="usado"><b>USADO EM ' + usado + ' PRODUTO' + (usado === 1 ? '' : 'S') + '</b><span class="mut">' +
           (x.ativo ? (usado ? 'Estruturas (BOM) ativas que levam este insumo.' : 'Nenhuma estrutura ativa usa este insumo.') : 'Insumo inativo: não entra em novas estruturas.') + '</span></div>' : '') +
-        '<div class="nota">Saldo e projeção vêm do Estoque (entrada e inventário pelos botões do topo). Desativar não apaga: o insumo some das novas BOMs.</div>' +
+        '<div class="nota">O saldo muda pelo ✏ Corrigir saldo (fica registrado em Ajustes de saldo). Desativar não apaga: o insumo some das novas BOMs.</div>' +
       '</div>' +
       '<div class="gv-rod">' +
         (pode && !g.novo ? '<button class="btn2 esq" data-acao="ativo">' + (x.ativo ? 'Inativar' : 'Reativar') + '</button>' : '') +
-        (g.novo ? '' : '<button class="btn2" data-acao="movimentos" title="Entradas, saídas e ajustes (com estorno)">' + Ui.ic('i-lista') + 'Movimentos</button>') +
+        (!g.novo && podeAjustar && x.ativo ? '<button class="btn2 com-texto" data-acao="ajustar" title="Corrigir o saldo">✏ Corrigir saldo</button>' : '') +
         (g.novo ? '' : '<button class="btn2" data-acao="historico" title="Quem criou e alterou o cadastro">' + Ui.ic('i-hist') + 'Histórico</button>') +
         (pode && (g.novo || x.ativo) ? '<button class="btn2 salvar" data-acao="salvar" id="bt-salvar">' + Ui.ic('i-check') + 'Salvar <span class="n" id="n-salvar">0</span></button>'
           : '<button class="btn2" data-acao="fechar">Fechar</button>') +
@@ -632,337 +758,6 @@ Sessao.iniciarPagina('insumos').then(function (ctx) {
         '</div><p class="mut" style="font-size:12px;margin:14px 0 0">Cada alteração (campo, de → para, quem e quando) fica gravada na aba MOV_AUDITORIA da planilha. ' +
         'A consulta dessa lista aqui na tela ainda não está disponível.</p>',
       botoes: [{ texto: 'Fechar', classe: 'pri', valor: null }]
-    });
-  }
-
-  // ============================================================
-  // ENTRADA EM LOTE (nota fiscal → vários insumos de uma vez)
-  // Tela 1: NF (ou "sem nota" + motivo), lista de insumos com a coluna
-  //         "Entrando" e o botão Colar do Excel (código + quantidade).
-  // Tela 2: conferência (saldo agora → entrando → saldo novo).
-  // Tudo ou nada: se um item der erro, nada é lançado.
-  // ============================================================
-  const MOTIVOS_SN = ['AMOSTRA', 'TRANSFERÊNCIA', 'DEVOLUÇÃO DE FORNECEDOR', 'OUTRO'];
-  const pendente = {};   // idReq reaproveitado se o MESMO envio cair por conexão
-  let lote = null;       // { nf, semNota, motivo, obs, qtd: {cod: texto}, busca }
-
-  async function enviar(rota, dados) {
-    const chave = rota + JSON.stringify(dados);
-    const idReq = pendente[chave] || Api.idReq();
-    pendente[chave] = idReq;
-    try {
-      const r = await Api.chamar(rota, Object.assign({ idReq: idReq }, dados));
-      delete pendente[chave];
-      return r;
-    } catch (err) {
-      if (err.codigo !== 'SEM_CONEXAO') delete pendente[chave];
-      throw err;
-    }
-  }
-  function num(v) {
-    let t = String(v === undefined || v === null ? '' : v).trim();
-    if (!t) return null;
-    if (t.indexOf(',') !== -1) t = t.replace(/\./g, '').replace(',', '.');
-    const n = Number(t);
-    return isNaN(n) ? NaN : Math.round(n * 1000) / 1000;
-  }
-  const ultimaJanela = function () { const l = document.querySelectorAll('.modal-fundo .modal-caixa'); return l[l.length - 1]; };
-  const ativosLote = function () { return itens.filter(function (x) { return x.ativo; }); };
-  function itensDoLote() {
-    return ativosLote().filter(function (x) { return String(lote.qtd[x.cod] || '').trim(); })
-      .map(function (x) { return { x: x, q: num(lote.qtd[x.cod]) }; });
-  }
-
-  function abrirEntrada() {
-    if (!pode) return;
-    if (!itens.length) { Ui.toast('Aguarde a lista de insumos carregar.', 'aviso'); return; }
-    if (!lote) lote = { nf: '', semNota: false, motivo: '', obs: '', qtd: {}, busca: '' };
-    const corpo = '<div class="msg-erro"></div>' +
-      '<div class="lt-nf"><label class="fc">Nº DA NOTA FISCAL<input name="nf" autocomplete="off" inputmode="numeric" placeholder="obrigatório" value="' + Ui.esc(lote.nf) + '"></label>' +
-      '<label class="lt-sn"><input type="checkbox" class="chk" name="sn"' + (lote.semNota ? ' checked' : '') + '> Entrada sem nota</label>' +
-      '<label class="fc" data-mot' + (lote.semNota ? '' : ' hidden') + '>MOTIVO<select name="mot"><option value="">Escolha…</option>' +
-        MOTIVOS_SN.map(function (m) { return '<option' + (lote.motivo === m ? ' selected' : '') + '>' + m + '</option>'; }).join('') + '</select></label>' +
-      '<label class="fc lt-obs">OBSERVAÇÃO (opcional)<input name="obs" autocomplete="off" value="' + Ui.esc(lote.obs) + '"></label></div>' +
-      '<div class="lt-barra"><div class="f-busca"><svg class="i"><use href="#i-busca"/></svg><input name="busca" autocomplete="off" placeholder="Filtrar código ou descrição…" value="' + Ui.esc(lote.busca) + '"></div>' +
-      '<button type="button" class="btn2" data-colar>' + Ui.ic('i-xls') + 'Colar do Excel</button>' +
-      '<button type="button" class="btn2" data-so-lote title="Mostrar só os que têm quantidade">Só os preenchidos</button></div>' +
-      '<div class="lt-wrap"><table class="tab"><thead><tr><th>Código</th><th class="col-desc">Descrição</th><th>Un.</th><th class="num">Saldo</th><th class="num">Entrando</th></tr></thead><tbody data-lt></tbody></table></div>';
-    Ui.janela({
-      titulo: 'Entrada de material', subtitulo: 'Digite a nota e a quantidade de cada insumo que chegou · depois confira', largura: 900, corpo: corpo, enterConfirma: false,
-      botoes: [{ texto: 'Cancelar', valor: null }, { texto: 'Limpar', classe: 'esq', valor: 'limpar' }, { texto: 'Conferir →', classe: 'pri', valor: 'conf' }],
-      antesDeFechar: async function (v, cx) {
-        const erro = cx.querySelector('.msg-erro');
-        if (v === 'limpar') {
-          if (!(await Ui.confirmar({ titulo: 'Limpar entrada', texto: 'Apagar a nota e todas as quantidades digitadas?', ok: 'Limpar', perigo: true }))) return false;
-          lote = null; return true;
-        }
-        lote.nf = lote.nf.trim();
-        if (!lote.semNota && !lote.nf) { Ui.msgErro(erro, 'Informe o número da nota fiscal (ou marque "Entrada sem nota").'); return false; }
-        if (lote.semNota && !lote.motivo) { Ui.msgErro(erro, 'Escolha o motivo da entrada sem nota.'); return false; }
-        const l = itensDoLote();
-        if (!l.length) { Ui.msgErro(erro, 'Digite a quantidade de pelo menos um insumo.'); return false; }
-        const ruim = l.find(function (i) { return !(i.q > 0); });
-        if (ruim) { Ui.msgErro(erro, ruim.x.cod + ': quantidade inválida.'); return false; }
-        return true;
-      }
-    }).then(function (v) {
-      if (v === 'conf') conferirEntrada();
-      if (v === 'limpar') abrirEntrada();
-    });
-
-    const cx = ultimaJanela();
-    let soLote = false;
-    function linhas() {
-      const palavras = lote.busca.toUpperCase().split(/\s+/).filter(Boolean);
-      const l = ativosLote().filter(function (x) {
-        if (soLote && !String(lote.qtd[x.cod] || '').trim()) return false;
-        const t = x.cod + ' ' + x.descricao.toUpperCase();
-        return palavras.every(function (w) { return t.indexOf(w) !== -1; });
-      });
-      cx.querySelector('[data-lt]').innerHTML = l.slice(0, 400).map(function (x) {
-        const q = lote.qtd[x.cod] || '';
-        return '<tr data-lc="' + Ui.esc(x.cod) + '"' + (q ? ' class="tem"' : '') + '><td><b>' + Ui.esc(x.cod) + '</b></td><td class="col-desc">' + Ui.esc(x.descricao) + '</td><td>' + Ui.esc(x.unidade) + '</td>' +
-          '<td class="num">' + (x.saldo === null ? '—' : Fmt.num(x.saldo)) + '</td><td class="num"><input class="in" inputmode="decimal" value="' + Ui.esc(q) + '"></td></tr>';
-      }).join('') || '<tr><td colspan="5"><div class="vazio">Nenhum insumo ' + (soLote ? 'preenchido.' : 'com esse filtro.') + '</div></td></tr>';
-      resumo();
-    }
-    const rod = cx.querySelector('.rodape');
-    const info = document.createElement('span');
-    info.className = 't-inv';
-    rod.insertBefore(info, rod.children[1] || null);
-    function resumo() {
-      const l = itensDoLote();
-      info.textContent = l.length + ' insumo' + (l.length === 1 ? '' : 's') + ' na entrada';
-    }
-    cx.addEventListener('input', function (ev) {
-      const t = ev.target;
-      if (t.name === 'nf') lote.nf = t.value;
-      if (t.name === 'obs') lote.obs = t.value;
-      if (t.name === 'busca') { lote.busca = t.value; linhas(); return; }
-      const tr = t.closest('tr[data-lc]');
-      if (tr) { lote.qtd[tr.dataset.lc] = t.value; tr.classList.toggle('tem', !!t.value.trim()); resumo(); }
-    });
-    cx.addEventListener('change', function (ev) {
-      const t = ev.target;
-      if (t.name === 'sn') {
-        lote.semNota = t.checked;
-        cx.querySelector('[data-mot]').hidden = !t.checked;
-        cx.querySelector('[name="nf"]').disabled = t.checked;
-        cx.querySelector('[name="nf"]').placeholder = t.checked ? 'sem nota' : 'obrigatório';
-      }
-      if (t.name === 'mot') lote.motivo = t.value;
-    });
-    cx.addEventListener('keydown', function (ev) {
-      // Enter na quantidade desce para a próxima linha
-      if (ev.key !== 'Enter' || !ev.target.closest('tr[data-lc]')) return;
-      ev.preventDefault();
-      const prox = ev.target.closest('tr').nextElementSibling;
-      if (prox && prox.querySelector('input')) prox.querySelector('input').focus();
-    });
-    cx.querySelector('[data-colar]').addEventListener('click', function () { colarExcel(linhas); });
-    cx.querySelector('[data-so-lote]').addEventListener('click', function (ev) {
-      soLote = !soLote; ev.currentTarget.classList.toggle('on', soLote); linhas();
-    });
-    cx.querySelector('[name="nf"]').disabled = lote.semNota;
-    linhas();
-    setTimeout(function () { const f = cx.querySelector(lote.semNota ? '[name="busca"]' : '[name="nf"]'); if (f) f.focus(); }, 30);
-  }
-
-  // Colar do Excel: duas colunas (código e quantidade), uma linha por insumo
-  function colarExcel(redesenhar) {
-    const corpo = '<div class="msg-erro"></div><p class="mut" style="margin:0 0 8px;font-size:12.5px">No Excel, selecione as duas colunas <b>Código</b> e <b>Quantidade</b>, copie (Ctrl+C) e cole aqui (Ctrl+V).</p>' +
-      '<textarea name="cola" rows="10" style="width:100%;font-family:monospace;font-size:13px" placeholder="LUV001&#9;200&#10;FIL010&#9;50"></textarea>';
-    Ui.janela({
-      titulo: 'Colar do Excel', largura: 520, corpo: corpo, enterConfirma: false,
-      botoes: [{ texto: 'Voltar', valor: null }, { texto: 'Usar', classe: 'pri', valor: 'ok' }],
-      antesDeFechar: function (v, cx) {
-        const erro = cx.querySelector('.msg-erro');
-        const linhas = cx.querySelector('[name="cola"]').value.split(/\r?\n/).map(function (l) { return l.trim(); }).filter(Boolean);
-        if (!linhas.length) { Ui.msgErro(erro, 'Nada colado.'); return false; }
-        const ok = [], ruins = [];
-        linhas.forEach(function (l, i) {
-          const p = l.split(/\t|;/).map(function (c) { return c.trim(); });
-          if (p.length < 2) { if (i === 0) return; ruins.push(l); return; }
-          const cod = p[0].toUpperCase(), q = num(p[p.length - 1]);
-          const x = itens.find(function (k) { return k.cod === cod && k.ativo; });
-          if (!x || !(q > 0)) { if (i === 0 && !x && isNaN(q)) return; ruins.push(l); return; }   // 1ª linha pode ser cabeçalho
-          ok.push({ cod: cod, q: q });
-        });
-        if (ruins.length) { Ui.msgErro(erro, ruins.length + ' linha(s) com código inexistente/inativo ou quantidade inválida: ' + ruins.slice(0, 5).join(' | ') + (ruins.length > 5 ? '…' : '')); return false; }
-        ok.forEach(function (o) { lote.qtd[o.cod] = String(o.q).replace('.', ','); });
-        Ui.toast(ok.length + ' insumo(s) preenchido(s).', 'ok', 'Colado');
-        return true;
-      }
-    }).then(function (v) { if (v === 'ok') redesenhar(); });
-  }
-
-  function conferirEntrada() {
-    const l = itensDoLote();
-    const tot = l.length;
-    const doc = lote.semNota ? 'SEM NOTA · ' + lote.motivo : 'NF ' + lote.nf.trim();
-    const corpo = '<div class="msg-erro"></div><p style="margin:0 0 10px"><b>' + Ui.esc(doc) + '</b>' + (lote.obs ? ' · ' + Ui.esc(lote.obs) : '') + ' · ' + tot + ' insumo' + (tot === 1 ? '' : 's') + '</p>' +
-      '<div class="lt-wrap"><table class="tab"><thead><tr><th>Código</th><th class="col-desc">Descrição</th><th class="num">Saldo agora</th><th class="num">Entrando</th><th class="num">Saldo novo</th></tr></thead><tbody>' +
-      l.map(function (i) {
-        const s = i.x.saldo || 0;
-        return '<tr><td><b>' + Ui.esc(i.x.cod) + '</b></td><td class="col-desc">' + Ui.esc(i.x.descricao) + '</td><td class="num">' + Fmt.num(s) + '</td>' +
-          '<td class="num"><b class="ent">+' + Fmt.num(i.q) + '</b></td><td class="num"><b>' + Fmt.num(Math.round((s + i.q) * 1000) / 1000) + '</b> ' + Ui.esc(i.x.unidade.toLowerCase()) + '</td></tr>';
-      }).join('') + '</tbody></table></div>' +
-      '<p class="mut" style="margin:10px 0 0;font-size:12px">Embalagem com solicitação aberta: a entrada fecha a solicitação (vira "Chegou") e o almoxarifado já vê para baixar.</p>';
-    async function lancar(cx, confirmarNF) {
-      const dados = { nf: lote.semNota ? '' : lote.nf.trim(), sem_nota: lote.semNota, motivo_sem_nota: lote.semNota ? lote.motivo : '', obs: lote.obs.trim(),
-        itens: l.map(function (i) { return { cod_insumo: i.x.cod, qtd: i.q }; }) };
-      if (confirmarNF) dados.confirmar_nf_repetida = true;
-      try {
-        const r = await enviar('registrarEntradaLote', dados);
-        if (r.duplicado) Ui.toast('Esta entrada já tinha sido lançada.', 'aviso');
-        else Ui.toast(r.insumos + ' insumo(s) · ' + doc + (r.solicitacoesRecebidas.length ? ' · ' + r.solicitacoesRecebidas.length + ' solicitação(ões) de caixa chegou' : ''), 'ok', 'Entrada lançada');
-        return true;
-      } catch (err) {
-        if (err.codigo === 'NF_REPETIDA' && !confirmarNF) {
-          const ok = await Ui.confirmar({ titulo: 'Nota já lançada', texto: err.message, ok: 'Lançar mesmo assim', perigo: true });
-          return ok ? lancar(cx, true) : false;
-        }
-        Ui.msgErro(cx.querySelector('.msg-erro'), err.message);
-        return false;
-      }
-    }
-    Ui.janela({
-      titulo: 'Conferir entrada', subtitulo: 'Confira antes de lançar: o saldo sobe na hora e fica registrado quem lançou', largura: 820, corpo: corpo, enterConfirma: false,
-      botoes: [{ texto: '← Voltar e corrigir', valor: 'voltar' }, { texto: 'Lançar entrada', classe: 'verde', valor: 'ok' }],
-      antesDeFechar: function (v, cx) { return v === 'ok' ? lancar(cx, false) : true; }
-    }).then(function (v) {
-      if (v === 'voltar') abrirEntrada();
-      if (v === 'ok') { lote = null; carregar(); }
-    });
-  }
-
-  // ============================================================
-  // INVENTÁRIO (contado × sistema; rascunho no servidor)
-  // Só insumos ativos ESTOCADOS. A diferença vira AJUSTE registrado.
-  // ============================================================
-  const contagem = {};
-  async function abrirInventario() {
-    if (!pode) return;
-    let rasc = { salvoEm: '', contagens: [] };
-    try { rasc = await Api.chamar('lerRascunhoInventario', {}); } catch (err) { Ui.erro(err); }
-    (rasc.contagens || []).forEach(function (c) {
-      if (!(c.cod_insumo in contagem) && c.qtd_contada !== '' && c.qtd_contada !== null) contagem[c.cod_insumo] = String(c.qtd_contada).replace('.', ',');
-    });
-    const lista = itens.filter(function (x) { return x.ativo && x.politica === 'ESTOCADO' && x.saldo !== null && (!cats.length || cats.indexOf(x.categoria) !== -1); });
-    if (!lista.length) { Ui.toast('Nenhum insumo estocado nas categorias marcadas.', 'aviso'); return; }
-    const nomeCat = cats.length ? cats.map(function (c) { return CATS.find(function (k) { return k.id === c; }).nome; }).join(', ') : 'Todas as categorias';
-    const corpo = '<div class="msg-erro" style="margin-bottom:10px"></div><div class="inv-wrap"><table class="tab"><thead><tr><th>Insumo</th><th class="col-desc">Descrição</th><th class="num"><span class="so-desk">Saldo no sistema</span><span class="so-mob">Sistema</span></th><th class="num">Contado</th><th class="num"><span class="so-desk">Diferença</span><span class="so-mob">Dif.</span></th></tr></thead><tbody>' +
-      lista.map(function (i) {
-        return '<tr data-inv="' + Ui.esc(i.cod) + '"><td><b>' + Ui.esc(i.cod) + '</b></td><td class="col-desc">' + Ui.esc(i.descricao) + '</td><td class="num">' + Fmt.num(i.saldo) + '</td>' +
-          '<td class="num"><input class="in" inputmode="decimal" placeholder="contar" value="' + Ui.esc(contagem[i.cod] || '') + '"></td><td class="num" data-dif></td></tr>';
-      }).join('') + '</tbody></table></div>';
-    Ui.janela({
-      titulo: 'Inventário · ' + nomeCat,
-      subtitulo: 'Conte o físico; a diferença vira um ajuste registrado (nada é sobrescrito)' + (rasc.salvoEm ? ' · rascunho de ' + rasc.salvoEm : ''),
-      largura: 860, corpo: corpo, enterConfirma: false,
-      botoes: [{ texto: 'Voltar', valor: null }, { texto: 'Salvar rascunho', valor: 'rasc' }, { texto: 'Fechar inventário e ajustar', classe: 'verde', valor: 'fechar' }],
-      antesDeFechar: async function (v, cx) {
-        const erro = cx.querySelector('.msg-erro');
-        Ui.msgErro(erro, '');
-        const todas = lista.map(function (i) { return { cod_insumo: i.cod, qtd_contada: (contagem[i.cod] || '').trim() }; });
-        const ruim = todas.find(function (c) { const q = num(c.qtd_contada); return c.qtd_contada !== '' && (isNaN(q) || q < 0); });
-        if (ruim) { Ui.msgErro(erro, ruim.cod_insumo + ': contagem inválida.'); return false; }
-        if (v === 'rasc') {
-          try {
-            const r = await Api.chamar('salvarRascunhoInventario', { contagens: todas.filter(function (c) { return c.qtd_contada !== ''; }) });
-            Ui.toast(r.salvos + ' linha(s) guardada(s). Dá para continuar em outro aparelho.', 'ok', 'Rascunho salvo');
-          } catch (err) { Ui.msgErro(erro, err.message); }
-          return false;
-        }
-        const contadas = todas.filter(function (c) { return c.qtd_contada !== ''; });
-        if (!contadas.length) { Ui.msgErro(erro, 'Nenhum insumo contado.'); return false; }
-        const difs = contadas.filter(function (c) { const i = lista.find(function (x) { return x.cod === c.cod_insumo; }); return Math.abs(num(c.qtd_contada) - i.saldo) > 1e-9; }).length;
-        const ok = await Ui.confirmar({ titulo: 'Fechar inventário', texto: contadas.length + ' insumo(s) contado(s), ' + difs + ' com diferença. Cada diferença vira um ajuste no estoque (fica registrado quem fechou).', ok: 'Fechar e ajustar' });
-        if (!ok) return false;
-        try {
-          const r = await enviar('fecharInventario', { contagens: contadas.map(function (c) { return { cod_insumo: c.cod_insumo, qtd_contada: num(c.qtd_contada) }; }) });
-          if (r.duplicado) Ui.toast('Este inventário já tinha sido fechado.', 'aviso');
-          else Ui.toast(r.contados + ' contado(s) · ' + r.ajustes + ' ajuste(s)' + (r.diferencas.length ? ': ' + r.diferencas.map(function (d) { return d.cod_insumo + ' ' + (d.diferenca > 0 ? '+' : '') + Fmt.num(d.diferenca); }).join(', ') : ''), 'ok', 'Inventário fechado');
-          Object.keys(contagem).forEach(function (k) { delete contagem[k]; });
-          return true;
-        } catch (err) { Ui.msgErro(erro, err.message); return false; }
-      }
-    }).then(function (v) { if (v === 'fechar') carregar(); });
-
-    const cx = ultimaJanela();
-    const rod = cx.querySelector('.rodape');
-    const info = document.createElement('span');
-    info.className = 't-inv';
-    rod.insertBefore(info, rod.firstChild);
-    function atualizar() {
-      let nCont = 0, nDif = 0;
-      cx.querySelectorAll('tr[data-inv]').forEach(function (tr) {
-        const i = lista.find(function (x) { return x.cod === tr.dataset.inv; });
-        const t = (contagem[i.cod] || '').trim(), q = num(t);
-        const cel = tr.querySelector('[data-dif]');
-        if (t === '') { cel.innerHTML = '<span class="dif zero">—</span>'; return; }
-        if (isNaN(q)) { cel.innerHTML = '<span class="dif neg2">?</span>'; return; }
-        nCont++;
-        const d = Math.round((q - i.saldo) * 1000) / 1000;
-        if (d !== 0) nDif++;
-        cel.innerHTML = d < 0 ? '<span class="dif neg2">' + Fmt.num(d) + '</span>' : d > 0 ? '<span class="dif pos">+' + Fmt.num(d) + '</span>' : '<span class="dif zero">0</span>';
-      });
-      info.textContent = nCont + ' de ' + lista.length + ' contados · ' + nDif + ' com diferença';
-    }
-    cx.addEventListener('input', function (ev) {
-      const tr = ev.target.closest('tr[data-inv]');
-      if (!tr) return;
-      contagem[tr.dataset.inv] = ev.target.value;
-      atualizar();
-    });
-    atualizar();
-  }
-
-  // ============================================================
-  // MOVIMENTOS DO INSUMO (entradas, saídas, ajustes) + estorno
-  // ============================================================
-  const NOME_MOV = { ENTRADA: 'Entrada', SAIDA_OP: 'Saída OP', SAIDA_SEM_OP: 'Saída sem OP', DEVOLUCAO: 'Devolução', AJUSTE_INVENTARIO: 'Inventário', ESTORNO: 'Estorno' };
-  async function movimentos(cod) {
-    let r;
-    try { r = await Api.chamar('movimentosInsumo', { cod_insumo: cod, limite: 100 }); } catch (err) { Ui.erro(err); return; }
-    const x = itens.find(function (i) { return i.cod === cod; }) || { descricao: '', unidade: '' };
-    const corpo = '<div class="mv-wrap"><table class="tab"><thead><tr><th>Quando</th><th>Tipo</th><th class="num">Qtd</th><th>Detalhe</th><th>Quem</th><th></th></tr></thead><tbody>' +
-      (r.movimentos.map(function (m) {
-        const det = [m.op ? 'OP ' + m.op : '', m.setor, m.motivo, m.obs, m.ref_estorno ? 'estorno de ' + m.ref_estorno : ''].filter(Boolean).join(' · ');
-        return '<tr' + (m.estornado ? ' class="est"' : '') + '><td>' + Ui.esc(m.data) + '</td><td>' + Ui.esc(NOME_MOV[m.tipo] || m.tipo) + (m.estornado ? ' <span class="tg">estornado</span>' : '') + '</td>' +
-          '<td class="num"><b class="' + (m.qtd < 0 ? 'sai' : 'ent') + '">' + (m.qtd > 0 ? '+' : '') + Fmt.num(m.qtd) + '</b></td><td class="det" title="' + Ui.esc(det) + '">' + Ui.esc(det || '—') + '</td><td>' + Ui.esc(m.usuario) + '</td>' +
-          '<td>' + (m.pode_estornar ? '<button type="button" class="btn2 perigo" data-estornar="' + Ui.esc(m.id) + '" title="Estornar">' + Ui.ic('i-volta') + '</button>' : '') + '</td></tr>';
-      }).join('') || '<tr><td colspan="6"><div class="vazio">Nenhum movimento.</div></td></tr>') + '</tbody></table></div>';
-    Ui.janela({ titulo: 'Movimentos · ' + cod, subtitulo: x.descricao + ' · saldo ' + Fmt.num(r.saldo) + ' ' + String(x.unidade || '').toLowerCase() + ' · últimos ' + r.movimentos.length,
-      largura: 900, corpo: corpo, enterConfirma: false, botoes: [{ texto: 'Fechar', valor: null }] });
-    const cx = ultimaJanela();
-    cx.addEventListener('click', function (ev) {
-      const b = ev.target.closest('[data-estornar]');
-      if (!b) return;
-      const m = r.movimentos.find(function (k) { return k.id === b.dataset.estornar; });
-      estornar(m, cod, cx);
-    });
-  }
-  function estornar(m, cod, cxLista) {
-    const corpo = '<div class="msg-erro"></div><p style="margin:0 0 10px">' + Ui.esc((NOME_MOV[m.tipo] || m.tipo) + ' de ' + Fmt.num(m.qtd) + ' em ' + m.data + ' por ' + m.usuario + ' · ' + m.id) + '</p>' +
-      '<label class="fc">MOTIVO DO ESTORNO<input name="mot" autocomplete="off" placeholder="ex.: lançado errado"></label>' +
-      '<p class="mut" style="margin:10px 0 0;font-size:12px">Nada é apagado: grava uma linha de estorno com o sinal invertido.</p>';
-    Ui.janela({
-      titulo: 'Estornar movimento', largura: 480, corpo: corpo,
-      botoes: [{ texto: 'Voltar', valor: null }, { texto: 'Estornar', classe: 'perigo', valor: 'ok' }],
-      antesDeFechar: async function (v, cx) {
-        const mot = cx.querySelector('[name="mot"]').value.trim();
-        if (!mot) { Ui.msgErro(cx.querySelector('.msg-erro'), 'Informe o motivo.'); return false; }
-        try { await enviar('estornarMovimento', { id: m.id, motivo: mot }); return true; }
-        catch (err) { Ui.msgErro(cx.querySelector('.msg-erro'), err.message); return false; }
-      }
-    }).then(function (v) {
-      if (v !== 'ok') return;
-      Ui.toast(m.id + ' estornado.', 'ok', 'Estorno');
-      const fechar = cxLista && cxLista.querySelector('.rodape button');
-      if (fechar) fechar.click();
-      carregar();
-      movimentos(cod);
     });
   }
 
