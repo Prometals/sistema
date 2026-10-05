@@ -46,7 +46,8 @@ td.ins { overflow: hidden; text-overflow: ellipsis; }
 .mais { color: #34d399; } html.tema-claro .mais { color: #166534; }
 tr.inat td { opacity: .45; }
 tr.lin.sel td { background: color-mix(in srgb, var(--destaque) 10%, transparent); }
-.bt-aj { height: 28px; padding: 0 10px; border: 1px solid var(--borda); border-radius: 8px; background: transparent; font: inherit; font-size: 12px; font-weight: 700; color: var(--texto); cursor: pointer; white-space: nowrap; }
+.bt-aj { width: 32px; height: 30px; padding: 0; border: 1px solid var(--borda); border-radius: 8px; background: transparent; color: var(--texto-suave); cursor: pointer; display: inline-grid; place-items: center; }
+.bt-aj svg { width: 16px; height: 16px; }
 .bt-aj:hover { border-color: var(--destaque); color: var(--destaque); }
 .btn2.verde { background: #16a34a; border-color: #16a34a; color: #fff; }
 /* pop-up corrigir saldo */
@@ -163,7 +164,7 @@ html.tema-claro .estq b.baixo { color: #b91c1c; } html.tema-claro .estq b.ok { c
     <div class="acoes-pagina so-desk">
       <button class="btn2" data-imprimir title="Imprimir a lista da tela"><svg class="i"><use href="#i-imp"/></svg>Imprimir</button>
       <button class="btn2" data-excel title="Baixar a lista da tela em Excel"><svg class="i"><use href="#i-xls"/></svg>Excel</button>
-      <button class="btn2 com-texto" data-lote hidden title="Corrigir o saldo de vários insumos de uma vez (contagem geral)">✏ Corrigir em lote</button>
+      <button class="btn2" data-lote hidden title="Corrigir saldo em lote (vários insumos de uma vez)"><svg class="i"><use href="#i-lista"/></svg>Corrigir saldo em lote</button>
       <button class="btn2" data-acao="novo" data-editar hidden><svg class="i"><use href="#i-mais"/></svg>Novo insumo</button>
     </div>
   </div>
@@ -331,7 +332,7 @@ Sessao.iniciarPagina('insumos').then(function (ctx) {
       return '<span class="' + (ehAbaixo(x) ? 'baixo' : '') + '">' + n(x.saldo) + '</span>';
     };
     const nomeCat = function (c) { const k = CATS.find(function (x) { return x.id === c; }); return k ? k.nome : (c || '—'); };
-    const bt = function (x) { return podeAjustar && x.ativo ? '<button type="button" class="bt-aj" data-ajustar="' + e(x.cod) + '" title="Corrigir o saldo (quanto tem agora)">✏ Corrigir saldo</button>' : ''; };
+    const bt = function (x) { return podeAjustar && x.ativo ? '<button type="button" class="bt-aj" data-ajustar="' + e(x.cod) + '" title="Corrigir saldo" aria-label="Corrigir saldo">' + Ui.ic('i-lapis') + '</button>' : ''; };
     if (celular.matches) {
       $('#linhas').innerHTML = '';
       $('#lista-tab').innerHTML = l.slice(0, 200).map(function (x) {
@@ -341,7 +342,7 @@ Sessao.iniciarPagina('insumos').then(function (ctx) {
       return;
     }
     $('#lista-tab').innerHTML = '';
-    $('#cab').innerHTML = '<tr><th>Insumo</th><th style="width:130px">Categoria</th><th class="c" style="width:120px">Estoque</th><th class="c" style="width:110px">Mínimo</th><th style="width:150px"></th></tr>';
+    $('#cab').innerHTML = '<tr><th>Insumo</th><th style="width:130px">Categoria</th><th class="c" style="width:120px">Estoque</th><th class="c" style="width:110px">Mínimo</th><th style="width:60px"></th></tr>';
     $('#linhas').innerHTML = l.slice(0, MAX_LINHAS).map(function (x) {
       return '<tr class="lin' + (x.cod === sel ? ' sel' : '') + (x.ativo ? '' : ' inat') + '" data-cod="' + e(x.cod) + '">' +
         '<td class="ins" title="' + e(x.descricao) + '">' + e(x.descricao) + '<span class="cod">' + e(x.cod) + '</span>' + (x.ativo ? '' : ' <span class="res">(inativo)</span>') + '</td>' +
@@ -491,8 +492,8 @@ Sessao.iniciarPagina('insumos').then(function (ctx) {
     const corpo = '<div class="msg-erro"></div><div class="lt-top">' +
       '<label>MOTIVO (vale para o lote)<select name="mot">' + MOTIVOS.map(function (m) { return '<option value="' + m.v + '"' + (lote.motivo === m.v ? ' selected' : '') + '>' + m.t + '</option>'; }).join('') + '</select></label>' +
       '<div class="f-busca"><svg class="i"><use href="#i-busca"/></svg><input name="busca" autocomplete="off" placeholder="Filtrar…" value="' + e(lote.busca) + '"></div>' +
-      '<div class="dir"><button type="button" class="btn2 com-texto" data-baixar-cont title="Excel com Código · Insumo · Estoque · Contado (em branco) para contar no papel">⬇ Planilha de contagem</button>' +
-      '<button type="button" class="btn2 com-texto" data-colar>📋 Colar do Excel</button></div></div>' +
+      '<div class="dir"><button type="button" class="btn2" data-baixar-cont title="Baixar planilha de contagem (Excel)"><svg class="i"><use href="#i-xls"/></svg>Baixar planilha de contagem</button>' +
+      '<button type="button" class="btn2" data-colar title="Colar do Excel (código e quantidade)"><svg class="i"><use href="#i-clip"/></svg>Colar do Excel</button></div></div>' +
       '<div class="lt-wrap"><table class="tab"><thead><tr><th>Insumo</th><th class="c" style="width:150px">Estoque no sistema</th><th class="c" style="width:150px">Quanto tem agora</th><th class="c" style="width:110px">Diferença</th></tr></thead><tbody data-lt></tbody></table></div>';
     Ui.janela({
       titulo: 'Corrigir saldo em lote · ' + nomeCard, subtitulo: 'Preencha só o que contou · em branco fica como está', largura: 900, corpo: corpo, enterConfirma: false,
@@ -769,7 +770,7 @@ Sessao.iniciarPagina('insumos').then(function (ctx) {
       '</div>' +
       '<div class="gv-rod">' +
         (pode && !g.novo ? '<button class="btn2 esq" data-acao="ativo">' + (x.ativo ? 'Inativar' : 'Reativar') + '</button>' : '') +
-        (!g.novo && podeAjustar && x.ativo ? '<button class="btn2 com-texto" data-acao="ajustar" title="Corrigir o saldo">✏ Corrigir saldo</button>' : '') +
+        (!g.novo && podeAjustar && x.ativo ? '<button class="btn2" data-acao="ajustar" title="Corrigir saldo">' + Ui.ic('i-lapis') + 'Corrigir saldo</button>' : '') +
         (g.novo ? '' : '<button class="btn2" data-acao="historico" title="Quem criou e alterou o cadastro">' + Ui.ic('i-hist') + 'Histórico</button>') +
         (pode && (g.novo || x.ativo) ? '<button class="btn2 salvar" data-acao="salvar" id="bt-salvar">' + Ui.ic('i-check') + 'Salvar <span class="n" id="n-salvar">0</span></button>'
           : '<button class="btn2" data-acao="fechar">Fechar</button>') +
