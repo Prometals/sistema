@@ -21,6 +21,9 @@
 @media (max-width: 1100px) { .kl { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 .kq.alerta b { color: var(--c); }
 .kq.piscando { animation: pisca 1.8s infinite; }
+/* Compras só lê: os cards (filtros) continuam clicáveis enquanto os dados novos
+   chegam do servidor (o api.js trava os botões da página nesse intervalo). */
+html.atualizando main.conteudo #cards .kq, html.atualizando main.conteudo #cards-mob .km { pointer-events: auto; }
 .km { cursor: pointer; border: 0; font: inherit; color: inherit; }
 .cp { display: grid; grid-template-columns: 1fr; gap: 14px; align-items: start; }
 .cx-lista { max-height: 60vh; overflow: auto; margin: -16px -18px 0; }
@@ -373,23 +376,40 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
   // LISTA: Insumo · Tem · Comprar · Para quê. Clicou, abre embaixo
   // as OPs que vão consumir aquele insumo.
   // ============================================================
+  const celular = window.matchMedia('(max-width: 760px)');
+  let opsAtual = {};          // OPs por insumo da última conta (para abrir a linha sem refazer tudo)
+  const unid = function (i) { return String(i.unidade || '').toLowerCase(); };
+  const insumoPorCod = function (cod) { return painel.insumos.find(function (x) { return x.cod_insumo === cod; }); };
+  function detalhe(i) {
+    const lista = opsAtual[i.cod_insumo] || [];
+    const conta = 'Tem ' + Fmt.num(i.saldo) + ' · OPs vão usar ' + Fmt.num(i.vai_sair) + ' · mínimo ' + Fmt.num(i.minimo) + ' · lead time ' + Fmt.num(i.lead_time) + ' dias' +
+      (i.sugerido > 0 ? ' → comprar ' + Fmt.num(i.sugerido) + ' ' + unid(i) : '');
+    return '<div class="dt-box">' + (lista.length
+      ? '<table><thead><tr><th>OP</th><th>Cliente</th><th>Processo</th><th class="num">Precisa</th></tr></thead><tbody>' +
+        lista.map(function (o) { return '<tr><td><b>' + e(o.op) + '</b></td><td>' + e(titulo(o.cliente)) + '</td><td class="res">' + e(titulo(o.processo)) + '</td><td class="num">' + n(o.precisa) + '</td></tr>'; }).join('') + '</tbody></table>'
+      : '<div class="dt-inf" style="border-top:0">Nenhuma OP vai usar este insumo agora · a compra é para repor o estoque mínimo.</div>') +
+      '<div class="dt-inf">' + e(conta) + '</div></div>';
+  }
+  const detalheLinha = function (i) { return '<tr class="dt"><td colspan="5">' + detalhe(i) + '</td></tr>'; };
+
   function desenharTabela() {
     const l = insumosFiltrados();
-    const ops = opsPorInsumo(avisosPorOP());
-    const unid = function (i) { return String(i.unidade || '').toLowerCase(); };
+    opsAtual = opsPorInsumo(avisosPorOP());
     $('#tit-tab').textContent = NOME_MODO[modo];
     $('#sub-tab').textContent = l.length + ' insumo' + (l.length === 1 ? '' : 's') + ' · clique para ver as OPs';
-    const detalhe = function (i) {
-      const lista = ops[i.cod_insumo] || [];
-      const conta = 'Tem ' + Fmt.num(i.saldo) + ' · OPs vão usar ' + Fmt.num(i.vai_sair) + ' · mínimo ' + Fmt.num(i.minimo) + ' · lead time ' + Fmt.num(i.lead_time) + ' dias' +
-        (i.sugerido > 0 ? ' → comprar ' + Fmt.num(i.sugerido) + ' ' + unid(i) : '');
-      return '<div class="dt-box">' + (lista.length
-        ? '<table><thead><tr><th>OP</th><th>Cliente</th><th>Processo</th><th class="num">Precisa</th></tr></thead><tbody>' +
-          lista.map(function (o) { return '<tr><td><b>' + e(o.op) + '</b></td><td>' + e(titulo(o.cliente)) + '</td><td class="res">' + e(titulo(o.processo)) + '</td><td class="num">' + n(o.precisa) + '</td></tr>'; }).join('') + '</tbody></table>'
-        : '<div class="dt-inf" style="border-top:0">Nenhuma OP vai usar este insumo agora · a compra é para repor o estoque mínimo.</div>') +
-        '<div class="dt-inf">' + e(conta) + '</div></div>';
-    };
     const vazio = modo === 'RUPTURA' ? '✅ Nada vai faltar para as OPs.' : '✅ Nada para comprar aqui.';
+    // Só monta a lista que está aparecendo (PC ou celular): metade do trabalho.
+    if (celular.matches) {
+      $('#linhas').innerHTML = '';
+      $('#lista-tab').innerHTML = l.map(function (i) {
+        const ab = !!aberto[i.cod_insumo];
+        return '<div class="li" data-abre="' + e(i.cod_insumo) + '">' + e(i.descricao) + '<span class="cod">' + e(i.cod_insumo) + '</span>' +
+          '<small>comprar ' + n(i.sugerido) + ' ' + e(unid(i)) + ' · ' + paraQue(i) + ' · tem ' + n(i.saldo) + '</small></div>' +
+          (ab ? detalhe(i) : '');
+      }).join('') || '<div class="vazio">' + vazio + '</div>';
+      return;
+    }
+    $('#lista-tab').innerHTML = '';
     $('#cab').innerHTML = '<tr><th>Insumo</th><th class="c-tem">Tem</th><th class="c-comp">Comprar</th><th class="c-pq">Para quê</th><th class="c-sv"></th></tr>';
     $('#linhas').innerHTML = l.map(function (i) {
       const ab = !!aberto[i.cod_insumo];
@@ -398,15 +418,26 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
         '<td class="ct res">' + n(i.saldo) + '</td>' +
         '<td class="qc"><span class="qn">' + n(i.sugerido) + '</span><span class="un">' + e(unid(i)) + '</span></td>' +
         '<td class="cpq">' + paraQue(i) + '</td><td class="sv">' + (ab ? '▾' : '▸') + '</td></tr>' +
-        (ab ? '<tr class="dt"><td colspan="5">' + detalhe(i) + '</td></tr>' : '');
+        (ab ? detalheLinha(i) : '');
     }).join('') || '<tr><td colspan="5"><div class="vazio">' + vazio + '</div></td></tr>';
-    $('#lista-tab').innerHTML = l.map(function (i) {
-      const ab = !!aberto[i.cod_insumo];
-      return '<div class="li" data-abre="' + e(i.cod_insumo) + '">' + e(i.descricao) + '<span class="cod">' + e(i.cod_insumo) + '</span>' +
-        '<small>comprar ' + n(i.sugerido) + ' ' + e(unid(i)) + ' · ' + paraQue(i) + ' · tem ' + n(i.saldo) + '</small></div>' +
-        (ab ? detalhe(i) : '');
-    }).join('') || '<div class="vazio">' + vazio + '</div>';
   }
+  // Abre/fecha só a linha clicada (não redesenha a lista inteira)
+  function alternarLinha(el) {
+    const cod = el.dataset.abre, i = insumoPorCod(cod);
+    if (!i) return;
+    aberto[cod] = !aberto[cod];
+    const prox = el.nextElementSibling;
+    if (el.tagName === 'TR') {
+      el.classList.toggle('ab', aberto[cod]);
+      el.querySelector('.sv').textContent = aberto[cod] ? '▾' : '▸';
+      if (aberto[cod]) el.insertAdjacentHTML('afterend', detalheLinha(i));
+      else if (prox && prox.classList.contains('dt')) prox.remove();
+    } else {
+      if (aberto[cod]) el.insertAdjacentHTML('afterend', detalhe(i));
+      else if (prox && prox.classList.contains('dt-box')) prox.remove();
+    }
+  }
+  celular.addEventListener('change', desenharTabela);
 
   function tagSolic(s) {
     if (s.status === 'SOLICITADO') return '<span class="stt pend">NOVA</span>';
@@ -473,9 +504,16 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
   document.addEventListener('click', function (ev) {
     if (ev.target.closest('.modal-fundo')) return;
     const m = ev.target.closest('[data-modo]');
-    if (m) { modo = m.dataset.modo; desenhar(); return; }
+    if (m) {
+      if (m.dataset.modo === modo) return;
+      modo = m.dataset.modo;
+      // volta a lista para o topo ANTES de redesenhar (depois forçaria o navegador a recalcular tudo)
+      const w = document.querySelector('.tab-wrap'); if (w) w.scrollTop = 0;
+      desenhar();
+      return;
+    }
     const ab = ev.target.closest('[data-abre]');
-    if (ab) { aberto[ab.dataset.abre] = !aberto[ab.dataset.abre]; desenharTabela(); return; }
+    if (ab) { alternarLinha(ab); return; }
     const cx = ev.target.closest('[data-caixas]');
     if (cx) abrirCaixas(cx.dataset.caixas);
   });
