@@ -15,9 +15,9 @@
 .kq.sel { border-color: var(--c); box-shadow: 0 0 0 1px var(--c) inset; }
 .kq .l { font-size: 11px; font-weight: 800; color: var(--texto-suave); letter-spacing: .4px; text-transform: uppercase; }
 .kq b { display: block; font-size: 28px; font-variant-numeric: tabular-nums; margin-top: 2px; } .kq .s { font-size: 12px; color: var(--texto-suave); }
-.kq.sel { background: color-mix(in srgb, var(--c) 9%, var(--painel)); }
+.kq.sel { box-shadow: none; }
 .kq.sel .l { color: var(--c); }
-.pq-rup { color: #f87171; font-weight: 800; } html.tema-claro .pq-rup { color: #b91c1c; }
+.pq-rup { color: #f87171; font-weight: 400; } html.tema-claro .pq-rup { color: #b91c1c; }
 .pq-txt { color: var(--texto-suave); font-size: 12.5px; }
 @media (max-width: 1100px) { .kl { grid-template-columns: repeat(3, 1fr); } .kl .esp { display: none; } }
 .kq.alerta b { color: var(--c); }
@@ -91,7 +91,7 @@ html.tema-claro .dif.neg2 { color: #b91c1c; } html.tema-claro .dif.pos { color: 
 .tg-falta { height: 32px; border: 1px solid var(--borda); border-radius: 9px; background: transparent; font: inherit; font-size: 12.5px; font-weight: 700; color: var(--texto-suave); padding: 0 12px; cursor: pointer; }
 .tg-falta.on { border-color: #dc2626; color: #f87171; background: rgba(220,38,38,.08); }
 html.tema-claro .tg-falta.on { color: #b91c1c; }
-.tab-wrap { max-height: calc(100vh - 360px); }
+.tab-wrap { max-height: calc(100vh / var(--escala, 1) - 330px); }
 .tab-wrap table.tab th { position: sticky; top: 0; z-index: 1; }
 #bx-tab table.tab th, #bx-tab table.tab td { padding-top: 7px; padding-bottom: 7px; white-space: nowrap; }
 #bx-tab table.tab tbody tr.lin { cursor: pointer; }
@@ -99,7 +99,15 @@ html.tema-claro .tg-falta.on { color: #b91c1c; }
 tr.lin td.sv { width: 28px; text-align: center; color: var(--texto-suave); font-size: 12px; }
 tr.lin.ab td { background: color-mix(in srgb, var(--destaque) 8%, transparent); border-bottom-color: transparent; }
 tr.lin.ab td.sv { color: var(--destaque); }
-td.qc { font-weight: 800; font-size: 13.5px; }
+td.qc { font-weight: 400; }
+/* cabeçalho alinhado com os números (o .num perde para o table.tab th do sistema) */
+#bx-tab table.tab th.num { text-align: right; }
+#bx-tab table.tab { table-layout: fixed; width: 100%; }
+/* o sistema.css compacta as células de toda tabela com !important: aqui precisa vencer */
+main.conteudo #bx-tab table.tab th.c-comp { padding-right: 42px !important; }
+main.conteudo #bx-tab table.tab th.c-pq, main.conteudo #bx-tab table.tab td.cpq { padding-left: 28px !important; }
+#bx-tab th.c-tem { width: 110px; } #bx-tab th.c-comp { width: 130px; } #bx-tab th.c-pq { width: 170px; } #bx-tab th.c-sv { width: 36px; }
+td.qc .un { color: var(--texto-suave); font-size: 11.5px; margin-left: 4px; display: inline-block; width: 30px; text-align: left; }
 .res { color: var(--texto-suave); }
 tr.dt > td { padding: 0 0 12px 0 !important; background: color-mix(in srgb, var(--destaque) 8%, transparent); white-space: normal !important; cursor: default; }
 .dt-box { margin: 0 28px 0 40px; background: var(--painel); border: 1px solid var(--linha); border-radius: 10px; overflow: hidden; }
@@ -182,7 +190,6 @@ td.op-n { font-weight: 800; white-space: nowrap; }
           <tbody id="linhas"><tr><td colspan="8"><div class="carregando">Carregando…</div></td></tr></tbody></table>
       </div>
       <div class="lista-tab so-mob" id="lista-tab"></div>
-      <div class="rod-tab" id="rod-tab"></div>
     </section>
     <div class="barra-mob so-mob">
       <button class="ic" data-imprimir-compras title="Imprimir"><svg class="i"><use href="#i-imp"/></svg></button>
@@ -382,23 +389,22 @@ Sessao.iniciarPagina('compras').then(function (ctx) {
         '<div class="dt-inf">' + e(conta) + '</div></div>';
     };
     const vazio = modo === 'RUPTURA' ? '✅ Nada vai faltar para as OPs.' : '✅ Nada para comprar aqui.';
-    $('#cab').innerHTML = '<tr><th>Insumo</th><th class="num">Tem</th><th class="num">Comprar</th><th>Para quê</th><th></th></tr>';
+    $('#cab').innerHTML = '<tr><th>Insumo</th><th class="num c-tem">Tem</th><th class="num c-comp">Comprar</th><th class="c-pq">Para quê</th><th class="c-sv"></th></tr>';
     $('#linhas').innerHTML = l.map(function (i) {
       const ab = !!aberto[i.cod_insumo];
       return '<tr class="lin' + (ab ? ' ab' : '') + '" data-abre="' + e(i.cod_insumo) + '">' +
         '<td class="ins">' + e(i.descricao) + '<span class="cod">' + e(i.cod_insumo) + '</span></td>' +
         '<td class="num res">' + n(i.saldo) + '</td>' +
-        '<td class="num qc">' + n(i.sugerido) + ' <span class="res" style="font-weight:400;font-size:11.5px">' + e(unid(i)) + '</span></td>' +
-        '<td>' + paraQue(i) + '</td><td class="sv">' + (ab ? '▾' : '▸') + '</td></tr>' +
+        '<td class="num qc">' + n(i.sugerido) + '<span class="un">' + e(unid(i)) + '</span></td>' +
+        '<td class="cpq">' + paraQue(i) + '</td><td class="sv">' + (ab ? '▾' : '▸') + '</td></tr>' +
         (ab ? '<tr class="dt"><td colspan="5">' + detalhe(i) + '</td></tr>' : '');
     }).join('') || '<tr><td colspan="5"><div class="vazio">' + vazio + '</div></td></tr>';
     $('#lista-tab').innerHTML = l.map(function (i) {
       const ab = !!aberto[i.cod_insumo];
       return '<div class="li" data-abre="' + e(i.cod_insumo) + '">' + e(i.descricao) + '<span class="cod">' + e(i.cod_insumo) + '</span>' +
-        '<small><b style="color:var(--texto)">comprar ' + n(i.sugerido) + ' ' + e(unid(i)) + '</b> · ' + paraQue(i) + ' · tem ' + n(i.saldo) + '</small></div>' +
+        '<small>comprar ' + n(i.sugerido) + ' ' + e(unid(i)) + ' · ' + paraQue(i) + ' · tem ' + n(i.saldo) + '</small></div>' +
         (ab ? detalhe(i) : '');
     }).join('') || '<div class="vazio">' + vazio + '</div>';
-    $('#rod-tab').textContent = 'Demanda de OP + Reposição de estoque = Necessidade total · ⚠ Ruptura = vai faltar material para as OPs';
   }
 
   function tagSolic(s) {
