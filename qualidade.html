@@ -225,7 +225,9 @@ Sessao.iniciarPagina('qualidade').then(function (ctx) {
     // Setor de cada processo pela aba nova (quem não vê o Refugo usa a lista antiga)
     if (ctx.nivelDe('refugo') !== 'NENHUM') {
       try {
-        const cfg = await Api.chamar('inicioRefugo', {});
+        const cfg = await Api.chamar('inicioRefugo', {}, { rapido: function (n) {
+          (n.processos || []).forEach(function (p) { setorPorProcesso[p.processo] = p.setor; });
+        } });
         (cfg.processos || []).forEach(function (p) { setorPorProcesso[p.processo] = p.setor; });
       } catch (e) { /* segue com a lista antiga */ }
     }
