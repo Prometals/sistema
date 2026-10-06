@@ -13,19 +13,41 @@
 
 const Shell = (function () {
 
-  // ---------- Tema ----------
-  function temaDe(idPagina) {
-    let salvo = null;
-    try { salvo = localStorage.getItem('pm_tema_' + idPagina); } catch (e) { /* navegador sem armazenamento */ }
-    return salvo || (CONFIG.TEMA_PADRAO[idPagina] || 'escuro');
+  // ---------- Tema (claro / escuro) ----------
+  // O tema é do USUÁRIO, não da página: vale para todas as páginas e
+  // fica gravado no cadastro dele (servidor), então segue o usuário em
+  // qualquer computador ou celular. Aqui no aparelho fica só uma cópia
+  // (pm_tema) para a página já abrir na cor certa, sem piscar.
+  function temaDe() {
+    let t = null;
+    try { t = localStorage.getItem('pm_tema'); } catch (e) { /* navegador sem armazenamento */ }
+    return t === 'claro' ? 'claro' : 'escuro';
   }
-  function aplicarTema(idPagina) {
-    document.documentElement.classList.toggle('tema-claro', temaDe(idPagina) === 'claro');
+  function aplicarTema() {
+    document.documentElement.classList.toggle('tema-claro', temaDe() === 'claro');
   }
-  function alternarTema(idPagina) {
-    const novo = temaDe(idPagina) === 'claro' ? 'escuro' : 'claro';
-    try { localStorage.setItem('pm_tema_' + idPagina, novo); } catch (e) { /* ignora */ }
-    aplicarTema(idPagina);
+  // Recebe o tema que veio do servidor (login / conferência das permissões)
+  function usarTemaDoUsuario(tema) {
+    if (tema !== 'claro' && tema !== 'escuro') return;
+    try { localStorage.setItem('pm_tema', tema); } catch (e) { /* ignora */ }
+    aplicarTema();
+  }
+  function alternarTema() {
+    const novo = temaDe() === 'claro' ? 'escuro' : 'claro';
+    try { localStorage.setItem('pm_tema', novo); } catch (e) { /* ignora */ }
+    aplicarTema();
+    try {
+      const s = JSON.parse(sessionStorage.getItem('pm_sessao') || 'null');
+      if (s && s.usuario) { s.usuario.tema = novo; sessionStorage.setItem('pm_sessao', JSON.stringify(s)); }
+    } catch (e) { /* ignora */ }
+    // Grava no cadastro do usuário em segundo plano. sendBeacon garante que
+    // o pedido chega ao servidor mesmo se a pessoa trocar de página logo em
+    // seguida (um fetch comum seria cancelado na troca de página).
+    try {
+      const corpo = JSON.stringify({ acao: 'salvarTema', token: Sessao.token(), dados: { tema: novo } });
+      const foi = navigator.sendBeacon && navigator.sendBeacon(CONFIG.API_URL, new Blob([corpo], { type: 'text/plain;charset=utf-8' }));
+      if (!foi) fetch(CONFIG.API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: corpo, keepalive: true }).catch(function () { /* fica no aparelho */ });
+    } catch (e) { /* fica no aparelho; vai de novo na próxima troca */ }
   }
 
   // ---------- Montagem ----------
@@ -102,7 +124,7 @@ const Shell = (function () {
       if (alvo.classList.contains('hamb')) { app.classList.add('menu-aberto'); return; }
       if (alvo.classList.contains('veu')) { app.classList.remove('menu-aberto'); return; }
       const acao = alvo.dataset.acao;
-      if (acao === 'tema') alternarTema(ctx.pagina.id);
+      if (acao === 'tema') alternarTema();
       if (acao === 'usuario') { if (!ev.target.closest('.menu-usuario')) menuUsuario.classList.toggle('aberto'); return; }
       if (acao === 'sair') { ev.stopPropagation(); Sessao.sair(); }
       if (acao === 'pin') { menuUsuario.classList.remove('aberto'); trocarPin(); }
@@ -166,5 +188,5 @@ const Shell = (function () {
     return (nomes[u.cargo] || u.cargo || '') + setor;
   }
 
-  return { montar: montar, aplicarTema: aplicarTema, semPermissao: semPermissao };
+  return { montar: montar, aplicarTema: aplicarTema, alternarTema: alternarTema, usarTemaDoUsuario: usarTemaDoUsuario, semPermissao: semPermissao };
 })();
