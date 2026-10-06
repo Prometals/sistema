@@ -9,6 +9,49 @@
 //   Fmt.num / Fmt.data / Fmt.dataHora / Fmt.hoje
 // ============================================================
 
+// ============================================================
+// Tema do usuário: 'claro' | 'escuro' | 'auto' (segue o Windows / celular).
+// A cópia do aparelho fica em localStorage 'pm_tema'; o valor oficial fica
+// no cadastro do usuário (servidor) — ver Shell.alternarTema / Sessao.
+// Aplicado aqui (ui.js carrega em TODAS as páginas, inclusive o login).
+// ============================================================
+const Tema = (function () {
+  const midia = window.matchMedia ? window.matchMedia('(prefers-color-scheme: light)') : null;
+  function preferido() {
+    let t = null;
+    try { t = localStorage.getItem('pm_tema'); } catch (e) { /* sem armazenamento */ }
+    return t === 'claro' || t === 'auto' ? t : 'escuro';
+  }
+  function efetivo() {
+    const p = preferido();
+    return p === 'auto' ? (midia && midia.matches ? 'claro' : 'escuro') : p;
+  }
+  const ouvintes = [];
+  function aplicar(suave) {
+    const raiz = document.documentElement;
+    if (suave) {   // transição curta de cores (sem piscar)
+      raiz.classList.add('trocando-tema');
+      clearTimeout(aplicar._t);
+      aplicar._t = setTimeout(function () { raiz.classList.remove('trocando-tema'); }, 350);
+    }
+    raiz.classList.toggle('tema-claro', efetivo() === 'claro');
+    ouvintes.forEach(function (f) { try { f(); } catch (e) { /* ignora */ } });
+  }
+  function guardar(t) {
+    if (t !== 'claro' && t !== 'escuro' && t !== 'auto') return false;
+    let antes = null;
+    try { antes = localStorage.getItem('pm_tema'); localStorage.setItem('pm_tema', t); } catch (e) { /* ignora */ }
+    return antes !== t;
+  }
+  // Windows/celular trocou de claro para escuro: no modo automático, segue junto
+  if (midia) {
+    const mudou = function () { if (preferido() === 'auto') aplicar(true); };
+    if (midia.addEventListener) midia.addEventListener('change', mudou); else if (midia.addListener) midia.addListener(mudou);
+  }
+  aplicar(false);
+  return { preferido: preferido, efetivo: efetivo, aplicar: aplicar, guardar: guardar, aoMudar: function (f) { ouvintes.push(f); } };
+})();
+
 const Ui = {
   esc(v) {
     return String(v === null || v === undefined ? '' : v)
