@@ -21,11 +21,21 @@ const Sessao = (function () {
   function salvar(s) { sessionStorage.setItem(CHAVE, JSON.stringify(s)); }
   function limpar() { sessionStorage.removeItem(CHAVE); try { Api.limparRespostas(); } catch (e) { /* ignora */ } }
   function token() { const s = ler(); return s ? s.token : ''; }
+  // Tema do usuário (vem do servidor): guarda a cópia do aparelho para
+  // as páginas abrirem já na cor certa. Sem tema salvo, fica o do aparelho.
+  function guardarTema(u) {
+    const t = u && u.tema;
+    if (t !== 'claro' && t !== 'escuro') return false;
+    let atual = null;
+    try { atual = localStorage.getItem('pm_tema'); localStorage.setItem('pm_tema', t); } catch (e) { /* ignora */ }
+    return atual !== t;
+  }
 
   // Login: guarda token, usuário e páginas liberadas.
   async function entrar(login, pin) {
     const r = await Api.chamar('login', { login: login, pin: pin }, { semToken: true });
     salvar({ token: r.token, usuario: r.usuario, paginas: r.paginas });
+    guardarTema(r.usuario);
     return r;
   }
 
@@ -71,9 +81,12 @@ const Sessao = (function () {
 
   // Porteiro da página: exige login, atualiza as permissões no servidor,
   // monta o menu/topo e bloqueia a página se o nível for NENHUM.
+  let temaAoAbrir = null;   // para não desfazer uma troca de tema feita enquanto a página carregava
   async function iniciarPagina(idPagina) {
-    Shell.aplicarTema(idPagina);
     let s = ler();
+    if (s) guardarTema(s.usuario);
+    Shell.aplicarTema();
+    try { temaAoAbrir = localStorage.getItem('pm_tema'); } catch (e) { /* ignora */ }
     if (!s || !s.token) {
       location.replace('index.html?volta=' + encodeURIComponent(paginaAtual()));
       return new Promise(function () {});
@@ -113,6 +126,11 @@ const Sessao = (function () {
   async function conferirAcessoEmSegundoPlano(s, idPagina) {
     try {
       const r = await Api.chamar('meuAcesso', {});
+      // tema trocado em outro aparelho: aplica na hora, sem recarregar
+      // (se a pessoa trocou o tema nesta página enquanto carregava, vale o dela)
+      let agora = null;
+      try { agora = localStorage.getItem('pm_tema'); } catch (e) { /* ignora */ }
+      if (agora === temaAoAbrir && guardarTema(r.usuario)) Shell.aplicarTema();
       const chave = function (u) { u = u || {}; return [u.login, u.nome, u.cargo, u.setor || ''].join('|'); };
       const mudou = JSON.stringify(r.paginas) !== JSON.stringify(s.paginas) || chave(r.usuario) !== chave(s.usuario);
       if (!mudou) return;
