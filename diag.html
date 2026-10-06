@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Diagnóstico · Prometals</title>
+<link rel="stylesheet" href="css/tema.css">
+<link rel="stylesheet" href="css/sistema.css">
+<style>
+  body { padding: 18px; font-size: 14px; overflow: auto; height: auto; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  h2 { font-size: 15px; margin: 22px 0 8px; }
+  p.ajuda { margin: 0 0 12px; color: var(--texto-suave); }
+  .bts { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+  .bts button { height: 36px; padding: 0 14px; border-radius: 8px; border: 1px solid var(--linha); background: var(--painel); color: var(--texto); cursor: pointer; font-weight: 600; }
+  .bts button.pri { background: var(--destaque); border-color: var(--destaque); color: #fff; }
+  table { border-collapse: collapse; width: 100%; background: var(--painel); }
+  th, td { border-bottom: 1px solid var(--linha); padding: 6px 8px; text-align: right; white-space: nowrap; }
+  th { font-size: 11px; text-transform: uppercase; color: var(--texto-suave); }
+  th:first-child, td:first-child { text-align: left; }
+  .lento { color: #f87171; font-weight: 700; } .medio { color: #fbbf24; } .bom { color: #34d399; }
+  #msg { margin: 6px 0 10px; min-height: 18px; color: var(--texto-suave); }
+  .rolar { overflow-x: auto; }
+</style>
+</head>
+<body>
+<!-- Diagnóstico de velocidade: mostra quanto tempo cada chamada ao servidor
+     levou neste aparelho. Não aparece no menu; abra trocando o final do
+     endereço para diag.html (na MESMA aba em que você entrou no sistema). -->
+<h1>Diagnóstico de velocidade</h1>
+<p class="ajuda">Use o sistema normalmente (abrir páginas, salvar). Depois volte aqui e clique em <b>Copiar resultado</b> e cole na conversa.
+  <b>Testar agora</b> faz as leituras principais 3 vezes (não grava nada).</p>
+<div class="bts">
+  <button class="pri" id="testar">Testar agora</button>
+  <button id="copiar">Copiar resultado</button>
+  <button id="limpar">Limpar medições</button>
+</div>
+<div id="msg"></div>
+
+<h2>Por ação (média das medições)</h2>
+<div class="rolar"><table id="porAcao"></table></div>
+
+<h2>Últimas 40 chamadas</h2>
+<div class="rolar"><table id="ultimas"></table></div>
+
+<h2>Tela</h2>
+<div class="rolar"><table id="tela"></table></div>
+
+<script src="js/config.js"></script>
+<script src="js/icones.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/api.js"></script>
+<script src="js/sessao.js"></script>
+<script>
+(function () {
+  const $ = function (id) { return document.getElementById(id); };
+  // [quando, ação, total, servidor, leituras, msPlanilha, msAbrir, msTrava, msFlush, página, erro]
+  function ler() { try { return JSON.parse(localStorage.getItem('pm_tempos') || '[]'); } catch (e) { return []; } }
+  const seg = function (ms) { return ms === null || ms === undefined || isNaN(ms) ? '—' : (ms / 1000).toFixed(1).replace('.', ',') + ' s'; };
+  const cor = function (ms) { return ms >= 4000 ? 'lento' : ms >= 2000 ? 'medio' : 'bom'; };
+  const media = function (l) { return l.length ? l.reduce(function (s, v) { return s + v; }, 0) / l.length : null; };
+
+  function resumo() {
+    const g = {};
+    ler().forEach(function (m) {
+      const k = m[1];
+      if (!g[k]) g[k] = { acao: k, tot: [], srv: [], pl: [], mpl: [], ab: [], tr: [], fl: [], erros: 0 };
+      const x = g[k];
+      x.tot.push(m[2]);
+      if (m[3] !== null) { x.srv.push(m[3]); x.pl.push(m[4]); x.mpl.push(m[5]); x.ab.push(m[6]); x.tr.push(m[7]); x.fl.push(m[8]); }
+      if (m[10]) x.erros++;
+    });
+    return Object.keys(g).map(function (k) {
+      const x = g[k], t = media(x.tot), s = media(x.srv);
+      return { acao: x.acao, n: x.tot.length, media: t, pior: Math.max.apply(null, x.tot), srv: s,
+        rede: s === null ? null : t - s, pl: media(x.pl), mpl: media(x.mpl), ab: media(x.ab), tr: media(x.tr), fl: media(x.fl), erros: x.erros };
+    }).sort(function (a, b) { return b.media - a.media; });
+  }
+
+  function desenhar() {
+    const r = resumo();
+    $('porAcao').innerHTML = '<tr><th>Ação</th><th>Vezes</th><th>Média</th><th>Pior</th><th>No servidor</th><th>Rede/Google</th>' +
+      '<th>Leituras planilha</th><th>Tempo planilha</th><th>Abrir planilha</th><th>Fila (trava)</th><th>Gravar</th><th>Erros</th></tr>' +
+      (r.length ? r.map(function (x) {
+        return '<tr><td>' + Ui.esc(x.acao) + '</td><td>' + x.n + '</td><td class="' + cor(x.media) + '">' + seg(x.media) + '</td>' +
+          '<td class="' + cor(x.pior) + '">' + seg(x.pior) + '</td><td>' + seg(x.srv) + '</td><td>' + seg(x.rede) + '</td>' +
+          '<td>' + (x.pl === null ? '—' : x.pl.toFixed(1).replace('.', ',')) + '</td><td>' + seg(x.mpl) + '</td><td>' + seg(x.ab) + '</td>' +
+          '<td>' + seg(x.tr) + '</td><td>' + seg(x.fl) + '</td><td>' + (x.erros || '') + '</td></tr>';
+      }).join('') : '<tr><td colspan="12">Nenhuma medição ainda. Use o sistema ou clique em Testar agora.</td></tr>');
+    const ult = ler().slice(-40).reverse();
+    $('ultimas').innerHTML = '<tr><th>Hora</th><th>Página</th><th>Ação</th><th>Total</th><th>No servidor</th><th>Erro</th></tr>' +
+      ult.map(function (m) {
+        return '<tr><td>' + new Date(m[0]).toLocaleTimeString('pt-BR') + '</td><td>' + Ui.esc(m[9]) + '</td><td>' + Ui.esc(m[1]) + '</td>' +
+          '<td class="' + cor(m[2]) + '">' + seg(m[2]) + '</td><td>' + seg(m[3]) + '</td><td>' + Ui.esc(m[10]) + '</td></tr>';
+      }).join('');
+  }
+
+  function texto() {
+    const r = resumo();
+    const linhas = ['DIAGNÓSTICO DE VELOCIDADE (site) — ' + new Date().toLocaleString('pt-BR') + ' — ' + ler().length + ' medições',
+      'ação | vezes | média | pior | servidor | rede | leituras | t.planilha | abrir | trava | gravar | erros'];
+    r.forEach(function (x) {
+      linhas.push([x.acao, x.n, seg(x.media), seg(x.pior), seg(x.srv), seg(x.rede), x.pl === null ? '—' : x.pl.toFixed(1),
+        seg(x.mpl), seg(x.ab), seg(x.tr), seg(x.fl), x.erros].join(' | '));
+    });
+    linhas.push('', 'Navegador: ' + navigator.userAgent, 'Tela: ' + innerWidth + '×' + innerHeight);
+    return linhas.join('\n');
+  }
+
+  $('testar').addEventListener('click', async function () {
+    if (!Sessao.token()) { $('msg').textContent = 'Entre no sistema primeiro, nesta mesma aba, e depois abra diag.html de novo.'; return; }
+    const b = this; b.disabled = true;
+    const testes = [
+      ['ping', {}], ['meuAcesso', {}], ['resumoBI', {}], ['listarCarteira', { visao: 'PRODUCAO' }],
+      ['painelCompras', { categorias: 'TODAS' }], ['listarInsumos', {}], ['situacaoInsumos', {}], ['listarCorridas', { canceladas: true }], ['listarRefugo', {}]
+    ];
+    let feito = 0;
+    for (let rodada = 1; rodada <= 3; rodada++) {
+      for (const t of testes) {
+        $('msg').textContent = 'Testando ' + t[0] + ' (rodada ' + rodada + ' de 3)… ' + (++feito) + '/' + (testes.length * 3);
+        try { await Api.chamar(t[0], t[1]); } catch (e) { /* sem permissão etc.: fica registrado */ }
+        desenhar();
+      }
+    }
+    $('msg').textContent = 'Pronto. Clique em Copiar resultado e cole na conversa.';
+    b.disabled = false;
+  });
+  $('copiar').addEventListener('click', function () {
+    const t = texto();
+    const fim = function () { $('msg').textContent = 'Copiado! Cole na conversa (Ctrl+V).'; };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(fim, function () { prompt('Copie o texto:', t); });
+    else prompt('Copie o texto:', t);
+  });
+  $('limpar').addEventListener('click', function () {
+    try { localStorage.removeItem('pm_tempos'); } catch (e) { /* ignora */ }
+    desenhar(); $('msg').textContent = 'Medições apagadas.';
+  });
+
+  // Informações da tela (o diagnóstico antigo)
+  const mob = matchMedia('(max-width: 760px)').matches;
+  $('tela').innerHTML = [
+    ['Largura da tela (CSS px)', innerWidth + ' × ' + innerHeight],
+    ['Densidade de pixels', String(devicePixelRatio)],
+    ['Modo celular?', mob ? 'sim' : 'não'],
+    ['Aberto como app instalado?', (matchMedia('(display-mode: standalone)').matches || navigator.standalone) ? 'sim' : 'não (navegador)'],
+    ['Navegador', navigator.userAgent]
+  ].map(function (l) { return '<tr><td>' + l[0] + '</td><td style="text-align:left;white-space:normal">' + Ui.esc(l[1]) + '</td></tr>'; }).join('');
+
+  desenhar();
+})();
+</script>
+</body>
+</html>
