@@ -104,7 +104,7 @@ const Api = (function () {
     css.textContent =
       'html.atualizando main.conteudo input, html.atualizando main.conteudo select, html.atualizando main.conteudo textarea,' +
       'html.atualizando main.conteudo button, html.atualizando .barra-mob button { pointer-events: none; }' +
-      'html.api-ocupado::after, html.atualizando::after { content: ""; position: fixed; z-index: 9999; top: 0; left: 0; height: 3px; width: 35%;' +
+      'html.atualizando::after { content: ""; position: fixed; z-index: 9999; top: 0; left: 0; height: 3px; width: 35%;' +
       ' background: var(--destaque, #f07a1f); animation: pm-atualizando 1.1s linear infinite; }' +
       '@keyframes pm-atualizando { from { transform: translateX(-100%); } to { transform: translateX(290%); } }';
     document.head.appendChild(css);
