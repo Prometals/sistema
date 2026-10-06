@@ -5,7 +5,7 @@
 const CONFIG = {
   // URL do App da Web do Apps Script (termina em /exec).
   // Apps Script › Implantar › Gerenciar implantações › copiar "URL do app da Web".
-  API_URL: 'https://script.google.com/macros/s/AKfycbzU9S-lWEfJCxVikBBpnX7B-vrye9_JqzNQwEApuzT3FchzTNMgg24vtsB5Rph_jgIxxA/exec',
+  API_URL: 'https://script.google.com/macros/s/AKfycbwtiIyZ3ODFUV3g5X12EImnwFDLL9QHBw9gYXo4lILX67XHlCGb5GiyX9xHsw17e7JgHw/exec',
 
   VERSAO: '1.0.0',
 
