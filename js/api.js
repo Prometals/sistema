@@ -39,10 +39,17 @@ const Api = (function () {
     const minha = filaGravacao.then(function () { return buscar(acao, dados, opcoes); });
     filaGravacao = minha.catch(function () { /* a próxima segue mesmo se esta falhar */ });
     const r = await minha;
-    if (!NAO_MUDA_DADOS.test(acao)) limparRespostas();   // gravou algo: as respostas guardadas ficaram velhas
+    if (!NAO_MUDA_DADOS.test(acao)) {
+      // Gravou algo: as respostas guardadas ficam marcadas como "velhas".
+      // - Nesta tela, as leituras dos próximos 15 s vão ao servidor (você vê na hora o que gravou).
+      // - Nas outras páginas, a cópia aparece na hora e é atualizada por trás logo em seguida.
+      gravouEm = Date.now();
+      envelhecerRespostas();
+    }
     return r;
   }
   let filaGravacao = Promise.resolve();
+  let gravouEm = 0;
   const NAO_MUDA_DADOS = /^(login|logout|salvarTema|trocarPin)$/;
 
   // ---------- Respostas guardadas NO COMPUTADOR (valem até 12 h, mesmo fechando o navegador) ----------
@@ -72,6 +79,15 @@ const Api = (function () {
       try { localStorage.setItem(k, v); } catch (e2) { /* segue sem guardar */ }
     }
   }
+  function envelhecerRespostas() {
+    try {
+      Object.keys(localStorage).forEach(function (k) {
+        if (k.indexOf(PREFIXO) !== 0) return;
+        const g = JSON.parse(localStorage.getItem(k) || 'null');
+        if (g && !g.v) { g.v = 1; localStorage.setItem(k, JSON.stringify(g)); }
+      });
+    } catch (e) { limparRespostas(); }
+  }
   function limparRespostas() {
     try {
       Object.keys(localStorage).forEach(function (k) { if (k.indexOf(PREFIXO) === 0) localStorage.removeItem(k); });
@@ -81,14 +97,15 @@ const Api = (function () {
 
   async function chamarRapido(acao, dados, opcoes) {
     const k = chaveResposta(acao, dados);
-    const guardada = opcoes.forcar ? null : lerResposta(k);   // forcar: botão "Atualizar" (vai ao servidor)
+    // forcar: botão "Atualizar" · logo depois de gravar nesta tela: vai ao servidor
+    const guardada = opcoes.forcar || Date.now() - gravouEm < 15000 ? null : lerResposta(k);
     if (!guardada) {
       const novo = await lerUmaVez(acao, dados, opcoes);
       guardarResposta(k, novo);
       return novo;
     }
     // Atualiza por trás — só se a cópia tem mais de 30 s e a aba está na frente da pessoa
-    if (Date.now() - guardada.t > REVALIDAR_MS && !document.hidden) {
+    if ((guardada.v || Date.now() - guardada.t > REVALIDAR_MS) && !document.hidden) {
       lerUmaVez(acao, dados, opcoes)
         .then(function (novo) {
           guardarResposta(k, novo);
