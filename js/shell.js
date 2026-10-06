@@ -13,29 +13,16 @@
 
 const Shell = (function () {
 
-  // ---------- Tema (claro / escuro) ----------
+  // ---------- Tema (claro / escuro / automático) ----------
   // O tema é do USUÁRIO, não da página: vale para todas as páginas e
   // fica gravado no cadastro dele (servidor), então segue o usuário em
-  // qualquer computador ou celular. Aqui no aparelho fica só uma cópia
-  // (pm_tema) para a página já abrir na cor certa, sem piscar.
-  function temaDe() {
-    let t = null;
-    try { t = localStorage.getItem('pm_tema'); } catch (e) { /* navegador sem armazenamento */ }
-    return t === 'claro' ? 'claro' : 'escuro';
-  }
-  function aplicarTema() {
-    document.documentElement.classList.toggle('tema-claro', temaDe() === 'claro');
-  }
+  // qualquer computador ou celular. O núcleo (Tema) está no ui.js.
+  function aplicarTema() { Tema.aplicar(false); }
   // Recebe o tema que veio do servidor (login / conferência das permissões)
-  function usarTemaDoUsuario(tema) {
-    if (tema !== 'claro' && tema !== 'escuro') return;
-    try { localStorage.setItem('pm_tema', tema); } catch (e) { /* ignora */ }
-    aplicarTema();
-  }
-  function alternarTema() {
-    const novo = temaDe() === 'claro' ? 'escuro' : 'claro';
-    try { localStorage.setItem('pm_tema', novo); } catch (e) { /* ignora */ }
-    aplicarTema();
+  function usarTemaDoUsuario(tema) { if (Tema.guardar(tema)) Tema.aplicar(true); }
+  function definirTema(novo) {
+    Tema.guardar(novo);
+    Tema.aplicar(true);
     try {
       const s = JSON.parse(sessionStorage.getItem('pm_sessao') || 'null');
       if (s && s.usuario) { s.usuario.tema = novo; sessionStorage.setItem('pm_sessao', JSON.stringify(s)); }
@@ -49,6 +36,26 @@ const Shell = (function () {
       if (!foi) fetch(CONFIG.API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: corpo, keepalive: true }).catch(function () { /* fica no aparelho */ });
     } catch (e) { /* fica no aparelho; vai de novo na próxima troca */ }
   }
+  // Botão do topo: troca entre claro e escuro (sai do automático)
+  function alternarTema() { definirTema(Tema.efetivo() === 'claro' ? 'escuro' : 'claro'); }
+  // Menu do usuário: liga/desliga o automático
+  function alternarAuto() { definirTema(Tema.preferido() === 'auto' ? Tema.efetivo() : 'auto'); }
+  // Ícone do botão: lua no tema claro (vai para o escuro), sol no escuro (vai para o claro)
+  function atualizarBotaoTema() {
+    const claro = Tema.efetivo() === 'claro', auto = Tema.preferido() === 'auto';
+    document.querySelectorAll('[data-acao="tema"]').forEach(function (b) {
+      const u = b.querySelector('use');
+      if (u) u.setAttribute('href', claro ? '#i-lua' : '#i-sol');
+      b.title = (claro ? 'Mudar para o tema escuro' : 'Mudar para o tema claro') + (auto ? ' (hoje: automático)' : '');
+      b.classList.toggle('auto', auto);
+    });
+    document.querySelectorAll('[data-acao="tema-auto"]').forEach(function (b) {
+      b.classList.toggle('ligado', auto);
+      const t = b.querySelector('[data-txt]');
+      if (t) t.textContent = auto ? 'Tema automático: ligado' : 'Tema automático (segue o Windows/celular)';
+    });
+  }
+  Tema.aoMudar(atualizarBotaoTema);
 
   // ---------- Montagem ----------
   function montar(ctx) {
@@ -73,6 +80,7 @@ const Shell = (function () {
       '      <div><b>' + Ui.esc(ctx.usuario.nome) + '</b><small>' + Ui.esc(nomeCargo(ctx.usuario)) + '</small></div>' +
       '      <div class="menu-usuario">' +
       '        <div class="cab"><b>' + Ui.esc(ctx.usuario.nome) + '</b>' + Ui.esc(ctx.usuario.login) + ' · ' + Ui.esc(nomeCargo(ctx.usuario)) + '</div>' +
+      '        <button data-acao="tema-auto">' + Ui.ic('i-auto') + '<span data-txt>Tema automático (segue o Windows/celular)</span></button>' +
       '        <button data-acao="pin">' + Ui.ic('i-chave') + 'Trocar PIN</button>' +
       '        <button data-acao="sair">' + Ui.ic('i-sair') + 'Sair</button>' +
       '      </div>' +
@@ -88,6 +96,7 @@ const Shell = (function () {
     main.parentNode.insertBefore(app, main);
     app.insertBefore(main, app.querySelector('footer'));
     ligarEventos(app, ctx);
+    atualizarBotaoTema();
     document.title = ctx.pagina.nome + ' · Prometals';
   }
 
@@ -125,6 +134,7 @@ const Shell = (function () {
       if (alvo.classList.contains('veu')) { app.classList.remove('menu-aberto'); return; }
       const acao = alvo.dataset.acao;
       if (acao === 'tema') alternarTema();
+      if (acao === 'tema-auto') { menuUsuario.classList.remove('aberto'); alternarAuto(); return; }
       if (acao === 'usuario') { if (!ev.target.closest('.menu-usuario')) menuUsuario.classList.toggle('aberto'); return; }
       if (acao === 'sair') { ev.stopPropagation(); Sessao.sair(); }
       if (acao === 'pin') { menuUsuario.classList.remove('aberto'); trocarPin(); }
