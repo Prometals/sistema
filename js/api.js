@@ -30,34 +30,9 @@ const Api = (function () {
   async function chamar(acao, dados, opcoes) {
     opcoes = opcoes || {};
     if (opcoes.rapido) return chamarRapido(acao, dados, opcoes);
-    const r = LEITURA.test(acao) ? await lerSemRepetir(acao, dados, opcoes) : await buscar(acao, dados, opcoes);
+    const r = await buscar(acao, dados, opcoes);
     if (!LEITURA.test(acao)) limparRespostas();   // gravou algo: as respostas guardadas ficaram velhas
     return r;
-  }
-
-  // ---------- Menos chamadas ao servidor (o Apps Script atende poucas ao mesmo tempo) ----------
-  // 1) A mesma leitura já em andamento (ex.: atualização automática enquanto a anterior
-  //    ainda não voltou) NÃO vai de novo ao servidor: espera a que já está indo.
-  // 2) No máximo 2 leituras ao mesmo tempo por aba; as outras esperam a vez.
-  //    Gravações não esperam (passam na frente).
-  const emAndamentoLeitura = {};
-  const MAX_LEITURAS = 2;
-  let leiturasAtivas = 0;
-  const filaLeituras = [];
-  function lerSemRepetir(acao, dados, opcoes) {
-    const k = acao + '|' + JSON.stringify(dados || {});
-    if (emAndamentoLeitura[k]) return emAndamentoLeitura[k];
-    const p = new Promise(function (ok) {
-      if (leiturasAtivas < MAX_LEITURAS) { leiturasAtivas++; ok(); } else filaLeituras.push(ok);
-    }).then(function () {
-      return buscar(acao, dados, opcoes);
-    }).finally(function () {
-      delete emAndamentoLeitura[k];
-      const prox = filaLeituras.shift();
-      if (prox) prox(); else leiturasAtivas--;
-    });
-    emAndamentoLeitura[k] = p;
-    return p;
   }
 
   // ---------- Resposta rápida (últimos dados guardados na sessão) ----------
@@ -87,24 +62,23 @@ const Api = (function () {
     const k = chaveResposta(acao, dados);
     const guardada = lerResposta(k);
     if (!guardada) {
-      const novo = await lerSemRepetir(acao, dados, opcoes);
+      const novo = await buscar(acao, dados, opcoes);
       guardarResposta(k, novo);
       return novo;
     }
-    // Resposta de menos de 60 s: usa direto, sem ir ao servidor (navegar entre páginas
-    // não dispara uma chamada nova a cada clique). Qualquer gravação apaga as guardadas.
-    if (Date.now() - guardada.t > 60000) {
+    // Resposta de menos de 5 s (ex.: logo depois de atualizar): usa direto, sem ir ao servidor.
+    if (Date.now() - guardada.t > 5000) {
       // No primeiro carregamento da página, trava os campos até os dados novos chegarem.
       const travar = Date.now() - INICIO_PAGINA < 4000;
       if (travar) { atualizandoInicio++; document.documentElement.classList.add('atualizando'); }
-      lerSemRepetir(acao, dados, opcoes)
+      buscar(acao, dados, opcoes)
         .then(function (novo) {
           guardarResposta(k, novo);
           if (JSON.stringify(novo) !== guardada.j) opcoes.rapido(novo);
         })
         .catch(function () { /* a página segue com os dados que já mostra */ })
         .then(function () {
-          if (travar && --atualizandoInicio <= 0) { atualizandoInicio = 0; document.documentElement.classList.remove('atualizando'); }
+          if (travar && --atualizandoInicio <= 0) document.documentElement.classList.remove('atualizando');
         });
     }
     return JSON.parse(guardada.j);
@@ -144,12 +118,8 @@ const Api = (function () {
     if (!opcoes.semToken) corpo.token = Sessao.token();
 
     const controle = new AbortController();
-    // Gravação espera mais (até 2 min): desistir antes faz a pessoa clicar de novo
-    // enquanto o servidor ainda está gravando, e a fila do Google só aumenta.
-    const limite = LEITURA.test(acao) ? CONFIG.TEMPO_LIMITE_MS : Math.max(CONFIG.TEMPO_LIMITE_MS, 120000);
-    const tempo = setTimeout(function () { controle.abort(); }, limite);
+    const tempo = setTimeout(function () { controle.abort(); }, CONFIG.TEMPO_LIMITE_MS);
     ocupado(1);
-    const t0 = Date.now();
     let resposta;
     try {
       const r = await fetch(CONFIG.API_URL, {
@@ -161,10 +131,7 @@ const Api = (function () {
       });
       resposta = await r.json();
     } catch (e) {
-      // Trocou de página no meio da chamada: não é falta de conexão, não avisa nada
-      if (saindo) return new Promise(function () {});
       avisar(false);
-      medir(acao, Date.now() - t0, null, 'SEM_CONEXAO');
       throw new ErroApi('SEM_CONEXAO', controle.signal.aborted
         ? 'O servidor demorou demais para responder. Tente de novo.'
         : 'Sem conexão com o servidor. Verifique a internet e tente de novo.');
@@ -173,7 +140,6 @@ const Api = (function () {
       ocupado(-1);
     }
     avisar(true);
-    medir(acao, Date.now() - t0, resposta && resposta._t, resposta && !resposta.ok ? resposta.erro : '');
 
     if (resposta && resposta.ok) return resposta.dados;
     const codigo = (resposta && resposta.erro) || 'ERRO';
@@ -184,24 +150,6 @@ const Api = (function () {
       return new Promise(function () {});
     }
     throw new ErroApi(codigo, mensagem);
-  }
-
-  // Velocidade: guarda as últimas 300 chamadas deste aparelho (diag.html › Velocidade).
-  // [quando, ação, ms total, ms no servidor, leituras de planilha, ms planilha, ms abrir, ms trava, ms flush, página, erro]
-  const CHAVE_TEMPOS = 'pm_tempos';
-  let saindo = false;   // trocou de página no meio da chamada: não conta como erro
-  window.addEventListener('pagehide', function () { saindo = true; });
-  window.addEventListener('beforeunload', function () { saindo = true; });
-  function medir(acao, ms, t, erro) {
-    if (saindo) return;
-    try {
-      const l = JSON.parse(localStorage.getItem(CHAVE_TEMPOS) || '[]');
-      t = t || {};
-      l.push([Date.now(), acao, ms, t.ms === undefined ? null : t.ms, t.pl || 0, t.mpl || 0, t.ab || 0, t.tr || 0, t.fl || 0,
-        location.pathname.split('/').pop() || 'index.html', erro || '']);
-      if (l.length > 300) l.splice(0, l.length - 300);
-      localStorage.setItem(CHAVE_TEMPOS, JSON.stringify(l));
-    } catch (e) { /* sem armazenamento: não mede */ }
   }
 
   // Avisa a barra de status (Conectado / Sem conexão + hora da última resposta)
