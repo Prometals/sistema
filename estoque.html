@@ -167,7 +167,7 @@ Sessao.iniciarPagina('estoque').then(function (ctx) {
 
   carregarInsumos();
   carregarEmbalagens();
-  Api.chamar('setoresEstoque', {}).then(function (s) { setores = s || []; if (passo === 'so-setor') desenhar(); }).catch(function () {});
+  Api.chamar('setoresEstoque', {}, { rapido: function (s) { setores = s || []; } }).then(function (s) { setores = s || []; if (passo === 'so-setor') desenhar(); }).catch(function () {});
   desenhar();
   // Embalagens: atualiza a cada 60 s, só na tela inicial
   setInterval(function () { if (!document.hidden && passo === 'inicio' && !document.querySelector('.modal-fundo')) carregarEmbalagens(); }, 60000);
@@ -450,8 +450,10 @@ Sessao.iniciarPagina('estoque').then(function (ctx) {
   async function carregarInsumos() {
     try {
       // situacaoInsumos traz o saldo; sem acesso a Insumos, usa só o cadastro
-      if (ctx.nivelDe('insumos') !== 'NENHUM') insumos = await Api.chamar('situacaoInsumos', {});
-      else insumos = (await Api.chamar('listarInsumos', {})).map(function (i) {
+      // dados guardados: a lista aparece na hora; o saldo é conferido de novo no servidor ao lançar
+      const rapido = { rapido: function () { carregarInsumos(); } };
+      if (ctx.nivelDe('insumos') !== 'NENHUM') insumos = await Api.chamar('situacaoInsumos', {}, rapido);
+      else insumos = (await Api.chamar('listarInsumos', {}, rapido)).map(function (i) {
         return { cod_insumo: i.COD_INSUMO, descricao: i.DESCRICAO, categoria: i.CATEGORIA, unidade: i.UNIDADE, politica: i.POLITICA, saldo: null };
       });
       // atualiza o saldo do insumo escolhido
@@ -688,7 +690,7 @@ Sessao.iniciarPagina('estoque').then(function (ctx) {
   // ============================================================
   async function carregarEmbalagens() {
     try {
-      embalagens = await Api.chamar('embalagensParaBaixar', {}) || [];
+      embalagens = await Api.chamar('embalagensParaBaixar', {}, { rapido: function () { carregarEmbalagens(); } }) || [];
       if (passo === 'inicio') {
         const aberto = $('#embalagens') && $('#embalagens').open;
         desenhar();
