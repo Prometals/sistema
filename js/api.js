@@ -181,11 +181,58 @@ const Api = (function () {
     return Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
   }
 
+  // ---------- Pré-carregar (depois do login) ----------
+  // Busca por trás, UMA de cada vez, os dados das páginas que a pessoa pode abrir.
+  // Quando ela clicar no menu, a página já abre na hora. Só busca o que ainda
+  // não está guardado; se a pessoa trocar de página no meio, continua na próxima.
+  const PRECARGA = {
+    inicio:    [['resumoBI', {}]],
+    bi:        [['resumoBI', {}]],
+    consulta:  [['listarCarteira', { visao: 'PRODUCAO' }]],
+    pcp:       [['listarCarteira', { visao: 'PRODUCAO' }], ['listarProdutos', {}]],
+    mapa:      [['listarCarteira', { visao: 'PRODUCAO' }]],
+    gerencial: [['listarCarteira', { visao: 'PRODUCAO' }]],
+    fusao:     [['listarCarteira', { visao: 'PRODUCAO' }]],
+    historico: [['listarCorridas', { canceladas: true }]],
+    comercial: [['listarCarteira', { visao: 'COMERCIAL' }]],
+    compras:   [['painelCompras', { categorias: 'TODAS' }]],
+    qualidade: [['listarRefugo', {}]],
+    refugo:    [['inicioRefugo', {}]],
+    insumos:   [['listarInsumos', { incluirInativos: true }], ['situacaoInsumos', {}], ['ajustesSaldo', { dias: 30 }]],
+    produtos:  [['listarProdutos', { incluirInativos: true }], ['listarInsumos', {}]],
+    estoque:   [['embalagensParaBaixar', {}]]
+  };
+  let preCarregando = false;
+  async function preCarregar(paginas) {
+    if (preCarregando || !paginas) return;
+    // no máximo a cada 10 min (não fica enchendo o servidor depois de cada gravação)
+    try {
+      if (Date.now() - Number(localStorage.getItem('pm_precarga') || 0) < 10 * 60 * 1000) return;
+      localStorage.setItem('pm_precarga', String(Date.now()));
+    } catch (e) { return; }
+    preCarregando = true;
+    const vistas = {};
+    const lista = [];
+    paginas.forEach(function (p) {
+      if (!p || p.nivel === 'NENHUM') return;
+      (PRECARGA[p.id] || []).forEach(function (c) {
+        const k = chaveResposta(c[0], c[1]);
+        if (!vistas[k]) { vistas[k] = true; lista.push({ k: k, acao: c[0], dados: c[1] }); }
+      });
+    });
+    for (const c of lista) {
+      if (saindo) break;
+      if (lerResposta(c.k)) continue;   // já guardado
+      try { guardarResposta(c.k, await lerUmaVez(c.acao, c.dados, {})); } catch (e) { /* segue com a próxima */ }
+    }
+    preCarregando = false;
+  }
+
   // Tela de login: já "acorda" o servidor e abre a conexão com o Google enquanto
   // a pessoa digita usuário e PIN — o Entrar responde mais rápido.
   if (/(^|\/)(index\.html)?$/.test(location.pathname)) {
     setTimeout(function () { buscar('ping', {}, { semToken: true }).catch(function () { /* ignora */ }); }, 0);
   }
 
-  return { chamar: chamar, idReq: idReq, Erro: ErroApi, limparRespostas: limparRespostas };
+  return { chamar: chamar, idReq: idReq, Erro: ErroApi, limparRespostas: limparRespostas, preCarregar: preCarregar };
 })();
