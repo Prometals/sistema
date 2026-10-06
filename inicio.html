@@ -6,6 +6,7 @@
 <title>Visão geral · Prometals</title>
 <link rel="stylesheet" href="css/tema.css">
 <link rel="stylesheet" href="css/sistema.css">
+<style>#atualizar.girando svg { animation: gira .8s linear infinite; }</style>
 </head>
 <body>
 
@@ -59,14 +60,16 @@ Sessao.iniciarPagina('inicio').then(function (ctx) {
     return;
   }
   carregar();
-  $('atualizar').addEventListener('click', carregar);
+  $('atualizar').addEventListener('click', function () { carregar(true); });
   setInterval(function () { if (!document.hidden) carregar(); }, 5 * 60 * 1000);
 
   // ---------- Dados ----------
-  async function carregar() {
-    $('atualizar').disabled = true;
+  // A tela abre na hora com os dados guardados. O botão Atualizar busca do
+  // servidor de verdade (o ícone gira enquanto isso; o botão nunca trava).
+  async function carregar(forcar) {
+    if (forcar) $('atualizar').classList.add('girando');
     try {
-      const r = await Api.chamar('resumoBI', {}, { rapido: function () { carregar(); } });
+      const r = await Api.chamar('resumoBI', {}, { forcar: !!forcar, rapido: function () { carregar(); } });
       desenharIndicadores(r);
       desenharAtencao(r);
       $('subtitulo').textContent = Fmt.hojeExtenso() + ' · dados atualizados às ' + Fmt.hora().slice(0, 5);
@@ -74,7 +77,7 @@ Sessao.iniciarPagina('inicio').then(function (ctx) {
       Ui.erro(e);
       if (!$('kpis').innerHTML) $('atencao').innerHTML = '<div class="vazio">Não foi possível carregar os dados. ' + Ui.esc(e.message) + '</div>';
     } finally {
-      $('atualizar').disabled = false;
+      if (forcar) $('atualizar').classList.remove('girando');
     }
   }
 
