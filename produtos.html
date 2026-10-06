@@ -201,7 +201,7 @@ Sessao.iniciarPagina('produtos').then(function (ctx) {
   // ---------- Dados ----------
   async function carregar() {
     try {
-      produtos = await Api.chamar('listarProdutos', { incluirInativos: true });
+      produtos = await Api.chamar('listarProdutos', { incluirInativos: true }, { rapido: function () { if (!document.querySelector('.modal-fundo')) carregar(); } });
       produtos.sort(function (a, b) { return String(a.COD_ITEM).localeCompare(String(b.COD_ITEM)); });
       desenharLista();
     } catch (e) {
@@ -210,7 +210,7 @@ Sessao.iniciarPagina('produtos').then(function (ctx) {
     }
   }
   async function carregarInsumos() {
-    try { insumos = await Api.chamar('listarInsumos', {}); } catch (e) { /* sem a lista, só não sugere */ }
+    try { insumos = await Api.chamar('listarInsumos', {}, { rapido: function (n) { insumos = n; } }); } catch (e) { /* sem a lista, só não sugere */ }
   }
 
   // ---------- Códigos: toda busca ignora os zeros à esquerda ----------
