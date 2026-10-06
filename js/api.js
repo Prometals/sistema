@@ -13,10 +13,11 @@
 //   clique e reenvie o MESMO se for tentar de novo.
 // - Resposta rápida (consultas):
 //     Api.chamar('listarCarteira', {...}, { rapido: function () { carregar(true); } })
-//   Se já existe a resposta da última vez (nesta sessão), ela volta NA HORA
-//   e o servidor é consultado em segundo plano; se os dados mudaram, chama
-//   rapido() para a página redesenhar. Qualquer gravação (salvar, estornar…)
-//   apaga as respostas guardadas, para ninguém ver dado antigo depois de salvar.
+//   Se já existe a resposta da última vez (guardada no computador, até 12 h),
+//   ela volta NA HORA e o servidor é consultado em segundo plano; se os dados
+//   mudaram, chama rapido() para a página redesenhar. Qualquer gravação
+//   (salvar, estornar…) apaga as respostas guardadas.
+// - Leitura igual já a caminho não é repetida; gravações vão uma de cada vez.
 // ============================================================
 
 const Api = (function () {
@@ -29,31 +30,51 @@ const Api = (function () {
 
   async function chamar(acao, dados, opcoes) {
     opcoes = opcoes || {};
-    if (opcoes.rapido) return chamarRapido(acao, dados, opcoes);
-    const r = await buscar(acao, dados, opcoes);
-    if (!LEITURA.test(acao)) limparRespostas();   // gravou algo: as respostas guardadas ficaram velhas
+    if (LEITURA.test(acao)) {
+      if (opcoes.rapido) return chamarRapido(acao, dados, opcoes);
+      return lerUmaVez(acao, dados, opcoes);
+    }
+    // Gravação: uma de cada vez (a segunda espera a primeira terminar),
+    // para não empilhar gravações no servidor.
+    const minha = filaGravacao.then(function () { return buscar(acao, dados, opcoes); });
+    filaGravacao = minha.catch(function () { /* a próxima segue mesmo se esta falhar */ });
+    const r = await minha;
+    if (!NAO_MUDA_DADOS.test(acao)) limparRespostas();   // gravou algo: as respostas guardadas ficaram velhas
     return r;
   }
+  let filaGravacao = Promise.resolve();
+  const NAO_MUDA_DADOS = /^(login|logout|salvarTema|trocarPin)$/;
 
-  // ---------- Resposta rápida (últimos dados guardados na sessão) ----------
+  // ---------- Respostas guardadas NO COMPUTADOR (valem até 12 h, mesmo fechando o navegador) ----------
+  // A página aparece NA HORA com a última resposta e a atualização vem do
+  // servidor por trás (sem travar a tela). Qualquer gravação apaga tudo,
+  // para ninguém ver dado antigo depois de salvar.
   const PREFIXO = 'pm_resp|';
-  const LEITURA = /^(listar|buscar|consultar|ler|meu|resumo|painel|situacao|estrutura|setores|inicio|conferencia|dados|embalagens|ping)/;
-  const INICIO_PAGINA = Date.now();
-  let atualizandoInicio = 0;
+  const LEITURA = /^(listar|buscar|consultar|ler|meu|resumo|painel|situacao|estrutura|setores|inicio|conferencia|dados|embalagens|ping|ajustes)/;
+  const VALIDADE_MS = 12 * 60 * 60 * 1000;   // depois disso a cópia não é usada
+  const REVALIDAR_MS = 30000;               // cópia com menos de 30 s: nem pergunta ao servidor
 
   function chaveResposta(acao, dados) {
     const s = Sessao.ler();
     return PREFIXO + (s && s.usuario ? s.usuario.login : '') + '|' + acao + '|' + JSON.stringify(dados || {});
   }
   function lerResposta(k) {
-    try { return JSON.parse(sessionStorage.getItem(k) || 'null'); } catch (e) { return null; }
+    try {
+      const g = JSON.parse(localStorage.getItem(k) || 'null');
+      return g && Date.now() - g.t < VALIDADE_MS ? g : null;
+    } catch (e) { return null; }
   }
   function guardarResposta(k, d) {
-    try { sessionStorage.setItem(k, JSON.stringify({ t: Date.now(), j: JSON.stringify(d) })); }
-    catch (e) { limparRespostas(); }   // armazenamento cheio: começa de novo
+    const v = JSON.stringify({ t: Date.now(), j: JSON.stringify(d) });
+    try { localStorage.setItem(k, v); }
+    catch (e) {   // armazenamento cheio: apaga as cópias antigas e tenta de novo
+      limparRespostas();
+      try { localStorage.setItem(k, v); } catch (e2) { /* segue sem guardar */ }
+    }
   }
   function limparRespostas() {
     try {
+      Object.keys(localStorage).forEach(function (k) { if (k.indexOf(PREFIXO) === 0) localStorage.removeItem(k); });
       Object.keys(sessionStorage).forEach(function (k) { if (k.indexOf(PREFIXO) === 0) sessionStorage.removeItem(k); });
     } catch (e) { /* navegador sem armazenamento */ }
   }
@@ -62,64 +83,55 @@ const Api = (function () {
     const k = chaveResposta(acao, dados);
     const guardada = lerResposta(k);
     if (!guardada) {
-      const novo = await buscar(acao, dados, opcoes);
+      const novo = await lerUmaVez(acao, dados, opcoes);
       guardarResposta(k, novo);
       return novo;
     }
-    // Resposta de menos de 5 s (ex.: logo depois de atualizar): usa direto, sem ir ao servidor.
-    if (Date.now() - guardada.t > 5000) {
-      // No primeiro carregamento da página, trava os campos até os dados novos chegarem.
-      const travar = Date.now() - INICIO_PAGINA < 4000;
-      if (travar) { atualizandoInicio++; document.documentElement.classList.add('atualizando'); }
-      buscar(acao, dados, opcoes)
+    // Atualiza por trás — só se a cópia tem mais de 30 s e a aba está na frente da pessoa
+    if (Date.now() - guardada.t > REVALIDAR_MS && !document.hidden) {
+      lerUmaVez(acao, dados, opcoes)
         .then(function (novo) {
           guardarResposta(k, novo);
           if (JSON.stringify(novo) !== guardada.j) opcoes.rapido(novo);
         })
-        .catch(function () { /* a página segue com os dados que já mostra */ })
-        .then(function () {
-          if (travar && --atualizandoInicio <= 0) document.documentElement.classList.remove('atualizando');
-        });
+        .catch(function () { /* a página segue com os dados que já mostra */ });
     }
     return JSON.parse(guardada.j);
   }
 
-  // Retorno visual de "estou trabalhando": se uma chamada ao servidor passa
-  // de 0,3 s, aparece a barrinha laranja no topo até terminar.
-  let emAndamento = 0, timerOcupado = null;
-  function ocupado(d) {
-    emAndamento = Math.max(emAndamento + d, 0);
-    if (emAndamento > 0 && !timerOcupado) {
-      timerOcupado = setTimeout(function () { if (emAndamento > 0) document.documentElement.classList.add('api-ocupado'); }, 300);
-    }
-    if (emAndamento === 0) {
-      clearTimeout(timerOcupado); timerOcupado = null;
-      document.documentElement.classList.remove('api-ocupado');
-    }
+  // A mesma leitura já a caminho do servidor não é pedida de novo:
+  // quem pedir junto recebe a mesma resposta.
+  const lendo = {};
+  function lerUmaVez(acao, dados, opcoes) {
+    const k = acao + '|' + JSON.stringify(dados || {});
+    if (lendo[k]) return lendo[k];
+    const p = buscar(acao, dados, opcoes);
+    lendo[k] = p;
+    const solta = function () { if (lendo[k] === p) delete lendo[k]; };
+    p.then(solta, solta);
+    return p;
   }
 
-  // Enquanto atualiza no primeiro carregamento: barra fina no topo e campos travados.
-  (function () {
-    const css = document.createElement('style');
-    css.textContent =
-      'html.atualizando main.conteudo input, html.atualizando main.conteudo select, html.atualizando main.conteudo textarea,' +
-      'html.atualizando main.conteudo button, html.atualizando .barra-mob button { pointer-events: none; }' +
-      'html.atualizando::after { content: ""; position: fixed; z-index: 9999; top: 0; left: 0; height: 3px; width: 35%;' +
-      ' background: var(--destaque, #f07a1f); animation: pm-atualizando 1.1s linear infinite; }' +
-      '@keyframes pm-atualizando { from { transform: translateX(-100%); } to { transform: translateX(290%); } }';
-    document.head.appendChild(css);
-  })();
+  // Trocou de página no meio de uma chamada: não é "sem conexão", não avisa nada.
+  let saindo = false;
+  window.addEventListener('pagehide', function () { saindo = true; });
+  window.addEventListener('pageshow', function () { saindo = false; });
 
-  async function buscar(acao, dados, opcoes) {
+  // Tempo máximo esperando o servidor:
+  //   leitura  → 90 s (e tenta 1 vez de novo sozinha se a rede falhar)
+  //   gravação → 2 min (sem repetir: a gravação pode ter acontecido)
+  const LIMITE_LEITURA = 90000, LIMITE_GRAVACAO = 120000;
+
+  async function buscar(acao, dados, opcoes, tentativa) {
     if (!CONFIG.API_URL || CONFIG.API_URL.indexOf('http') !== 0) {
       throw new ErroApi('CONFIG', 'A URL do backend não foi configurada (js/config.js › API_URL).');
     }
+    const leitura = LEITURA.test(acao);
     const corpo = { acao: acao, dados: dados || {} };
     if (!opcoes.semToken) corpo.token = Sessao.token();
 
     const controle = new AbortController();
-    const tempo = setTimeout(function () { controle.abort(); }, CONFIG.TEMPO_LIMITE_MS);
-    ocupado(1);
+    const tempo = setTimeout(function () { controle.abort(); }, Math.max(CONFIG.TEMPO_LIMITE_MS || 0, leitura ? LIMITE_LEITURA : LIMITE_GRAVACAO));
     let resposta;
     try {
       const r = await fetch(CONFIG.API_URL, {
@@ -131,14 +143,21 @@ const Api = (function () {
       });
       resposta = await r.json();
     } catch (e) {
-      avisar(false);
-      throw new ErroApi('SEM_CONEXAO', controle.signal.aborted
-        ? 'O servidor demorou demais para responder. Tente de novo.'
-        : 'Sem conexão com o servidor. Verifique a internet e tente de novo.');
-    } finally {
       clearTimeout(tempo);
-      ocupado(-1);
+      if (saindo) return new Promise(function () {});
+      // Leitura: tenta mais uma vez sozinha (não grava nada, é seguro repetir)
+      if (leitura && !tentativa && !controle.signal.aborted) return buscar(acao, dados, opcoes, 1);
+      avisar(false);
+      if (leitura) {
+        throw new ErroApi('SEM_CONEXAO', controle.signal.aborted
+          ? 'O servidor está lento agora. A página tenta de novo sozinha em instantes.'
+          : 'Sem conexão com o servidor. Verifique a internet e tente de novo.');
+      }
+      throw new ErroApi('SEM_CONEXAO', controle.signal.aborted
+        ? 'O servidor está demorando para confirmar. Ele pode ter gravado: espere 1 minuto e recarregue a página para conferir ANTES de salvar de novo.'
+        : 'Sem conexão com o servidor. Confira se gravou (recarregue a página) antes de salvar de novo.');
     }
+    clearTimeout(tempo);
     avisar(true);
 
     if (resposta && resposta.ok) return resposta.dados;
