@@ -193,7 +193,7 @@ const Shell = (function () {
   }
   function nomeCargo(u) {
     const nomes = { ADMIN: 'Administrador', PCP: 'PCP', GERENCIA: 'Gerência', COMERCIAL: 'Comercial', FINANCEIRO: 'Financeiro',
-      COMPRAS: 'Compras', ALMOXARIFADO: 'Almoxarifado', QUALIDADE: 'Qualidade', OPERADOR: 'Operador', CONSULTA: 'Consulta' };
+      COMPRAS: 'Compras', ALMOXARIFADO: 'Almoxarifado', QUALIDADE: 'Qualidade', OPERADOR: 'Operador', CONSULTA: 'Consulta', ENGENHARIA: 'Engenharia' };
     const setor = u.setor ? ' · ' + (u.setor === 'FUNDICAO' ? 'Fundição' : u.setor === 'USINAGEM' ? 'Usinagem' : u.setor) : '';
     return (nomes[u.cargo] || u.cargo || '') + setor;
   }
