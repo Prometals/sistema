@@ -28,7 +28,7 @@ const Sessao = (function () {
   // Login: guarda token, usuário e páginas liberadas.
   async function entrar(login, pin) {
     const r = await Api.chamar('login', { login: login, pin: pin }, { semToken: true });
-    salvar({ token: r.token, usuario: r.usuario, paginas: r.paginas });
+    salvar({ token: r.token, usuario: r.usuario, paginas: r.paginas, conferidoEm: Date.now() });
     guardarTema(r.usuario);
     return r;
   }
@@ -118,8 +118,12 @@ const Sessao = (function () {
   // (menu ou nível desta página), guarda o novo e recarrega a página
   // uma vez para ela já abrir com o acesso certo.
   async function conferirAcessoEmSegundoPlano(s, idPagina) {
+    // No máximo a cada 10 min (antes: a cada troca de página = uma chamada a mais no servidor)
+    if (s.conferidoEm && Date.now() - s.conferidoEm < 10 * 60 * 1000) return;
     try {
       const r = await Api.chamar('meuAcesso', {});
+      const fresca = ler();
+      if (fresca) { fresca.conferidoEm = Date.now(); salvar(fresca); }
       // tema trocado em outro aparelho: aplica na hora, sem recarregar
       // (se a pessoa trocou o tema nesta página enquanto carregava, vale o dela)
       let agora = null;
