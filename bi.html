@@ -291,7 +291,7 @@ Sessao.iniciarPagina('bi').then(function (ctx) {
 
   async function carregar() {
     try {
-      const r = await Api.chamar('resumoBI', {});
+      const r = await Api.chamar('resumoBI', {}, { rapido: function () { carregar(); } });
       dados = preparar(r);
       desenhar();
       if (!temDados(tela)) proxima();
