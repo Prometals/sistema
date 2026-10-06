@@ -23,13 +23,7 @@ const Sessao = (function () {
   function token() { const s = ler(); return s ? s.token : ''; }
   // Tema do usuário (vem do servidor): guarda a cópia do aparelho para
   // as páginas abrirem já na cor certa. Sem tema salvo, fica o do aparelho.
-  function guardarTema(u) {
-    const t = u && u.tema;
-    if (t !== 'claro' && t !== 'escuro') return false;
-    let atual = null;
-    try { atual = localStorage.getItem('pm_tema'); localStorage.setItem('pm_tema', t); } catch (e) { /* ignora */ }
-    return atual !== t;
-  }
+  function guardarTema(u) { return Tema.guardar(u && u.tema); }
 
   // Login: guarda token, usuário e páginas liberadas.
   async function entrar(login, pin) {
