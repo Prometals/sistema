@@ -390,3 +390,32 @@ html body .btn2.so-icone[data-ic="i-mais"]  { background: var(--destaque); borde
 html body .btn2.so-icone[data-ic="i-graf"]  { background: #7c3aed; border-color: #7c3aed; color: #fff; } /* gargalo */
 html body .btn2.so-icone.perigo             { background: #dc2626; border-color: #dc2626; color: #fff; } /* cancelar / excluir */
 html body .btn2.so-icone:not(:disabled):hover { filter: brightness(1.12); }
+
+
+/* ============================================================
+   Sensação de clique em TODOS os botões do sistema:
+   ao apertar, o botão "afunda" um pouco e escurece. Também vale
+   para cards clicáveis, itens de lista e linhas clicáveis.
+   ============================================================ */
+button, .btn2, .kq, .km, .icone-btn, .bg, .cm, .li, [data-acao], [role="button"] {
+  transition: transform .08s ease, filter .08s ease, background-color .15s ease, border-color .15s ease, color .15s ease;
+}
+button:not(:disabled):active, .btn2:not(:disabled):active, .kq:active, .km:active, .icone-btn:active,
+.bg:not(:disabled):active, [role="button"]:active, .menu-usuario button:active {
+  transform: scale(.95);
+  filter: brightness(.88);
+}
+html.tema-claro button:not(:disabled):active, html.tema-claro .btn2:not(:disabled):active, html.tema-claro .kq:active,
+html.tema-claro .km:active, html.tema-claro .bg:not(:disabled):active { filter: brightness(.92); }
+/* itens de lista e linhas clicáveis: escurecem ao apertar (sem encolher, para não "pular") */
+.cm:active, .li:active, tr.lin:active td, tr[data-cod]:active td, tr[data-abre]:active td { filter: brightness(.85); }
+/* botão em espera (desativado enquanto grava) */
+button:disabled, .btn2:disabled { cursor: progress; }
+/* menu do usuário: item "tema automático" ligado */
+.menu-usuario button.ligado { color: var(--destaque); font-weight: 700; }
+.icone-btn.auto::after { content: "A"; position: absolute; right: 3px; bottom: 3px; font-size: 8px; font-weight: 800; color: var(--destaque); }
+
+/* troca de tema suave (só durante a troca, para não pesar no resto do tempo) */
+html.trocando-tema, html.trocando-tema *, html.trocando-tema *::before, html.trocando-tema *::after {
+  transition: background-color .3s ease, color .3s ease, border-color .3s ease, fill .3s ease !important;
+}
