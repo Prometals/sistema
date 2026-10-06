@@ -84,13 +84,27 @@ const Api = (function () {
     return JSON.parse(guardada.j);
   }
 
+  // Retorno visual de "estou trabalhando": se uma chamada ao servidor passa
+  // de 0,3 s, aparece a barrinha laranja no topo até terminar.
+  let emAndamento = 0, timerOcupado = null;
+  function ocupado(d) {
+    emAndamento = Math.max(emAndamento + d, 0);
+    if (emAndamento > 0 && !timerOcupado) {
+      timerOcupado = setTimeout(function () { if (emAndamento > 0) document.documentElement.classList.add('api-ocupado'); }, 300);
+    }
+    if (emAndamento === 0) {
+      clearTimeout(timerOcupado); timerOcupado = null;
+      document.documentElement.classList.remove('api-ocupado');
+    }
+  }
+
   // Enquanto atualiza no primeiro carregamento: barra fina no topo e campos travados.
   (function () {
     const css = document.createElement('style');
     css.textContent =
       'html.atualizando main.conteudo input, html.atualizando main.conteudo select, html.atualizando main.conteudo textarea,' +
       'html.atualizando main.conteudo button, html.atualizando .barra-mob button { pointer-events: none; }' +
-      'html.atualizando::after { content: ""; position: fixed; z-index: 9999; top: 0; left: 0; height: 3px; width: 35%;' +
+      'html.api-ocupado::after, html.atualizando::after { content: ""; position: fixed; z-index: 9999; top: 0; left: 0; height: 3px; width: 35%;' +
       ' background: var(--destaque, #f07a1f); animation: pm-atualizando 1.1s linear infinite; }' +
       '@keyframes pm-atualizando { from { transform: translateX(-100%); } to { transform: translateX(290%); } }';
     document.head.appendChild(css);
@@ -105,6 +119,7 @@ const Api = (function () {
 
     const controle = new AbortController();
     const tempo = setTimeout(function () { controle.abort(); }, CONFIG.TEMPO_LIMITE_MS);
+    ocupado(1);
     let resposta;
     try {
       const r = await fetch(CONFIG.API_URL, {
@@ -122,6 +137,7 @@ const Api = (function () {
         : 'Sem conexão com o servidor. Verifique a internet e tente de novo.');
     } finally {
       clearTimeout(tempo);
+      ocupado(-1);
     }
     avisar(true);
 
