@@ -207,11 +207,48 @@ const Fmt = {
   function agendar() {
     if (agendado) return;
     agendado = true;
-    requestAnimationFrame(function () { agendado = false; varrer(); });
+    requestAnimationFrame(function () { agendado = false; varrer(); encher(); });
   }
+
+  // ----------------------------------------------------------
+  // Tabelas que "enchem" a tela: todo elemento com data-encher
+  // (a caixa com rolagem da tabela) cresce até o fim da área útil,
+  // sem criar rolagem na página. Recalcula ao redimensionar e quando
+  // a tela muda (cards, filtros). No celular a página rola normal.
+  // data-encher="N" reserva N px extras embaixo (opcional).
+  // ----------------------------------------------------------
+  const celular = window.matchMedia('(max-width: 760px)');
+  function encher() {
+    const caixas = document.querySelectorAll('[data-encher]');
+    if (!caixas.length) return;
+    caixas.forEach(function (w) {
+      if (celular.matches) { w.style.maxHeight = ''; return; }
+      if (!w.offsetParent) return;                      // escondida
+      const r = w.getBoundingClientRect();
+      // escala real da tela (zoom de 90% etc.): px na tela ÷ px do CSS
+      const esc = w.offsetHeight ? r.height / w.offsetHeight : 1;
+      const main = w.closest('main') || document.body;
+      const mr = main.getBoundingClientRect();
+      const status = document.querySelector('footer.status');
+      let limite = Math.min(mr.bottom, window.innerHeight);
+      if (status && status.offsetParent) limite = Math.min(limite, status.getBoundingClientRect().top);
+      const pb = parseFloat(getComputedStyle(main).paddingBottom) || 0;
+      // o que vem depois da tabela dentro do mesmo bloco (rodapé, totais) + borda do bloco
+      let depois = Number(w.dataset.encher) || 0;
+      for (let el = w.nextElementSibling; el; el = el.nextElementSibling) depois += el.offsetHeight;
+      const pai = w.parentElement;
+      if (pai && pai !== main) depois += parseFloat(getComputedStyle(pai).borderBottomWidth) || 0;
+      const h = Math.max(Math.floor((limite - r.top) / esc - pb - depois - 2), 220);
+      const v = h + 'px';
+      if (w.style.maxHeight !== v) w.style.maxHeight = v;
+    });
+  }
+  window.addEventListener('resize', agendar);
+  celular.addEventListener('change', agendar);
 
   function iniciar() {
     varrer();
+    encher();
     // Botões criados ou renomeados depois (janelas, painéis, "Salvando…")
     // e ícones trocados (ex.: Editar ↔ Travar no PCP).
     new MutationObserver(agendar).observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['href'] });
