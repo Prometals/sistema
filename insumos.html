@@ -246,12 +246,19 @@ Sessao.iniciarPagina('insumos').then(function (ctx) {
   carregar();
 
   // ---------- Dados ----------
+  // Dados guardados no computador: a lista aparece na hora e atualiza por trás
+  var tAtualizar = null;
+  function atualizarDepois() {
+    clearTimeout(tAtualizar);
+    tAtualizar = setTimeout(function () { if (!document.querySelector('.modal-fundo')) carregar(); }, 300);
+  }
   async function carregar() {
     try {
+      const rapido = { rapido: atualizarDepois };
       const r = await Promise.all([
-        Api.chamar('listarInsumos', { incluirInativos: true }),
-        Api.chamar('situacaoInsumos', {}).catch(function (er) { Ui.erro(er); return []; }),
-        Api.chamar('ajustesSaldo', { dias: 30 }).catch(function () { return []; })
+        Api.chamar('listarInsumos', { incluirInativos: true }, rapido),
+        Api.chamar('situacaoInsumos', {}, rapido).catch(function (er) { Ui.erro(er); return []; }),
+        Api.chamar('ajustesSaldo', { dias: 30 }, rapido).catch(function () { return []; })
       ]);
       const sit = {};
       r[1].forEach(function (s) { sit[s.cod_insumo] = s; });
