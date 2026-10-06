@@ -461,7 +461,7 @@ Sessao.iniciarPagina('refugo').then(function (ctx) {
   carregarConfig();
   async function carregarConfig() {
     try {
-      const r = await Api.chamar('inicioRefugo', {});
+      const r = await Api.chamar('inicioRefugo', {}, { rapido: function (n) { estado.cfg = n; } });
       estado.cfg = r;
       $('chipSetor').textContent = r.setor ? (NOME_SETOR[r.setor] || r.setor) : 'TODOS OS SETORES';
       $('carregandoCfg').remove();
