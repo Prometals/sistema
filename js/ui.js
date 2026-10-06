@@ -90,8 +90,14 @@ const Ui = {
   // antesDeFechar(valor, caixa) pode devolver false (ou Promise<false>) para manter aberta.
   janela(opcoes) {
     return new Promise(function (resolver) {
+      // Mesma janela já aberta (ex.: clicou 2-3 vezes enquanto o servidor
+      // respondia): não abre outra por cima — evita o fundo cada vez mais escuro.
+      const chave = String(opcoes.titulo || '') + '|' + String(opcoes.subtitulo || '');
+      const iguais = Array.prototype.filter.call(document.querySelectorAll('.modal-fundo'), function (f) { return f.dataset.chave === chave; });
+      if (iguais.length) { resolver(null); return; }
       const fundo = document.createElement('div');
       fundo.className = 'modal-fundo';
+      fundo.dataset.chave = chave;
       fundo.innerHTML =
         '<div class="modal-caixa" role="dialog" aria-modal="true"' + (opcoes.largura ? ' style="max-width:' + opcoes.largura + 'px"' : '') + '>' +
         '<h3>' + Ui.esc(opcoes.titulo || '') + (opcoes.subtitulo ? '<small>' + Ui.esc(opcoes.subtitulo) + '</small>' : '') + '</h3>' +
@@ -104,31 +110,47 @@ const Ui = {
       const primeiro = caixa.querySelector('input, select, textarea');
       if (primeiro) setTimeout(function () { primeiro.focus(); }, 30);
 
+      let fechada = false, fechando = false;
       function fechar(valor) {
+        if (fechada) return;
+        fechada = true;
         document.removeEventListener('keydown', teclas);
         fundo.remove();
         resolver(valor);
       }
+      // Só a janela de cima responde a Esc/Enter (antes todas respondiam juntas)
+      function eDeCima() {
+        const todas = document.querySelectorAll('.modal-fundo');
+        return todas[todas.length - 1] === fundo;
+      }
       async function clicar(valor) {
+        if (fechando) return;   // já está gravando: ignora clique repetido
         if (opcoes.antesDeFechar && valor !== null) {
           const botoes = caixa.querySelectorAll('.rodape button');
           botoes.forEach(function (b) { b.disabled = true; });
+          fechando = true;
           let ok = true;
           try { ok = await opcoes.antesDeFechar(valor, caixa); } catch (e) { ok = false; }
+          fechando = false;
           botoes.forEach(function (b) { b.disabled = false; });
           if (ok === false) return;
         }
         fechar(valor);
       }
       function teclas(ev) {
-        if (ev.key === 'Escape') fechar(null);
+        if (!fundo.isConnected) { fechar(null); return; }   // a página removeu a janela por conta própria
+        if (!eDeCima()) return;
+        if (ev.key === 'Escape' && !fechando) fechar(null);
         if (ev.key === 'Enter' && opcoes.enterConfirma !== false) {
           const pri = (opcoes.botoes || []).findIndex(function (b) { return /pri|perigo/.test(b.classe || ''); });
           if (pri !== -1) { ev.preventDefault(); clicar(opcoes.botoes[pri].valor); }
         }
       }
       document.addEventListener('keydown', teclas);
-      fundo.addEventListener('mousedown', function (ev) { if (ev.target === fundo) fechar(null); });
+      fundo.addEventListener('mousedown', function (ev) { if (ev.target === fundo && !fechando) fechar(null); });
+      // a página removeu a janela por conta própria: libera a Promise e o teclado
+      const vigia = new MutationObserver(function () { if (!fundo.isConnected) { vigia.disconnect(); fechar(null); } });
+      vigia.observe(document.body, { childList: true });
       caixa.querySelectorAll('.rodape button').forEach(function (b) {
         b.addEventListener('click', function () { clicar(opcoes.botoes[Number(b.dataset.i)].valor); });
       });
