@@ -29,11 +29,7 @@ const Tema = (function () {
   const ouvintes = [];
   function aplicar(suave) {
     const raiz = document.documentElement;
-    if (suave) {   // transição curta de cores (sem piscar)
-      raiz.classList.add('trocando-tema');
-      clearTimeout(aplicar._t);
-      aplicar._t = setTimeout(function () { raiz.classList.remove('trocando-tema'); }, 350);
-    }
+    // troca na hora, sem transição (preferência do Oliver: "pisca e já muda")
     raiz.classList.toggle('tema-claro', efetivo() === 'claro');
     ouvintes.forEach(function (f) { try { f(); } catch (e) { /* ignora */ } });
   }
