@@ -19,7 +19,9 @@ const Sessao = (function () {
     try { return JSON.parse(sessionStorage.getItem(CHAVE) || 'null'); } catch (e) { return null; }
   }
   function salvar(s) { sessionStorage.setItem(CHAVE, JSON.stringify(s)); }
-  function limpar() { sessionStorage.removeItem(CHAVE); try { Api.limparRespostas(); } catch (e) { /* ignora */ } }
+  // As respostas guardadas ficam (são separadas por usuário e apagadas a cada gravação):
+  // assim, ao entrar de novo, as páginas já abrem na hora.
+  function limpar() { sessionStorage.removeItem(CHAVE); }
   function token() { const s = ler(); return s ? s.token : ''; }
   // Tema do usuário (vem do servidor): guarda a cópia do aparelho para
   // as páginas abrirem já na cor certa. Sem tema salvo, fica o do aparelho.
@@ -28,7 +30,7 @@ const Sessao = (function () {
   // Login: guarda token, usuário e páginas liberadas.
   async function entrar(login, pin) {
     const r = await Api.chamar('login', { login: login, pin: pin }, { semToken: true });
-    salvar({ token: r.token, usuario: r.usuario, paginas: r.paginas });
+    salvar({ token: r.token, usuario: r.usuario, paginas: r.paginas, conferidoEm: Date.now() });
     guardarTema(r.usuario);
     return r;
   }
@@ -49,8 +51,13 @@ const Sessao = (function () {
     return 'inicio.html';
   }
 
-  async function sair() {
-    try { await Api.chamar('logout', {}); } catch (e) { /* sai mesmo sem internet */ }
+  // Sai NA HORA: o aviso de logout vai para o servidor "por baixo" (sem esperar resposta).
+  function sair() {
+    try {
+      const corpo = JSON.stringify({ acao: 'logout', token: token(), dados: {} });
+      const enviado = navigator.sendBeacon && navigator.sendBeacon(CONFIG.API_URL, new Blob([corpo], { type: 'text/plain;charset=utf-8' }));
+      if (!enviado) fetch(CONFIG.API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: corpo, keepalive: true }).catch(function () {});
+    } catch (e) { /* sai mesmo sem internet */ }
     limpar();
     location.href = 'index.html';
   }
@@ -118,8 +125,12 @@ const Sessao = (function () {
   // (menu ou nível desta página), guarda o novo e recarrega a página
   // uma vez para ela já abrir com o acesso certo.
   async function conferirAcessoEmSegundoPlano(s, idPagina) {
+    // No máximo a cada 10 min (antes: a cada troca de página = uma chamada a mais no servidor)
+    if (s.conferidoEm && Date.now() - s.conferidoEm < 10 * 60 * 1000) return;
     try {
       const r = await Api.chamar('meuAcesso', {});
+      const fresca = ler();
+      if (fresca) { fresca.conferidoEm = Date.now(); salvar(fresca); }
       // tema trocado em outro aparelho: aplica na hora, sem recarregar
       // (se a pessoa trocou o tema nesta página enquanto carregava, vale o dela)
       let agora = null;
