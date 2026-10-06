@@ -81,7 +81,7 @@ const Api = (function () {
 
   async function chamarRapido(acao, dados, opcoes) {
     const k = chaveResposta(acao, dados);
-    const guardada = lerResposta(k);
+    const guardada = opcoes.forcar ? null : lerResposta(k);   // forcar: botão "Atualizar" (vai ao servidor)
     if (!guardada) {
       const novo = await lerUmaVez(acao, dados, opcoes);
       guardarResposta(k, novo);
