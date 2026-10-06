@@ -120,6 +120,7 @@ const Api = (function () {
     const controle = new AbortController();
     const tempo = setTimeout(function () { controle.abort(); }, CONFIG.TEMPO_LIMITE_MS);
     ocupado(1);
+    const t0 = Date.now();
     let resposta;
     try {
       const r = await fetch(CONFIG.API_URL, {
@@ -132,6 +133,7 @@ const Api = (function () {
       resposta = await r.json();
     } catch (e) {
       avisar(false);
+      medir(acao, Date.now() - t0, null, 'SEM_CONEXAO');
       throw new ErroApi('SEM_CONEXAO', controle.signal.aborted
         ? 'O servidor demorou demais para responder. Tente de novo.'
         : 'Sem conexão com o servidor. Verifique a internet e tente de novo.');
@@ -140,6 +142,7 @@ const Api = (function () {
       ocupado(-1);
     }
     avisar(true);
+    medir(acao, Date.now() - t0, resposta && resposta._t, resposta && !resposta.ok ? resposta.erro : '');
 
     if (resposta && resposta.ok) return resposta.dados;
     const codigo = (resposta && resposta.erro) || 'ERRO';
@@ -150,6 +153,24 @@ const Api = (function () {
       return new Promise(function () {});
     }
     throw new ErroApi(codigo, mensagem);
+  }
+
+  // Velocidade: guarda as últimas 300 chamadas deste aparelho (diag.html › Velocidade).
+  // [quando, ação, ms total, ms no servidor, leituras de planilha, ms planilha, ms abrir, ms trava, ms flush, página, erro]
+  const CHAVE_TEMPOS = 'pm_tempos';
+  let saindo = false;   // trocou de página no meio da chamada: não conta como erro
+  window.addEventListener('pagehide', function () { saindo = true; });
+  window.addEventListener('beforeunload', function () { saindo = true; });
+  function medir(acao, ms, t, erro) {
+    if (saindo) return;
+    try {
+      const l = JSON.parse(localStorage.getItem(CHAVE_TEMPOS) || '[]');
+      t = t || {};
+      l.push([Date.now(), acao, ms, t.ms === undefined ? null : t.ms, t.pl || 0, t.mpl || 0, t.ab || 0, t.tr || 0, t.fl || 0,
+        location.pathname.split('/').pop() || 'index.html', erro || '']);
+      if (l.length > 300) l.splice(0, l.length - 300);
+      localStorage.setItem(CHAVE_TEMPOS, JSON.stringify(l));
+    } catch (e) { /* sem armazenamento: não mede */ }
   }
 
   // Avisa a barra de status (Conectado / Sem conexão + hora da última resposta)
