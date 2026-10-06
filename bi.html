@@ -218,13 +218,7 @@ Sessao.iniciarPagina('bi').then(function (ctx) {
   // ---------- Botões ----------
   $('btTela').addEventListener('click', telaCheia);
   $('btPausa').addEventListener('click', alternarPausa);
-  $('btTema').addEventListener('click', function () {
-    let atual = null;
-    try { atual = localStorage.getItem('pm_tema_bi'); } catch (err) { /* sem armazenamento */ }
-    const claro = atual ? atual === 'claro' : (CONFIG.TEMA_PADRAO.bi === 'claro');
-    try { localStorage.setItem('pm_tema_bi', claro ? 'escuro' : 'claro'); } catch (err) { /* ignora */ }
-    Shell.aplicarTema('bi');
-  });
+  $('btTema').addEventListener('click', function () { Shell.alternarTema(); });
   document.addEventListener('keydown', function (ev) {
     if (ev.key === 'F11') { ev.preventDefault(); telaCheia(); }
     if (ev.key === ' ') { ev.preventDefault(); alternarPausa(); }
