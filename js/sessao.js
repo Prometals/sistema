@@ -31,6 +31,7 @@ const Sessao = (function () {
   async function entrar(login, pin) {
     const r = await Api.chamar('login', { login: login, pin: pin }, { semToken: true });
     salvar({ token: r.token, usuario: r.usuario, paginas: r.paginas, conferidoEm: Date.now() });
+    try { localStorage.removeItem('pm_precarga'); } catch (e) { /* ignora */ }   // login novo: pré-carrega de novo
     guardarTema(r.usuario);
     return r;
   }
@@ -110,6 +111,8 @@ const Sessao = (function () {
     }
     const pagina = s.paginas.find(function (p) { return p.id === idPagina; }) || { id: idPagina, nome: idPagina, grupo: '', nivel: 'NENHUM' };
     Shell.montar({ pagina: pagina, usuario: s.usuario, paginas: s.paginas });
+    // Depois que esta página carregar o que precisa, busca por trás os dados das outras
+    setTimeout(function () { try { Api.preCarregar(s.paginas); } catch (e) { /* ignora */ } }, 4000);
     if (pagina.nivel === 'NENHUM') {
       Shell.semPermissao(pagina);
       return new Promise(function () {});
