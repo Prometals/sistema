@@ -181,5 +181,11 @@ const Api = (function () {
     return Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
   }
 
+  // Tela de login: já "acorda" o servidor e abre a conexão com o Google enquanto
+  // a pessoa digita usuário e PIN — o Entrar responde mais rápido.
+  if (/(^|\/)(index\.html)?$/.test(location.pathname)) {
+    setTimeout(function () { buscar('ping', {}, { semToken: true }).catch(function () { /* ignora */ }); }, 0);
+  }
+
   return { chamar: chamar, idReq: idReq, Erro: ErroApi, limparRespostas: limparRespostas };
 })();
