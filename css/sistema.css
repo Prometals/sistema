@@ -40,26 +40,26 @@ svg.i { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-widt
 .form-caixa .seg { margin-top: 28px; padding-top: 16px; border-top: 1px solid var(--linha); font-size: 11px; color: var(--texto-suave); display: flex; gap: 8px; align-items: center; }
 
 /* =================== SISTEMA (shell) =================== */
-.app { display: grid; grid-template-columns: 248px 1fr; grid-template-rows: 56px 1fr 28px; height: 100vh; }
+.app { display: grid; grid-template-columns: 196px 1fr; grid-template-rows: 56px 1fr 28px; height: 100vh; }
 .lateral { grid-row: 1 / 4; background: var(--lateral); border-right: 1px solid var(--lateral-borda); display: flex; flex-direction: column; min-height: 0; }
-.lat-topo { height: 56px; display: flex; align-items: center; gap: 10px; padding: 0 16px; border-bottom: 1px solid var(--lateral-borda); flex: none; }
+.lat-topo { height: 56px; display: flex; align-items: center; gap: 10px; padding: 0 14px; border-bottom: 1px solid var(--lateral-borda); flex: none; }
 .lat-topo .sq { width: 30px; height: 30px; border-radius: 8px; background: var(--destaque); color: #fff; font-weight: 900; display: grid; place-items: center; }
 .lat-topo b { color: #fff; letter-spacing: 1.5px; font-size: 14px; }
 .lat-topo small { display: block; color: var(--lateral-titulo); font-size: 10px; letter-spacing: .5px; }
-.lat-nav { overflow-y: auto; padding: 10px 10px 16px; flex: 1; }
-.lat-sec { font-size: 10px; font-weight: 700; letter-spacing: 1.2px; color: var(--lateral-titulo); text-transform: uppercase; padding: 14px 10px 6px; }
+.lat-nav { overflow-y: auto; padding: 10px 8px 16px; flex: 1; }
+.lat-sec { font-size: 10px; font-weight: 700; letter-spacing: 1.2px; color: var(--lateral-titulo); text-transform: uppercase; padding: 14px 8px 6px; }
 .lat-item {
-  display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; color: var(--lateral-texto);
+  display: flex; align-items: center; gap: 8px; padding: 8px 8px; border-radius: 8px; color: var(--lateral-texto);
   font-size: 13px; cursor: pointer; position: relative; text-decoration: none;
 }
 .lat-item:hover { background: var(--lateral-ativo); color: #fff; }
 .lat-item.ativo { background: var(--lateral-ativo); color: #fff; font-weight: 600; }
-.lat-item.ativo::before { content: ""; position: absolute; left: -10px; top: 6px; bottom: 6px; width: 3px; border-radius: 0 3px 3px 0; background: var(--destaque); }
+.lat-item.ativo::before { content: ""; position: absolute; left: -8px; top: 6px; bottom: 6px; width: 3px; border-radius: 0 3px 3px 0; background: var(--destaque); }
 .lat-item .cont { margin-left: auto; background: var(--destaque); color: #fff; font-size: 10px; font-weight: 700; border-radius: 999px; padding: 1px 7px; }
 .lat-item.bloq { opacity: .38; cursor: not-allowed; }
 .lat-item.bloq:hover { background: transparent; color: var(--lateral-texto); }
 .lat-item.bloq .cad { margin-left: auto; width: 14px; height: 14px; }
-.lat-rodape { border-top: 1px solid var(--lateral-borda); padding: 12px 16px; font-size: 11px; color: var(--lateral-titulo); flex: none; }
+.lat-rodape { border-top: 1px solid var(--lateral-borda); padding: 12px 14px; font-size: 11px; color: var(--lateral-titulo); flex: none; }
 
 .topo { background: var(--painel); border-bottom: 1px solid var(--linha); display: flex; align-items: center; gap: 14px; padding: 0 18px; min-width: 0; }
 .migalha { font-size: 13px; color: var(--texto-suave); white-space: nowrap; }
@@ -267,6 +267,8 @@ html.tema-claro .cm-top .prazo.atraso { color: #b91c1c; }
 
 /* janela (modal) */
 .modal-fundo { position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 80; display: grid; place-items: center; padding: 16px; }
+/* janela por cima de janela: o fundo escurece uma vez só */
+.modal-fundo ~ .modal-fundo { background: transparent; }
 .modal-caixa { width: 100%; max-width: 420px; background: var(--painel); border: 1px solid var(--linha); border-radius: 14px; box-shadow: var(--sombra); overflow: hidden; }
 .modal-caixa h3 { margin: 0; padding: 16px 18px; border-bottom: 1px solid var(--linha); font-size: 16px; }
 .modal-caixa .corpo { padding: 16px 18px; font-size: 13.5px; line-height: 1.5; }
@@ -313,7 +315,7 @@ html.tema-claro .nv.ver { color: #1d4ed8; }
 
 /* Antes do menu ser montado (primeiro instante da página), o conteúdo já
    ocupa o lugar dele de verdade — a tela não "pula" quando o menu aparece. */
-body > main.conteudo { margin: 56px 0 0 248px; }
+body > main.conteudo { margin: 56px 0 0 196px; }
 @media (max-width: 760px) { body > main.conteudo { margin-left: 0; } }
 
 /* ============================================================
