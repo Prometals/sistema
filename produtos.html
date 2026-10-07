@@ -279,6 +279,14 @@ Sessao.iniciarPagina('produtos').then(function (ctx) {
 
   async function abrir(cod) {
     document.body.classList.add('mob-det');
+    // Já veio na lista (com a estrutura): abre NA HORA e confere no servidor por trás
+    const daLista = acharProduto(cod);
+    if (daLista && Array.isArray(daLista.ESTRUTURA)) {
+      const prod = Object.assign({}, daLista); delete prod.ESTRUTURA; delete prod.QTD_INSUMOS;
+      montar(prod, daLista.ESTRUTURA);
+      conferirNoServidor(prod.COD_ITEM, JSON.stringify([prod, daLista.ESTRUTURA]));
+      return;
+    }
     $('#det').innerHTML = '<div class="det-vazio carregando">Carregando…</div>';
     try {
       const r = await Api.chamar('buscarProduto', { cod_item: cod });
@@ -288,6 +296,17 @@ Sessao.iniciarPagina('produtos').then(function (ctx) {
       Ui.erro(e);
       $('#det').innerHTML = '<div class="det-vazio">Não foi possível abrir o produto. ' + Ui.esc(e.message) + '</div>';
     }
+  }
+
+  // Confere se alguém mudou este produto desde a última cópia. Se mudou e a
+  // pessoa ainda não alterou nada na tela, mostra a versão nova sem avisar.
+  async function conferirNoServidor(cod, comoAbriu) {
+    try {
+      const r = await Api.chamar('buscarProduto', { cod_item: cod });
+      if (!r.encontrado || !atual || atual.novo || semZeros(atual.orig.cod) !== semZeros(cod) || temMudanca()) return;
+      const prod = Object.assign({}, r.produto); delete prod.QTD_INSUMOS;
+      if (JSON.stringify([prod, r.estrutura]) !== comoAbriu) montar(r.produto, r.estrutura);
+    } catch (e) { /* segue com o que já está na tela */ }
   }
 
   function novoProduto() {
