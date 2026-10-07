@@ -85,9 +85,9 @@ html.tema-claro .fcr-t { color: #c2410c; }
     <div class="acoes-pagina so-desk">
       <button class="btn2 imp" data-imprimir><svg class="i"><use href="#i-imp"/></svg>Imprimir <span class="n" data-qtd-imp>—</span></button>
       <span id="modo" hidden></span>
-      <button class="btn2" id="bt-cancelar" hidden title="Descartar alterações"><svg class="i"><use href="#i-x"/></svg>Descartar</button>
+      <button class="btn2" id="bt-cancelar" data-editar disabled title="Descartar alterações"><svg class="i"><use href="#i-x"/></svg>Descartar</button>
       <button class="btn2" id="bt-editar" data-editar title="Editar processo e previsão"><svg class="i"><use href="#i-lapis"/></svg><span>Editar</span></button>
-      <button class="btn2 salvar" id="bt-salvar" data-editar hidden><svg class="i"><use href="#i-check"/></svg><span class="rot">Salvar</span> <span class="n" id="n-salvar">0</span></button>
+      <button class="btn2 salvar" id="bt-salvar" data-editar disabled><svg class="i"><use href="#i-check"/></svg><span class="rot">Salvar</span> <span class="n" id="n-salvar">0</span></button>
     </div>
   </div>
 
@@ -129,7 +129,7 @@ html.tema-claro .fcr-t { color: #c2410c; }
   <div class="barra-mob so-mob">
     <button class="ic" data-imprimir title="Imprimir"><svg class="i"><use href="#i-imp"/></svg></button>
     <button class="ic" id="bt-editar-mob" data-editar title="Editar"><svg class="i"><use href="#i-lapis"/></svg></button>
-    <button class="pri" id="bt-salvar-mob" data-editar hidden><svg class="i"><use href="#i-check"/></svg><span class="rot">Salvar</span></button>
+    <button class="pri" id="bt-salvar-mob" data-editar disabled><svg class="i"><use href="#i-check"/></svg><span class="rot">Salvar</span></button>
   </div>
 </main>
 
@@ -401,11 +401,9 @@ Sessao.iniciarPagina('gerencial').then(function (ctx) {
       b.title = editando ? 'Travar a edição' : 'Editar processo e previsão';
     });
     const t = $('#bt-editar span'); if (t) t.textContent = editando ? 'Travar' : 'Editar';
-    $('#bt-salvar').hidden = !(pode && editando);
-    $('#bt-salvar-mob').hidden = !(pode && editando);
-    $('#bt-cancelar').hidden = !(pode && editando);
-    $('#modo').hidden = !(pode && editando);
-    $('#bt-salvar').disabled = $('#bt-salvar-mob').disabled = !n || salvando;
+    // visíveis sempre (para quem pode editar), mas bloqueados fora da edição
+    $('#bt-cancelar').disabled = !editando;
+    $('#bt-salvar').disabled = $('#bt-salvar-mob').disabled = !editando || !n || salvando;
   }
   function alternarEdicao() {
     if (editando && contarAlteracoes()) { Ui.toast('Há alterações não salvas. Salve ou cancele antes de travar.', 'aviso'); return; }
