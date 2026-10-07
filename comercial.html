@@ -118,9 +118,9 @@ html.tema-claro .resumo-op { background: #f8fafc; }
     <div><h1>Financeiro</h1><p>Carteira liberada, previsão de faturamento e OPs na expedição</p></div>
     <div class="acoes-pagina so-desk">
       <span id="modo" hidden></span>
-      <button class="btn2" id="bt-cancelar" hidden title="Descartar alterações"><svg class="i"><use href="#i-x"/></svg>Descartar</button>
+      <button class="btn2" id="bt-cancelar" disabled title="Descartar alterações"><svg class="i"><use href="#i-x"/></svg>Descartar</button>
       <button class="btn2" id="bt-editar" title="Editar os valores das OPs"><svg class="i"><use href="#i-lapis"/></svg><span>Editar</span></button>
-      <button class="btn2 salvar" id="bt-salvar" hidden><svg class="i"><use href="#i-check"/></svg><span class="rot">Salvar</span> <span class="n" id="n-salvar">0</span></button>
+      <button class="btn2 salvar" id="bt-salvar" disabled><svg class="i"><use href="#i-check"/></svg><span class="rot">Salvar</span> <span class="n" id="n-salvar">0</span></button>
       <button class="btn2" data-historico><svg class="i"><use href="#i-hist"/></svg>Histórico de NF</button>
       <button class="btn2 pri" data-imprimir><svg class="i"><use href="#i-imp"/></svg>Imprimir relatório <span class="n" data-qtd-imp>—</span></button>
     </div>
@@ -172,7 +172,7 @@ html.tema-claro .resumo-op { background: #f8fafc; }
   <div class="barra-mob so-mob">
     <button class="ic" data-historico title="Histórico de NF"><svg class="i"><use href="#i-hist"/></svg></button>
     <button class="ic" id="bt-editar-mob" title="Editar valores"><svg class="i"><use href="#i-lapis"/></svg></button>
-    <button class="pri" id="bt-salvar-mob" hidden><svg class="i"><use href="#i-check"/></svg><span class="rot">Salvar</span></button>
+    <button class="pri" id="bt-salvar-mob" disabled><svg class="i"><use href="#i-check"/></svg><span class="rot">Salvar</span></button>
     <button class="pri" data-imprimir style="background:var(--destaque);border-color:var(--destaque)"><svg class="i"><use href="#i-imp"/></svg>Imprimir relatório</button>
   </div>
 </main>
@@ -500,8 +500,10 @@ Sessao.iniciarPagina('comercial').then(function (ctx) {
       b.title = editando ? 'Travar a edição' : 'Editar os valores das OPs';
     });
     $('#bt-editar span').textContent = editando ? 'Travar' : 'Editar';
-    $('#bt-salvar').hidden = $('#bt-salvar-mob').hidden = $('#bt-cancelar').hidden = $('#modo').hidden = !(pode && editando);
-    $('#bt-salvar').disabled = $('#bt-salvar-mob').disabled = !n || salvando;
+    // visíveis sempre (para quem pode editar), mas bloqueados fora da edição
+    $('#bt-salvar').hidden = $('#bt-salvar-mob').hidden = $('#bt-cancelar').hidden = !pode;
+    $('#bt-cancelar').disabled = !editando;
+    $('#bt-salvar').disabled = $('#bt-salvar-mob').disabled = !editando || !n || salvando;
     $('#n-salvar').textContent = n;
     $('#bt-salvar-mob .rot').textContent = n ? 'Salvar ' + n + ' valor' + (n > 1 ? 'es' : '') : 'Salvar';
   }
