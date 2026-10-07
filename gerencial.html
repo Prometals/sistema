@@ -37,6 +37,9 @@ html.tema-claro .tab-wrap table.tab thead th { background: #f1f5f9; }
 .filtros .f-busca { flex: 1; min-width: 220px; position: relative; }
 .filtros .f-busca input { width: 100%; padding-left: 34px; }
 .filtros .f-busca svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--texto-suave); }
+.ord-col { cursor: pointer; user-select: none; }
+.ord-col:hover { color: var(--texto); }
+.ord-col i { font-style: normal; margin-left: 4px; color: var(--destaque); }
 .filtros .info { font-size: 12px; color: var(--texto-suave); margin-left: auto; white-space: nowrap; }
 .pend { color: var(--destaque); font-weight: 700; }
 
@@ -88,8 +91,8 @@ html.tema-claro .fcr-t { color: #c2410c; }
 
   <div class="filtros so-desk">
     <select id="fDepto" title="Departamento"><option value="">Todos os departamentos</option></select>
-    <input type="date" id="fIni" data-icone title="Prazo de">
-    <input type="date" id="fFim" data-icone title="Prazo até">
+    <input type="date" id="fIni" data-icone data-rotulo="De" title="Prazo de">
+    <input type="date" id="fFim" data-icone data-rotulo="Até" title="Prazo até">
     <div class="f-busca"><svg class="i"><use href="#i-busca"/></svg><input id="busca" placeholder="Buscar OP / Pedido / Cliente / Código / Processo" autocomplete="off"></div>
     <button class="btn2" id="btLimpar" title="Limpar filtros e seleção"><svg class="i"><use href="#i-volta"/></svg>Limpar</button>
     <span class="info" id="info" hidden></span>
@@ -103,7 +106,7 @@ html.tema-claro .fcr-t { color: #c2410c; }
   <div class="bloco so-desk" style="padding:0">
     <div class="tab-wrap" data-encher>
       <table class="tab">
-        <thead><tr><th><input type="checkbox" class="chk" id="chk-todos" title="Selecionar as OPs visíveis"></th><th>OP</th><th>Pedido</th><th>Cliente</th><th>Código</th><th>Descrição</th><th class="num">Qtd</th><th>Processo</th><th class="num">Prazo</th><th>Previsão</th></tr></thead>
+        <thead><tr><th><input type="checkbox" class="chk" id="chk-todos" title="Selecionar as OPs visíveis"></th><th>OP</th><th>Pedido</th><th>Cliente</th><th>Código</th><th>Descrição</th><th class="num">Qtd</th><th>Processo</th><th class="num ord-col" data-ord-col="PRAZO" title="Ordenar por prazo">Prazo<i data-seta></i></th><th class="ord-col" data-ord-col="PREV" title="Ordenar por previsão">Previsão<i data-seta></i></th></tr></thead>
         <tbody id="linhas"><tr><td colspan="10"><div class="carregando">Carregando…</div></td></tr></tbody>
       </table>
     </div>
@@ -254,8 +257,40 @@ Sessao.iniciarPagina('gerencial').then(function (ctx) {
 
   function corPrazo(x) { return x.cat === 'VENCIDO' ? ' atraso' : x.cat === 'FORA_CRONO' ? ' fcr-t' : ''; }
 
+  // Ordenação pelo cabeçalho: clique = menor → maior; de novo = maior → menor; de novo = sem ordem.
+  // Datas vazias ficam sempre no fim.
+  let ordem = '';
+  function chaveOrdem(x, col) {
+    if (col === 'PRAZO') { const d = Cronograma.parseBR(x.prazo); return d ? d.getTime() : null; }
+    const v = prevAtualISO(x); return v || null;
+  }
+  function ordenar(lista) {
+    if (!ordem) return lista;
+    const col = ordem.split('_')[0], dir = ordem.endsWith('_DESC') ? -1 : 1;
+    return lista.slice().sort(function (a, b) {
+      const ka = chaveOrdem(a, col), kb = chaveOrdem(b, col);
+      if (ka === kb) return 0;
+      if (ka === null) return 1;
+      if (kb === null) return -1;
+      return (ka < kb ? -1 : 1) * dir;
+    });
+  }
+  function setasOrdem() {
+    document.querySelectorAll('[data-ord-col]').forEach(function (th) {
+      const c = th.dataset.ordCol;
+      th.querySelector('[data-seta]').textContent = ordem === c + '_ASC' ? '▲' : ordem === c + '_DESC' ? '▼' : '';
+    });
+  }
+  document.querySelectorAll('[data-ord-col]').forEach(function (th) {
+    th.addEventListener('click', function () {
+      const c = th.dataset.ordCol;
+      ordem = ordem === c + '_ASC' ? c + '_DESC' : ordem === c + '_DESC' ? '' : c + '_ASC';
+      desenharLista();
+    });
+  });
   function desenharLista() {
-    const lista = aplicarFiltro();
+    const lista = ordenar(aplicarFiltro());
+    setasOrdem();
     const dis = ctx.podeEditar && editando ? '' : ' disabled';
     $('#linhas').innerHTML = lista.map(function (x) {
       const ed = edicoes[x.id_item] || {};
@@ -357,7 +392,7 @@ Sessao.iniciarPagina('gerencial').then(function (ctx) {
   ['#fDepto', '#fIni', '#fFim'].forEach(function (s) { $(s).addEventListener('change', desenharLista); });
   $('#btLimpar').addEventListener('click', function () {
     $('#fDepto').value = ''; $('#fIni').value = ''; $('#fFim').value = '';
-    $('#busca').value = ''; $('#busca-mob').value = ''; modo = 'TODOS';
+    $('#busca').value = ''; $('#busca-mob').value = ''; modo = 'TODOS'; ordem = '';
     selecionadas.clear();   // limpa também as OPs marcadas (ordem de prioridade)
     desenhar();
   });
