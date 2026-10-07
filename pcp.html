@@ -118,8 +118,8 @@ table.op .errc { border-color: #ef4444; }
     <span id="modo" hidden><span></span></span>
     <button class="btn2" id="bt-editar" data-editar><svg class="i"><use href="#i-lapis"/></svg><span>Editar</span></button>
     <button class="btn2" id="bt-nova" data-editar><svg class="i"><use href="#i-mais"/></svg>Nova OP</button>
-    <button class="btn2" id="bt-cancelar" hidden title="Descartar alterações"><svg class="i"><use href="#i-x"/></svg>Descartar</button>
-    <button class="btn2 salvar" id="bt-salvar" hidden><svg class="i"><use href="#i-check"/></svg><span class="rot">Salvar</span> <span class="n">0</span></button>
+    <button class="btn2" id="bt-cancelar" data-editar disabled title="Descartar alterações"><svg class="i"><use href="#i-x"/></svg>Descartar</button>
+    <button class="btn2 salvar" id="bt-salvar" data-editar disabled><svg class="i"><use href="#i-check"/></svg><span class="rot">Salvar</span> <span class="n">0</span></button>
   </div>
   <div class="busca-mob so-mob"><div class="f"><svg class="i"><use href="#i-busca"/></svg><input id="busca-mob" placeholder="OP, cliente, código…" autocomplete="off"></div></div>
 
@@ -353,8 +353,8 @@ Sessao.iniciarPagina('pcp').then(function (ctx) {
     $('#bt-editar').classList.toggle('travar', editando);
     $('#bt-editar span').textContent = editando ? 'Travar' : 'Editar';
     $('#bt-editar').querySelector('use').setAttribute('href', editando ? '#i-cadeado' : '#i-lapis');
-    $('#bt-cancelar').hidden = !(editando || novas.length);
-    $('#bt-salvar').hidden = !(editando || novas.length);
+    // visíveis sempre (para quem pode editar), mas bloqueados fora da edição
+    $('#bt-cancelar').disabled = !(editando || novas.length);
     $('#bt-salvar').disabled = !n || salvando;
     $('#bt-salvar .n').textContent = n;
     $('#modo').hidden = !(editando || novas.length);
