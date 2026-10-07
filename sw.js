@@ -2,18 +2,18 @@
 // sw.js — Service worker do app (PWA).
 //
 // O que ele faz:
-//   1. Guarda no aparelho os arquivos FIXOS (CSS, JS, ícones) para
-//      as telas abrirem mais rápido. Usa a cópia guardada e, ao mesmo
-//      tempo, busca a versão nova no servidor para a próxima vez.
-//   2. Páginas HTML e o config.js vêm SEMPRE do servidor primeiro
-//      (só usa a cópia se estiver sem internet).
+//   1. Páginas HTML, JS e CSS vêm SEMPRE do servidor primeiro (conferindo
+//      se mudou — se não mudou, a resposta é rapidinha). Assim toda
+//      correção vale na hora e nunca mistura arquivo novo com velho.
+//      Sem internet, usa a cópia guardada.
+//   2. Ícones e imagens: usa a cópia guardada e atualiza por trás.
 //   3. Sem internet e sem cópia → mostra "Sem conexão".
 //
 // O que ele NÃO faz: não guarda dados de produção. As chamadas ao
 // backend (POST para o Apps Script, outro domínio) passam direto.
 // ============================================================
 
-const VERSAO = 'prometals-v5';   // mude (v2, v3…) se quiser forçar todos a baixarem tudo de novo
+const VERSAO = 'prometals-v6';   // mude (v2, v3…) se quiser forçar todos a baixarem tudo de novo
 const FIXOS = [
   'css/tema.css', 'css/sistema.css',
   'js/icones.js', 'js/ui.js', 'js/api.js', 'js/sessao.js', 'js/shell.js', 'js/cronograma.js',
@@ -38,8 +38,8 @@ self.addEventListener('fetch', function (ev) {
   if (req.method !== 'GET' || url.origin !== self.location.origin) return;
 
   const ehPagina = req.mode === 'navigate' || url.pathname.endsWith('.html');
-  const ehConfig = url.pathname.endsWith('/js/config.js');
-  if (ehPagina || ehConfig) {
+  const ehCodigo = /\.(js|css|webmanifest)$/.test(url.pathname);
+  if (ehPagina || ehCodigo) {
     ev.respondWith(primeiroServidor(req, ehPagina));
   } else {
     ev.respondWith(copiaEAtualiza(req));
@@ -48,7 +48,7 @@ self.addEventListener('fetch', function (ev) {
 
 // Servidor primeiro; sem internet usa a cópia; sem cópia mostra "Sem conexão"
 function primeiroServidor(req, ehPagina) {
-  return fetch(req).then(function (resp) {
+  return fetch(req, { cache: 'no-cache' }).then(function (resp) {
     if (resp.ok) { const copia = resp.clone(); caches.open(VERSAO).then(function (c) { c.put(req, copia); }); }
     return resp;
   }).catch(function () {
