@@ -19,7 +19,8 @@
 .barra input, .barra select { height: 36px; font-size: 13px; padding: 0 10px; width: auto; }
 .barra .f-busca { flex: 1; min-width: 130px; position: relative; }
 .barra input[type=date] { width: 134px; }
-.barra select { width: 130px; }
+.barra select { width: 180px; }
+.barra .dt-ic .dt-x { display: none; }
 .barra { gap: 8px; }
 .barra .f-busca input { width: 100%; padding-left: 34px; }
 .barra .f-busca svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--texto-suave); }
@@ -106,13 +107,13 @@ table.tab td.motivo { max-width: 260px; overflow: hidden; text-overflow: ellipsi
   <div class="kl so-desk" id="kpis"></div>
 
   <div class="barra so-desk">
-    <div class="f-busca"><svg class="i"><use href="#i-busca"/></svg><input id="busca" autocomplete="off" placeholder="Buscar OP, cliente, código, motivo, operador, processo…"></div>
+    <select id="operador" title="Operador"><option value="TODOS">Todos os operadores</option></select>
+    <input type="date" id="dataDe" data-icone data-rotulo="De" title="De">
+    <input type="date" id="dataAte" data-icone data-rotulo="Até" title="Até">
+    <div class="f-busca"><svg class="i"><use href="#i-busca"/></svg><input id="busca" autocomplete="off" placeholder="Buscar OP, cliente, código, motivo…" title="Buscar OP, cliente, código, motivo, operador, processo"></div>
     <div class="seg" id="grupoPeriodo">
       <button type="button" data-periodo="HOJE">Hoje</button><button type="button" data-periodo="ONTEM">Ontem</button><button type="button" data-periodo="7D">7 dias</button><button type="button" data-periodo="MES">Mês</button>
     </div>
-    <input type="date" id="dataDe" data-icone title="De">
-    <input type="date" id="dataAte" data-icone title="Até">
-    <label class="cx-l">OPERADOR <select id="operador"><option value="TODOS">Todos</option></select></label>
     <button type="button" class="btn2" id="btnLimpar" title="Limpar filtros"><svg class="i"><use href="#i-x"/></svg></button>
     <button type="button" class="btn2 xls" data-excel title="Exportar o que está na tela para Excel"><svg class="i"><use href="#i-xls"/></svg>Excel</button>
     <button type="button" class="btn2" data-pdf title="Imprimir / salvar PDF do que está na tela"><svg class="i"><use href="#i-imp"/></svg>PDF</button>
@@ -281,7 +282,7 @@ Sessao.iniciarPagina('qualidade').then(function (ctx) {
     const mapa = {};
     estado.dados.forEach(function (x) { if (x.login) mapa[x.login] = x.operador; });
     const logins = Object.keys(mapa).sort(function (a, b) { return mapa[a].localeCompare(mapa[b]); });
-    sel.innerHTML = '<option value="TODOS">Todos</option>' + logins.map(function (l) { return '<option value="' + esc(l) + '">' + esc(mapa[l]) + '</option>'; }).join('');
+    sel.innerHTML = '<option value="TODOS">Todos os operadores</option>' + logins.map(function (l) { return '<option value="' + esc(l) + '">' + esc(mapa[l]) + '</option>'; }).join('');
     estado.operadores = logins.map(function (l) { return { login: l, nome: mapa[l] }; });
     if (atual !== 'TODOS' && !mapa[atual]) estado.filtros.operador = 'TODOS';
   }
