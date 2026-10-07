@@ -343,6 +343,8 @@ html.tema-claro .rod .trava { color: #92400e; }
         <div class="aviso" id="resAviso" hidden style="text-align:left"></div>
         <button type="button" class="bgrande verde" id="btnNovo"><svg class="i"><use href="#i-mais"/></svg>NOVO APONTAMENTO <span class="dica-k">(Enter)</span></button>
         <button type="button" class="bgrande" id="btnSair"><svg class="i"><use href="#i-sair"/></svg>SAIR</button>
+        <div class="contagem" style="margin-top:14px">Sem resposta, sai do sistema em <b id="novoSeg">15</b> s</div>
+        <div class="barra-tempo" style="margin-top:6px"><i id="novoBarra"></i></div>
       </div>
     </section>
 
@@ -387,6 +389,7 @@ Sessao.iniciarPagina('refugo').then(function (ctx) {
   const esc = Ui.esc;
 
   const CONFERENCIA_SEGUNDOS = 15;
+  const PERGUNTA_NOVO_SEGUNDOS = 15;   // "Novo apontamento?" sem resposta → desloga (o operador já saiu da máquina)
   const MAX_SUGESTOES = 6;
   const NOME_SETOR = { FUNDICAO: 'FUNDIÇÃO', USINAGEM: 'USINAGEM' };
 
@@ -940,6 +943,27 @@ Sessao.iniciarPagina('refugo').then(function (ctx) {
      Mostra tudo o que o operador apontou hoje. OK sai do sistema;
      sem OK, sai sozinho em 15 s e volta para a Visão geral. */
   let confTimer = null;
+  let novoTimer = null;
+
+  // Depois de registrar: 15 s para escolher NOVO APONTAMENTO ou SAIR.
+  // Sem resposta, desloga — assim a máquina não fica aberta no nome dele.
+  function iniciarContagemNovo() {
+    pararContagemNovo();
+    let restante = PERGUNTA_NOVO_SEGUNDOS;
+    const barra = $('novoBarra');
+    barra.style.transition = 'none';
+    barra.style.width = '100%';
+    void barra.offsetWidth;
+    barra.style.transition = '';
+    $('novoSeg').textContent = restante;
+    novoTimer = setInterval(function () {
+      restante--;
+      $('novoSeg').textContent = Math.max(restante, 0);
+      barra.style.width = (Math.max(restante, 0) / PERGUNTA_NOVO_SEGUNDOS * 100) + '%';
+      if (restante <= 0) { pararContagemNovo(); if (estado.etapa === 5) Sessao.sair(); }
+    }, 1000);
+  }
+  function pararContagemNovo() { clearInterval(novoTimer); novoTimer = null; }
   function hojeBR() { return new Date().toLocaleDateString('pt-BR'); }
 
   async function sair() {
@@ -1053,7 +1077,7 @@ Sessao.iniciarPagina('refugo').then(function (ctx) {
     if (n === 2) (estado.op.valida ? $('btnAvancar') : $('op')).focus();
     if (n === 3) focarProcesso();
     if (n === 4) $('btnRegistrar').focus();
-    if (n === 5) $('btnNovo').focus();
+    if (n === 5) { $('btnNovo').focus(); iniciarContagemNovo(); } else pararContagemNovo();
     if (n === 6) $('btnConfOk').focus();
     if (window.innerWidth <= 760) window.scrollTo(0, 0);
   }
