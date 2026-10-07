@@ -52,6 +52,16 @@ const Api = (function () {
   let gravouEm = 0;
   const NAO_MUDA_DADOS = /^(login|logout|salvarTema|trocarPin)$/;
 
+  // Site atualizado (nova versão destes arquivos): apaga as cópias guardadas,
+  // para nunca abrir uma página com dados no formato antigo.
+  const VERSAO_DADOS = '2026-10-07a';
+  try {
+    if (localStorage.getItem('pm_versao_dados') !== VERSAO_DADOS) {
+      Object.keys(localStorage).forEach(function (k) { if (k.indexOf('pm_resp|') === 0) localStorage.removeItem(k); });
+      localStorage.setItem('pm_versao_dados', VERSAO_DADOS);
+    }
+  } catch (e) { /* sem armazenamento */ }
+
   // ---------- Respostas guardadas NO COMPUTADOR (valem até 12 h, mesmo fechando o navegador) ----------
   // A página aparece NA HORA com a última resposta e a atualização vem do
   // servidor por trás (sem travar a tela). Qualquer gravação apaga tudo,
