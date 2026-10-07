@@ -1,181 +1,189 @@
-// ============================================================
-// sessao.js — Login, token e "porteiro" de cada página.
-//
-// O token fica no sessionStorage: a sessão ACABA ao fechar o
-// navegador (regra aprovada no mockup). No servidor, ela também
-// expira depois de 6 h sem uso.
-//
-// Toda página (menos o login) começa assim:
-//   Sessao.iniciarPagina('pcp').then(function (ctx) {
-//     // ctx.usuario, ctx.nivel ('VER' | 'EDITAR'), ctx.podeEditar, ctx.paginas
-//   });
-// ============================================================
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Visão geral · Prometals</title>
+<link rel="stylesheet" href="css/tema.css">
+<link rel="stylesheet" href="css/sistema.css">
+<style>#atualizar.girando svg { animation: gira .8s linear infinite; }</style>
+</head>
+<body>
 
-const Sessao = (function () {
-  const CHAVE = 'pm_sessao';
-  const CHAVE_AVISO = 'pm_aviso';
+<!-- Visão geral: a página de entrada de quem tem mais de uma página.
+     Os números vêm do resumo do BI (resumoBI); se o usuário não tiver
+     acesso ao BI, aparecem só os atalhos das páginas liberadas. -->
+<main class="conteudo">
+  <div class="tit-pagina">
+    <div><h1 id="titulo">Visão geral</h1><p id="subtitulo"></p></div>
+    <div class="acoes-pagina so-desk">
+      <button class="btn2" id="atualizar"><svg class="i"><use href="#i-volta"/></svg>Atualizar</button>
+    </div>
+  </div>
 
-  function ler() {
-    try { return JSON.parse(sessionStorage.getItem(CHAVE) || 'null'); } catch (e) { return null; }
+  <!-- indicadores: cards no computador, pílulas no celular -->
+  <div class="kpis so-desk" id="kpis" hidden></div>
+  <div class="kpi-mini so-mob" id="kpis-mob" hidden></div>
+
+  <div class="grade2">
+    <div class="bloco" id="bloco-atencao">
+      <div class="bloco-cab"><h3>OPs que exigem atenção</h3><a id="link-pcp" href="pcp.html" hidden>Abrir PCP · Monitor →</a></div>
+      <div id="atencao"><div class="carregando">Carregando…</div></div>
+    </div>
+    <div class="bloco">
+      <div class="bloco-cab"><h3>Suas páginas</h3></div>
+      <ul class="atalhos" id="atalhos"></ul>
+    </div>
+  </div>
+</main>
+
+<script src="js/config.js"></script>
+<script src="js/icones.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/api.js"></script>
+<script src="js/sessao.js"></script>
+<script src="js/shell.js"></script>
+<script src="js/cronograma.js"></script>
+<script>
+Sessao.iniciarPagina('inicio').then(function (ctx) {
+  const $ = function (id) { return document.getElementById(id); };
+  const primeiroNome = String(ctx.usuario.nome || '').split(' ')[0];
+  $('titulo').textContent = Fmt.saudacao() + ', ' + primeiroNome.charAt(0) + primeiroNome.slice(1).toLowerCase();
+  const podeAbrir = function (id) { return ctx.nivelDe(id) !== 'NENHUM' && CONFIG.PAGINAS_PRONTAS.indexOf(id) !== -1; };
+  $('link-pcp').hidden = !podeAbrir('pcp');
+
+  desenharAtalhos();
+  // Os indicadores da Visão geral valem para todos (não dependem do Dashboard BI)
+  const temBI = true;
+  if (!temBI) {
+    $('subtitulo').textContent = Fmt.hojeExtenso();
+    $('bloco-atencao').innerHTML = '<div class="vazio">Os indicadores da produção aparecem para quem tem acesso ao <b>Dashboard BI</b>.<br>Use os atalhos ao lado para abrir suas páginas.</div>';
+    return;
   }
-  function salvar(s) { sessionStorage.setItem(CHAVE, JSON.stringify(s)); }
-  // As respostas guardadas ficam (são separadas por usuário e apagadas a cada gravação):
-  // assim, ao entrar de novo, as páginas já abrem na hora.
-  function limpar() { sessionStorage.removeItem(CHAVE); }
-  function token() { const s = ler(); return s ? s.token : ''; }
-  // Tema do usuário (vem do servidor): guarda a cópia do aparelho para
-  // as páginas abrirem já na cor certa. Sem tema salvo, fica o do aparelho.
-  function guardarTema(u) { return Tema.guardar(u && u.tema); }
+  carregar();
+  $('atualizar').addEventListener('click', function () { carregar(true); });
+  setInterval(function () { if (!document.hidden) carregar(); }, 5 * 60 * 1000);
 
-  // Login: guarda token, usuário e páginas liberadas.
-  async function entrar(login, pin) {
-    const r = await Api.chamar('login', { login: login, pin: pin }, { semToken: true });
-    salvar({ token: r.token, usuario: r.usuario, paginas: r.paginas, conferidoEm: Date.now() });
-    try { localStorage.removeItem('pm_precarga'); } catch (e) { /* ignora */ }   // login novo: pré-carrega de novo
-    guardarTema(r.usuario);
-    return r;
-  }
-
-  // Para onde ir depois do login:
-  // 1) a página que pediu o login (?volta=pcp.html), se o usuário puder abrir;
-  // 2) se ele só tem UMA página (ex.: operador do refugo), direto nela;
-  // 3) senão, a Visão geral.
-  function destino(paginas, volta) {
-    const abre = function (id) {
-      const p = paginas.find(function (x) { return x.id === id; });
-      return p && p.nivel !== 'NENHUM' && CONFIG.PAGINAS_PRONTAS.indexOf(id) !== -1;
-    };
-    const m = /^([a-z]+)\.html$/.exec(volta || '');
-    if (m && abre(m[1])) return m[1] + '.html';
-    const liberadas = paginas.filter(function (p) { return p.id !== 'inicio' && p.nivel !== 'NENHUM'; });
-    if (liberadas.length === 1 && abre(liberadas[0].id)) return liberadas[0].id + '.html';
-    return 'inicio.html';
-  }
-
-  // Sai NA HORA: o aviso de logout vai para o servidor "por baixo" (sem esperar resposta).
-  function sair() {
+  // ---------- Dados ----------
+  // A tela abre na hora com os dados guardados. O botão Atualizar busca do
+  // servidor de verdade (o ícone gira enquanto isso; o botão nunca trava).
+  async function carregar(forcar) {
+    if (forcar) $('atualizar').classList.add('girando');
     try {
-      const corpo = JSON.stringify({ acao: 'logout', token: token(), dados: {} });
-      const enviado = navigator.sendBeacon && navigator.sendBeacon(CONFIG.API_URL, new Blob([corpo], { type: 'text/plain;charset=utf-8' }));
-      if (!enviado) fetch(CONFIG.API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: corpo, keepalive: true }).catch(function () {});
-    } catch (e) { /* sai mesmo sem internet */ }
-    limpar();
-    location.href = 'index.html';
-  }
-
-  // Chamado pelo api.js quando o servidor responde SESSAO_EXPIRADA.
-  function expirou(mensagem) {
-    limpar();
-    sessionStorage.setItem(CHAVE_AVISO, mensagem || 'Sua sessão expirou. Entre novamente.');
-    location.href = 'index.html?volta=' + encodeURIComponent(paginaAtual());
-  }
-
-  function paginaAtual() {
-    return location.pathname.split('/').pop() || 'inicio.html';
-  }
-
-  // Aviso deixado para a tela de login (ex.: "sessão expirou").
-  function pegarAviso() {
-    const a = sessionStorage.getItem(CHAVE_AVISO);
-    sessionStorage.removeItem(CHAVE_AVISO);
-    return a;
-  }
-
-  // Porteiro da página: exige login, atualiza as permissões no servidor,
-  // monta o menu/topo e bloqueia a página se o nível for NENHUM.
-  let temaAoAbrir = null;   // para não desfazer uma troca de tema feita enquanto a página carregava
-  async function iniciarPagina(idPagina) {
-    let s = ler();
-    if (s) guardarTema(s.usuario);
-    Shell.aplicarTema();
-    try { temaAoAbrir = localStorage.getItem('pm_tema'); } catch (e) { /* ignora */ }
-    if (!s || !s.token) {
-      location.replace('index.html?volta=' + encodeURIComponent(paginaAtual()));
-      return new Promise(function () {});
-    }
-    // Já tem as permissões guardadas (do login ou da última página)?
-    // Monta o menu NA HORA com elas e confere no servidor em segundo plano.
-    // Assim o menu não "some" enquanto o Apps Script responde.
-    if (s.paginas && s.paginas.length) {
-      conferirAcessoEmSegundoPlano(s, idPagina);
-    } else {
-      try {
-        const r = await Api.chamar('meuAcesso', {});
-        s.usuario = r.usuario;
-        s.paginas = r.paginas;
-        salvar(s);
-      } catch (e) {
-        if (e.codigo !== 'SEM_CONEXAO') throw e;
-        Ui.toast('Mostrando o menu da última conexão.', 'aviso', 'Sem conexão');
-      }
-    }
-    const pagina = s.paginas.find(function (p) { return p.id === idPagina; }) || { id: idPagina, nome: idPagina, grupo: '', nivel: 'NENHUM' };
-    Shell.montar({ pagina: pagina, usuario: s.usuario, paginas: s.paginas });
-    // Depois que esta página carregar o que precisa, busca por trás os dados das outras
-    setTimeout(function () { try { Api.preCarregar(s.paginas); } catch (e) { /* ignora */ } }, 4000);
-    if (pagina.nivel === 'NENHUM') {
-      Shell.semPermissao(pagina);
-      return new Promise(function () {});
-    }
-    return {
-      usuario: s.usuario, paginas: s.paginas, pagina: pagina,
-      nivel: pagina.nivel, podeEditar: pagina.nivel === 'EDITAR',
-      nivelDe: function (id) { const p = s.paginas.find(function (x) { return x.id === id; }); return p ? p.nivel : 'NENHUM'; }
-    };
-  }
-
-  // Pergunta ao servidor as permissões atuais. Se o admin mudou algo
-  // (menu ou nível desta página), guarda o novo e recarrega a página
-  // uma vez para ela já abrir com o acesso certo.
-  async function conferirAcessoEmSegundoPlano(s, idPagina) {
-    // No máximo a cada 10 min (antes: a cada troca de página = uma chamada a mais no servidor)
-    if (s.conferidoEm && Date.now() - s.conferidoEm < 10 * 60 * 1000) return;
-    try {
-      const r = await Api.chamar('meuAcesso', {});
-      const fresca = ler();
-      if (fresca) { fresca.conferidoEm = Date.now(); salvar(fresca); }
-      // tema trocado em outro aparelho: aplica na hora, sem recarregar
-      // (se a pessoa trocou o tema nesta página enquanto carregava, vale o dela)
-      let agora = null;
-      try { agora = localStorage.getItem('pm_tema'); } catch (e) { /* ignora */ }
-      if (agora === temaAoAbrir && guardarTema(r.usuario)) Shell.aplicarTema();
-      const chave = function (u) { u = u || {}; return [u.login, u.nome, u.cargo, u.setor || ''].join('|'); };
-      const mudou = JSON.stringify(r.paginas) !== JSON.stringify(s.paginas) || chave(r.usuario) !== chave(s.usuario);
-      if (!mudou) return;
-      const atual = ler() || s;
-      atual.usuario = r.usuario;
-      atual.paginas = r.paginas;
-      salvar(atual);
-      location.reload();
+      const r = await Api.chamar('resumoBI', {}, { forcar: !!forcar, rapido: function () { carregar(); } });
+      desenharIndicadores(r);
+      desenharAtencao(r);
+      $('subtitulo').textContent = Fmt.hojeExtenso() + ' · dados atualizados às ' + Fmt.hora().slice(0, 5);
     } catch (e) {
-      if (e.codigo === 'SEM_CONEXAO') Ui.toast('Mostrando o menu da última conexão.', 'aviso', 'Sem conexão');
-      // sessão expirada: o Api já leva para o login
+      Ui.erro(e);
+      if (!$('kpis').innerHTML) $('atencao').innerHTML = '<div class="vazio">Não foi possível carregar os dados. ' + Ui.esc(e.message) + '</div>';
+    } finally {
+      if (forcar) $('atualizar').classList.remove('girando');
     }
   }
 
-  return {
-    ler: ler, token: token, entrar: entrar, destino: destino, sair: sair,
-    expirou: expirou, pegarAviso: pegarAviso, iniciarPagina: iniciarPagina, limpar: limpar
-  };
-})();
-
-// ============================================================
-// App instalável (PWA). Roda em TODAS as páginas, porque todas
-// carregam este arquivo. Só funciona em https (GitHub Pages) ou
-// localhost; abrindo o HTML direto do computador, não faz nada.
-// ============================================================
-(function () {
-  if (location.protocol !== 'https:' && location.hostname !== 'localhost') return;
-  const cab = document.head;
-  function tag(nome, attrs) { const el = document.createElement(nome); Object.keys(attrs).forEach(function (k) { el.setAttribute(k, attrs[k]); }); cab.appendChild(el); }
-  tag('link', { rel: 'manifest', href: 'manifest.webmanifest' });
-  tag('meta', { name: 'theme-color', content: '#0f1720' });
-  tag('link', { rel: 'apple-touch-icon', href: 'icones/icone-192.png' });
-  tag('meta', { name: 'apple-mobile-web-app-capable', content: 'yes' });
-  tag('meta', { name: 'apple-mobile-web-app-title', content: 'Prometals' });
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', function () {
-      navigator.serviceWorker.register('sw.js').catch(function () { /* sem PWA, o site segue normal */ });
+  // Mesmas regras do PCP · Monitor e do BI antigo (js/cronograma.js):
+  // em produção = tem nº de OP · prazo vencido = passou o prazo do cliente ·
+  // fora do crono. = departamento atrás do cronograma.
+  function classificar(r) {
+    r.carteira.forEach(function (c) {
+      c._st = Cronograma.status(c);
+      c._cat = Cronograma.categoria(c);
     });
   }
-})();
+
+  function desenharIndicadores(r) {
+    classificar(r);
+    const cart = r.carteira;
+    const clientes = new Set(cart.map(function (c) { return c.cliente; })).size;
+    const prod = cart.filter(function (c) { return !!c.op; }).length;
+    const eng = cart.filter(function (c) { return !c.op; });
+    const n = function (cat) { return cart.filter(function (c) { return c._cat === cat; }).length; };
+    const venc = n('VENCIDO'), fcr = n('FORA_CRONO');
+    const pct = cart.length ? Math.round(prod / cart.length * 100) : 0;
+    // Prazo da engenharia = início do PLANEJAMENTO no cronograma reverso (mesma regra do Mapa).
+    // Item sem OP que já passou dessa data é crítico para a produção.
+    const hoje0 = new Date(); hoje0.setHours(0, 0, 0, 0);
+    const criticos = eng.filter(function (e) {
+      const cron = Cronograma.cronograma(e); if (!cron) return false;
+      const plan = cron.fases.find(function (f) { return f.n === 'PLANEJAMENTO'; });
+      return !!plan && hoje0 >= plan.ini;
+    }).length;
+    const k = [
+      { c: '#3b82f6', ic: 'i-tabela', rot: 'Carteira ativa', val: cart.length, det: clientes + ' cliente' + (clientes === 1 ? '' : 's') },
+      { c: '#22c55e', ic: 'i-relogio', rot: 'Em produção', val: prod, det: pct + '% da carteira' },
+      { c: '#a855f7', ic: 'i-clip', rot: 'Engenharia (sem OP)', val: eng.length, det: criticos + (criticos === 1 ? ' item' : ' itens') + ' · Prazo Eng. Vencido' },
+      { c: Cronograma.COR.VENCIDO, ic: 'i-alerta', rot: 'Prazo vencido', val: venc, det: fcr + ' fora do crono.' }
+    ];
+    $('kpis').innerHTML = k.map(function (x) {
+      return '<div class="kpi" style="--c:' + x.c + '"><div class="rot">' + Ui.ic(x.ic) + x.rot + '</div>' +
+             '<div class="val">' + x.val + '</div><div class="det">' + Ui.esc(x.det) + '</div></div>';
+    }).join('');
+    $('kpis-mob').innerHTML = k.map(function (x, i) {
+      return '<span class="km' + (i === 3 && x.val > 0 ? ' piscando' : '') + '" style="--c:' + x.c + '">' + x.rot.replace(' (sem OP)', '') + ' <b>' + x.val + '</b></span>';
+    }).join('');
+    $('kpis').hidden = false;
+    $('kpis-mob').hidden = false;
+  }
+
+  // Prazo vencido (mais antigo primeiro) → fora do crono.
+  // Cada OP aparece uma vez só (a situação mais grave).
+  function desenharAtencao(r) {
+    const cart = r.carteira;
+    const grupo = function (cat, tag, rot, dias) {
+      return cart.filter(function (c) { return c._cat === cat; })
+        .sort(function (a, b) { return dias(b) - dias(a); })
+        .map(function (o) { return { o: o, tag: tag, txt: rot }; });
+    };
+    const atraso = function (o) { return o._st.diasAtraso || 0; };
+    const linhas = grupo('VENCIDO', 't-verm', 'Prazo vencido', atraso)
+      .concat(grupo('FORA_CRONO', 't-lar', 'Fora do crono.', atraso));
+    const lista = linhas.slice(0, 10);
+    if (!lista.length) {
+      $('atencao').innerHTML = '<div class="vazio">' + Ui.ic('i-check') + '<br>Nenhuma OP com prazo vencido ou fora do cronograma. Tudo em dia.</div>';
+      return;
+    }
+    const proc = function (p) { return p ? p.charAt(0) + p.slice(1).toLowerCase() : '—'; };
+    $('atencao').innerHTML =
+      '<table class="tab so-desk"><thead><tr><th>OP</th><th>Cliente</th><th class="col-opc">Código</th><th class="col-opc">Liga</th>' +
+      '<th>Processo atual</th><th class="num">Prazo</th><th>Situação</th></tr></thead><tbody>' +
+      lista.map(function (l) {
+        const o = l.o;
+        return '<tr><td><b>' + Ui.esc(o.op || '—') + '</b></td><td>' + Ui.esc(o.cliente) + '</td>' +
+               '<td class="col-opc mut">' + Ui.esc(o.codigo) + '</td><td class="col-opc">' + Ui.esc(o.liga) + '</td>' +
+               '<td>' + Ui.esc(proc(o.processo)) + '</td>' +
+               '<td class="num">' + Ui.esc(String(o.prazo).slice(0, 5)) + '</td>' +
+               '<td><span class="tag ' + l.tag + '">' + Ui.esc(l.txt) + '</span></td></tr>';
+      }).join('') + '</tbody></table>' +
+      '<div class="lista-mob so-mob" style="padding:10px;gap:8px">' +
+      lista.map(function (l) {
+        const o = l.o;
+        return '<div class="cm"><div class="cm-top"><span class="op">' + Ui.esc(o.op || '—') + '</span>' +
+               '<span class="cli">' + Ui.esc(o.cliente) + '</span><span class="prazo' + (l.tag === 't-verm' ? ' atraso' : '') + '">' + Ui.esc(String(o.prazo).slice(0, 5)) + '</span></div>' +
+               '<div class="cm-desc">' + Ui.esc(o.descricao) + '<small>' + Ui.esc(proc(o.processo)) + ' · <span class="tag ' + l.tag + '">' + Ui.esc(l.txt) + '</span></small></div></div>';
+      }).join('') + '</div>';
+  }
+
+  // Páginas do usuário: liberadas primeiro (com o nível), bloqueadas no fim.
+  function desenharAtalhos() {
+    const liberadas = ctx.paginas.filter(function (p) { return p.id !== 'inicio' && p.nivel !== 'NENHUM'; });
+    const html = liberadas.map(function (p) {
+      const nv = '<span class="nv ' + (p.nivel === 'EDITAR' ? 'editar">EDITAR' : 'ver">VER') + '</span>';
+      const ic = Ui.ic(CONFIG.ICONES[p.id] || 'i-lista');
+      return CONFIG.PAGINAS_PRONTAS.indexOf(p.id) !== -1
+        ? '<li><a href="' + p.id + '.html">' + ic + Ui.esc(p.nome) + nv + '</a></li>'
+        : '<li><span class="bl" title="Em construção">' + ic + Ui.esc(p.nome) + ' <small class="mut">· em breve</small>' + nv + '</span></li>';
+    }).join('');
+    $('atalhos').innerHTML = html || '<li class="vazio">Nenhuma página liberada ainda. Fale com o administrador.</li>';
+  }
+
+  function diasAte(ddmmaaaa) {
+    const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(ddmmaaaa || '');
+    if (!m) return null;
+    const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+    return Math.round((new Date(+m[3], m[2] - 1, +m[1]) - hoje) / 86400000);
+  }
+});
+</script>
+</body>
+</html>
