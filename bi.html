@@ -291,7 +291,10 @@ Sessao.iniciarPagina('bi').then(function (ctx) {
 
   async function carregar() {
     try {
-      const r = await Api.chamar('resumoBI', {}, { rapido: function () { carregar(); } });
+      let r = await Api.chamar('resumoBI', {}, { rapido: function () { carregar(); } });
+      // Cópia guardada antiga/incompleta: busca de novo no servidor
+      if (!r || !Array.isArray(r.carteira)) r = await Api.chamar('resumoBI', {}, { forcar: true, rapido: function () { carregar(); } });
+      if (!r || !Array.isArray(r.carteira)) throw new Error('o servidor respondeu sem a carteira (confira se o 13_BI.gs está na versão nova).');
       dados = preparar(r);
       desenhar();
       if (!temDados(tela)) proxima();
