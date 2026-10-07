@@ -70,7 +70,10 @@ Sessao.iniciarPagina('inicio').then(function (ctx) {
   async function carregar(forcar) {
     if (forcar) $('atualizar').classList.add('girando');
     try {
-      const r = await Api.chamar('resumoBI', {}, { forcar: !!forcar, rapido: function () { carregar(); } });
+      let r = await Api.chamar('resumoBI', {}, { forcar: !!forcar, rapido: function () { carregar(); } });
+      // Cópia guardada antiga/incompleta (ex.: de uma versão anterior do servidor): busca de novo no servidor
+      if (!r || !Array.isArray(r.carteira)) r = await Api.chamar('resumoBI', {}, { forcar: true, rapido: function () { carregar(); } });
+      if (!r || !Array.isArray(r.carteira)) throw new Error('o servidor respondeu sem a carteira (confira se o 13_BI.gs está na versão nova).');
       desenharIndicadores(r);
       desenharAtencao(r);
       $('subtitulo').textContent = Fmt.hojeExtenso() + ' · dados atualizados às ' + Fmt.hora().slice(0, 5);
