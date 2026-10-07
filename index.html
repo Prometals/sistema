@@ -4,6 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Entrar · Prometals</title>
+<script>
+// Segurança: se usuário/PIN aparecerem no endereço (envio do formulário antes
+// do sistema carregar), apaga do endereço e do histórico na hora.
+if (/[?&](username|password|login|pin)=/i.test(location.search)) history.replaceState(null, '', location.pathname);
+</script>
 <link rel="stylesheet" href="css/tema.css">
 <link rel="stylesheet" href="css/sistema.css">
 <style>
@@ -34,7 +39,9 @@
     <div class="rod">© 2026 Prometals · Nova Odessa/SP · <span id="versao"></span></div>
   </div>
   <div class="login-form">
-    <form class="form-caixa" id="form" autocomplete="on" novalidate>
+    <!-- method=post + action vazia: mesmo que o sistema ainda não tenha carregado,
+         o navegador NUNCA coloca usuário e PIN no endereço -->
+    <form class="form-caixa" id="form" autocomplete="on" novalidate method="post" action="javascript:void(0)" onsubmit="return false">
       <h2>Acessar o sistema</h2>
       <p class="sub">Entre com seu usuário e PIN.</p>
       <div class="msg-info" id="aviso" hidden></div>
