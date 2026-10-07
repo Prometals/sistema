@@ -438,6 +438,7 @@ html.modo-terminal body > main.conteudo { margin-left: 0; }
 .dt-ic input[type=date] { position: absolute; left: 0; bottom: 0; width: 1px !important; height: 1px !important; opacity: 0; pointer-events: none; border: 0 !important; padding: 0 !important; }
 .dt-ic .dt-bt { display: inline-flex; align-items: center; gap: 6px; height: 100%; padding: 0 10px; border: 0; background: transparent; color: var(--texto-suave); cursor: pointer; font: inherit; font-size: 12px; }
 .dt-ic.tem .dt-bt { color: var(--texto); padding-right: 4px; }
+.dt-ic .dt-r { color: var(--texto-suave); font-size: 12px; }
 .dt-ic .dt-bt svg, .dt-ic .dt-x svg { width: 16px; height: 16px; }
 .dt-ic .dt-x { display: none; height: 100%; padding: 0 8px 0 2px; border: 0; background: transparent; color: var(--texto-suave); cursor: pointer; }
 .dt-ic.tem .dt-x { display: inline-flex; align-items: center; }
