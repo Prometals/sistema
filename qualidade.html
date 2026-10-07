@@ -110,8 +110,8 @@ table.tab td.motivo { max-width: 260px; overflow: hidden; text-overflow: ellipsi
     <div class="seg" id="grupoPeriodo">
       <button type="button" data-periodo="HOJE">Hoje</button><button type="button" data-periodo="ONTEM">Ontem</button><button type="button" data-periodo="7D">7 dias</button><button type="button" data-periodo="MES">Mês</button>
     </div>
-    <label class="cx-l" title="De"><input type="date" id="dataDe"></label>
-    <label class="cx-l" title="Até">a <input type="date" id="dataAte"></label>
+    <input type="date" id="dataDe" data-icone title="De">
+    <input type="date" id="dataAte" data-icone title="Até">
     <label class="cx-l">OPERADOR <select id="operador"><option value="TODOS">Todos</option></select></label>
     <button type="button" class="btn2" id="btnLimpar" title="Limpar filtros"><svg class="i"><use href="#i-x"/></svg></button>
     <button type="button" class="btn2 xls" data-excel title="Exportar o que está na tela para Excel"><svg class="i"><use href="#i-xls"/></svg>Excel</button>
