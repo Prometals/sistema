@@ -9,16 +9,22 @@
 <style>
 /* ---------- específico desta página ---------- */
 .cards-fat { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; }
-.cf { background: var(--painel); border: 1px solid var(--linha); border-radius: 12px; padding: 12px 14px; cursor: pointer; position: relative; overflow: hidden; text-align: left; font: inherit; color: inherit; }
-.cf::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--c); }
+/* cards compactos, igual ao PCP · Monitor (o detalhe aparece ao passar o mouse) */
+.cf { display: flex; align-items: center; gap: 12px; background: var(--painel); border: 1px solid var(--linha); border-left: 4px solid var(--c); border-radius: 12px; padding: 12px 16px; cursor: pointer; text-align: left; font: inherit; color: inherit; min-width: 0; }
 .cf:hover { border-color: var(--c); }
-.cf.sel { border-color: var(--c); box-shadow: 0 0 0 1px var(--c) inset; }
-.cf .rot { font-size: 11px; font-weight: 700; color: var(--texto-suave); text-transform: uppercase; letter-spacing: .4px; display: flex; align-items: center; gap: 7px; }
-.cf .rot svg { width: 15px; height: 15px; color: var(--c); }
-.cf .val { font-size: 22px; font-weight: 700; margin-top: 6px; font-variant-numeric: tabular-nums; }
-.cf .qtd { font-size: 12px; color: var(--texto-suave); }
+.cf b { font-size: 20px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cf span { font-size: 11px; font-weight: 800; letter-spacing: .6px; color: var(--texto-suave); text-transform: uppercase; flex: 1; min-width: 0; }
+.cf svg { color: var(--c); flex: none; }
+.cf.sel { outline: 2px solid var(--c); outline-offset: -1px; }
 .cf.alerta { background: color-mix(in srgb, var(--c) 10%, var(--painel)); }
-.cf.alerta .val { color: var(--c); }
+.cf.alerta b { color: var(--c); }
+/* cabeçalho da tabela fixo ao rolar */
+.tab-wrap table.tab thead th { position: sticky; top: 0; z-index: 2; background: var(--bg); }
+html.tema-claro .tab-wrap table.tab thead th { background: #f1f5f9; }
+.modo-ed { font-size: 12.5px; font-weight: 700; color: var(--destaque); display: flex; align-items: center; gap: 6px; }
+.btn2.travar { background: #9a3412; border-color: #9a3412; color: #fff; }
+.btn2.salvar { background: #16a34a; border-color: #16a34a; color: #fff; }
+.btn2.salvar .n { background: rgba(255,255,255,.25); border-radius: 999px; padding: 0 7px; font-size: 11px; margin-left: 2px; }
 @keyframes pisca-c { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--c) 55%, transparent); } 50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--c) 0%, transparent); } }
 .cf.piscando { animation: pisca-c 1.8s infinite; }
 
@@ -111,6 +117,10 @@ html.tema-claro .resumo-op { background: #f8fafc; }
   <div class="tit-pagina">
     <div><h1>Financeiro</h1><p>Carteira liberada, previsão de faturamento e OPs na expedição</p></div>
     <div class="acoes-pagina so-desk">
+      <span class="modo-ed" id="modo" hidden><svg class="i" style="width:15px;height:15px"><use href="#i-lapis"/></svg>Modo edição</span>
+      <button class="btn2" id="bt-cancelar" hidden>Cancelar</button>
+      <button class="btn2" id="bt-editar" title="Editar os valores das OPs"><svg class="i"><use href="#i-lapis"/></svg><span>Editar</span></button>
+      <button class="btn2 salvar" id="bt-salvar" hidden><svg class="i"><use href="#i-check"/></svg><span class="rot">Salvar</span> <span class="n" id="n-salvar">0</span></button>
       <button class="btn2" data-historico><svg class="i"><use href="#i-hist"/></svg>Histórico de NF</button>
       <button class="btn2 pri" data-imprimir><svg class="i"><use href="#i-imp"/></svg>Imprimir relatório <span class="n" data-qtd-imp>—</span></button>
     </div>
@@ -161,6 +171,8 @@ html.tema-claro .resumo-op { background: #f8fafc; }
   <div class="lista-mob so-mob" id="cartoes"></div>
   <div class="barra-mob so-mob">
     <button class="ic" data-historico title="Histórico de NF"><svg class="i"><use href="#i-hist"/></svg></button>
+    <button class="ic" id="bt-editar-mob" title="Editar valores"><svg class="i"><use href="#i-lapis"/></svg></button>
+    <button class="pri" id="bt-salvar-mob" hidden><svg class="i"><use href="#i-check"/></svg><span class="rot">Salvar</span></button>
     <button class="pri" data-imprimir style="background:var(--destaque);border-color:var(--destaque)"><svg class="i"><use href="#i-imp"/></svg>Imprimir relatório</button>
   </div>
 </main>
@@ -180,12 +192,15 @@ Sessao.iniciarPagina('comercial').then(function (ctx) {
   let modo = 'TODOS';               // card clicado
   let semValor = false;             // chip "Sem valor"
   let ocupado = false;              // uma ação (NF / não faturado) em andamento
+  let editando = false;             // os valores abrem travados; o lápis libera
+  let salvando = false;
+  const valores = {};               // id_item → valor digitado (ainda não salvo)
   const selecionadas = new Set();   // id_item marcados para impressão
 
   carregar();
   // Igual ao antigo: recarrega a cada 1 min (menos com janela aberta ou valor sendo digitado)
   setInterval(function () {
-    if (document.hidden || ocupado || document.querySelector('.modal-fundo')) return;
+    if (document.hidden || ocupado || salvando || Object.keys(valores).length || document.querySelector('.modal-fundo')) return;
     const foco = document.activeElement;
     if (foco && foco.matches && foco.matches('[data-valor]')) return;
     carregar(true);
@@ -195,7 +210,7 @@ Sessao.iniciarPagina('comercial').then(function (ctx) {
     try {
       const r = await Api.chamar('listarCarteira', { visao: 'COMERCIAL' }, { rapido: function () {
         const foco = document.activeElement;
-        if (!ocupado && !document.querySelector('.modal-fundo') && !(foco && foco.matches && foco.matches('[data-valor]'))) carregar(true);
+        if (!ocupado && !salvando && !Object.keys(valores).length && !document.querySelector('.modal-fundo') && !(foco && foco.matches && foco.matches('[data-valor]'))) carregar(true);
       } });
       base = r.itens;
       const ids = new Set(base.map(function (x) { return x.id_item; }));
@@ -333,8 +348,8 @@ Sessao.iniciarPagina('comercial').then(function (ctx) {
   function desenharCards() {
     const k = calcularCards();
     $('#cards').innerHTML = k.map(function (x) {
-      return '<button class="cf' + (modo === x.m ? ' sel' : '') + (x.alerta ? ' alerta' : '') + (x.pisca ? ' piscando' : '') + '" data-modo="' + x.m + '" style="--c:' + x.c + '">' +
-        '<div class="rot">' + Ui.ic(x.ic) + Ui.esc(x.rot) + '</div><div class="val">' + Ui.esc(x.val) + '</div><div class="qtd">' + Ui.esc(x.qtd) + '</div></button>';
+      return '<button class="cf' + (modo === x.m ? ' sel' : '') + (x.alerta ? ' alerta' : '') + (x.pisca ? ' piscando' : '') + '" data-modo="' + x.m + '" style="--c:' + x.c + '" title="' + Ui.esc(x.rot + ': ' + x.val + ' · ' + x.qtd) + '">' +
+        '<b>' + Ui.esc(x.val) + '</b><span>' + Ui.esc(x.rot) + '</span>' + Ui.ic(x.ic) + '</button>';
     }).join('');
     $('#cards-mob').innerHTML = k.map(function (x) {
       return '<button class="km' + (modo === x.m ? ' sel' : '') + (x.pisca ? ' piscando' : '') + '" data-modo="' + x.m + '" style="--c:' + x.c + '"><b>' + Ui.esc(x.mob) + '</b>' + Ui.esc(x.mobRot) + '</button>';
@@ -364,11 +379,11 @@ Sessao.iniciarPagina('comercial').then(function (ctx) {
       return '<label class="in-valor travado sem-pedido" title="Sem pedido: o valor libera quando o PCP lançar o pedido"><span>R$</span>' +
         '<input value="0,00" disabled></label>';
     }
-    const v = valorCampo(x);
-    const trava = ctx.podeEditar ? '' : ' disabled';
-    return '<label class="in-valor' + (temValor(x) ? '' : ' sem-valor') + (ctx.podeEditar ? '' : ' travado') + '"><span>R$</span>' +
-      '<input data-valor value="' + Ui.esc(v) + '" placeholder="' + (ctx.podeEditar ? 'Definir valor' : 'Sem valor') + '" inputmode="decimal" autocomplete="off"' + trava + '>' +
-      (ctx.podeEditar ? '<button type="button" class="ok-valor" data-salvar-valor title="Salvar valor (ou Enter)">' + Ui.ic('i-check') + '</button>' : '') + '</label>';
+    const pend = x.id_item in valores;
+    const v = pend ? fmtValor(valores[x.id_item]) : valorCampo(x);
+    const livre = ctx.podeEditar && editando;
+    return '<label class="in-valor' + (pend || temValor(x) ? '' : ' sem-valor') + (livre ? '' : ' travado') + (pend ? ' mudou' : '') + '"><span>R$</span>' +
+      '<input data-valor value="' + Ui.esc(v) + '" placeholder="' + (livre ? 'Definir valor' : 'Sem valor') + '" inputmode="decimal" autocomplete="off"' + (livre ? '' : ' disabled') + '></label>';
   }
 
   function desenharLista() {
@@ -449,7 +464,7 @@ Sessao.iniciarPagina('comercial').then(function (ctx) {
       atualizarContadores();
       return;
     }
-    if (el.matches('[data-valor]') && !el.dataset.salvando) salvarValor(x, el);
+    if (el.matches('[data-valor]')) anotarValor(x, el);
   });
   document.addEventListener('keydown', function (ev) {
     if (ev.key === 'Enter' && ev.target.matches && ev.target.matches('[data-valor]')) ev.target.blur();
@@ -458,14 +473,79 @@ Sessao.iniciarPagina('comercial').then(function (ctx) {
   document.addEventListener('input', function (ev) {
     if (ev.target.matches && ev.target.matches('[data-valor]')) ev.target.closest('.in-valor').classList.add('mudou');
   });
-  document.addEventListener('mousedown', function (ev) {
-    const b = ev.target.closest && ev.target.closest('[data-salvar-valor]');
-    if (!b) return;
-    ev.preventDefault();   // não tira o foco antes da hora
-    const inp = b.closest('.in-valor').querySelector('[data-valor]');
-    const x = base.find(function (o) { return o.id_item === b.closest('[data-id]').dataset.id; });
-    if (x) { inp.dataset.salvando = '1'; salvarValor(x, inp).finally(function () { delete inp.dataset.salvando; inp.blur(); }); }
+  // ---------- Modo edição (igual ao PCP · Monitor): lápis libera, Salvar grava tudo de uma vez ----------
+  function fmtValor(n) { return Number(n).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  function anotarValor(x, el) {
+    if (!temPedido(x) || !editando) return;
+    const n = lerValor(el.value);
+    if (n === null) { Ui.toast('Valor inválido: ' + el.value, 'erro'); el.value = x.id_item in valores ? fmtValor(valores[x.id_item]) : valorCampo(x); return; }
+    if (n === '' ) { delete valores[x.id_item]; el.value = valorCampo(x); }
+    else if (temValor(x) && Math.abs(n - valorNum(x.valorop)) < 0.005) delete valores[x.id_item];
+    else valores[x.id_item] = n;
+    const pend = x.id_item in valores;
+    document.querySelectorAll('[data-id="' + CSS.escape(x.id_item) + '"] [data-valor]').forEach(function (i) {
+      i.value = pend ? fmtValor(valores[x.id_item]) : valorCampo(x);
+      const c = i.closest('.in-valor');
+      c.classList.toggle('mudou', pend);
+      c.classList.toggle('sem-valor', !pend && !temValor(x));
+    });
+    atualizarBarraEdicao();
+  }
+  function atualizarBarraEdicao() {
+    const n = Object.keys(valores).length, pode = ctx.podeEditar;
+    [$('#bt-editar'), $('#bt-editar-mob')].forEach(function (b) {
+      b.hidden = !pode;
+      b.classList.toggle('travar', editando);
+      b.querySelector('use').setAttribute('href', editando ? '#i-cadeado' : '#i-lapis');
+      b.title = editando ? 'Travar a edição' : 'Editar os valores das OPs';
+    });
+    $('#bt-editar span').textContent = editando ? 'Travar' : 'Editar';
+    $('#bt-salvar').hidden = $('#bt-salvar-mob').hidden = $('#bt-cancelar').hidden = $('#modo').hidden = !(pode && editando);
+    $('#bt-salvar').disabled = $('#bt-salvar-mob').disabled = !n || salvando;
+    $('#n-salvar').textContent = n;
+    $('#bt-salvar-mob .rot').textContent = n ? 'Salvar ' + n + ' valor' + (n > 1 ? 'es' : '') : 'Salvar';
+  }
+  $('#bt-editar').addEventListener('click', alternarEdicao);
+  $('#bt-editar-mob').addEventListener('click', alternarEdicao);
+  function alternarEdicao() {
+    if (editando && Object.keys(valores).length) { Ui.toast('Há valores não salvos. Salve ou cancele antes de travar.', 'aviso'); return; }
+    editando = !editando;
+    desenharLista();
+    atualizarBarraEdicao();
+  }
+  $('#bt-cancelar').addEventListener('click', async function () {
+    const n = Object.keys(valores).length;
+    if (n && !(await Ui.confirmar({ titulo: 'Descartar alterações', texto: 'Os ' + n + ' valor(es) não salvos serão perdidos.', ok: 'Descartar', perigo: true }))) return;
+    Object.keys(valores).forEach(function (id) { delete valores[id]; });
+    editando = false;
+    desenharLista();
+    atualizarBarraEdicao();
   });
+  $('#bt-salvar').addEventListener('click', salvarValores);
+  $('#bt-salvar-mob').addEventListener('click', salvarValores);
+  async function salvarValores() {
+    const ids = Object.keys(valores);
+    if (!ids.length || salvando) return;
+    salvando = true;
+    atualizarBarraEdicao();
+    $('#bt-salvar .rot').textContent = 'Salvando…';
+    try {
+      await Api.chamar('definirValores', { idReq: Api.idReq(), itens: ids.map(function (id) { return { id_item: id, valor_op: valores[id] }; }) });
+      ids.forEach(function (id) { const x = base.find(function (b) { return b.id_item === id; }); if (x) x.valorop = valores[id]; delete valores[id]; });
+      editando = false;
+      Ui.toast(ids.length + ' valor' + (ids.length > 1 ? 'es salvos' : ' salvo'), 'ok', 'Salvo');
+      desenhar();
+      carregar(true);
+    } catch (e) {
+      Ui.erro(e);
+    } finally {
+      salvando = false;
+      $('#bt-salvar .rot').textContent = 'Salvar';
+      atualizarBarraEdicao();
+    }
+  }
+  window.addEventListener('beforeunload', function (ev) { if (Object.keys(valores).length) { ev.preventDefault(); ev.returnValue = ''; } });
+  atualizarBarraEdicao();
 
   $('#chk-todos').addEventListener('change', function () {
     const marcar = $('#chk-todos').checked;
