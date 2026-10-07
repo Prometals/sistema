@@ -21,6 +21,9 @@
 /* cabeçalho da tabela fixo ao rolar */
 .tab-wrap table.tab thead th { position: sticky; top: 0; z-index: 2; background: var(--bg); }
 html.tema-claro .tab-wrap table.tab thead th { background: #f1f5f9; }
+.ord-col { cursor: pointer; user-select: none; }
+.ord-col:hover { color: var(--texto); }
+.ord-col i { font-style: normal; margin-left: 4px; color: var(--destaque); }
 .modo-ed { font-size: 12.5px; font-weight: 700; color: var(--destaque); display: flex; align-items: center; gap: 6px; }
 .btn2.travar { background: #9a3412; border-color: #9a3412; color: #fff; }
 .btn2.salvar { background: #16a34a; border-color: #16a34a; color: #fff; }
@@ -116,23 +119,16 @@ html.tema-claro .resumo-op { background: #f8fafc; }
 <main class="conteudo">
   <div class="tit-pagina">
     <div><h1>Financeiro</h1><p>Carteira liberada, previsão de faturamento e OPs na expedição</p></div>
-    <div class="acoes-pagina so-desk">
-      <span id="modo" hidden></span>
-      <button class="btn2" id="bt-cancelar" disabled title="Descartar alterações"><svg class="i"><use href="#i-x"/></svg>Descartar</button>
-      <button class="btn2" id="bt-editar" title="Editar os valores das OPs"><svg class="i"><use href="#i-lapis"/></svg><span>Editar</span></button>
-      <button class="btn2 salvar" id="bt-salvar" disabled><svg class="i"><use href="#i-check"/></svg><span class="rot">Salvar</span> <span class="n" id="n-salvar">0</span></button>
-      <button class="btn2" data-historico><svg class="i"><use href="#i-hist"/></svg>Histórico de NF</button>
-      <button class="btn2 pri" data-imprimir><svg class="i"><use href="#i-imp"/></svg>Imprimir relatório <span class="n" data-qtd-imp>—</span></button>
-    </div>
   </div>
 
   <div class="cards-fat so-desk" id="cards"></div>
 
   <div class="filtros so-desk">
-    <select id="fMes" title="Mês da previsão"><option value="TODOS">Todos os meses</option></select>
-    <input type="date" id="fDia" title="Dia da previsão">
+    <select id="fMes" title="Mês da previsão" hidden><option value="TODOS">Todos os meses</option></select>
     <div class="f-busca"><svg class="i"><use href="#i-busca"/></svg><input id="busca" placeholder="Buscar OP, pedido, cliente, código ou descrição…" autocomplete="off"></div>
-    <select id="fOrdem" title="Ordenação">
+    <input type="date" id="fIni" data-icone title="Previsão de">
+    <input type="date" id="fFim" data-icone title="Previsão até">
+    <select id="fOrdem" title="Ordenação" hidden>
       <option value="NONE">Sem ordenação</option>
       <option value="PRAZO_ASC">Prazo ↑</option>
       <option value="PRAZO_DESC">Prazo ↓</option>
@@ -142,13 +138,19 @@ html.tema-claro .resumo-op { background: #f8fafc; }
       <option value="VALOR_ASC">Valor ↑</option>
     </select>
     <button class="chip-sv" id="chip-sv" title="Mostrar só as OPs sem valor"><svg class="i"><use href="#i-alerta"/></svg><span>Sem valor · 0</span></button>
-    <span class="info" id="info"></span>
+    <span class="info" id="info" hidden></span>
+    <span id="modo" hidden></span>
+    <button class="btn2" id="bt-cancelar" disabled title="Descartar alterações"><svg class="i"><use href="#i-x"/></svg>Descartar</button>
+    <button class="btn2" id="bt-editar" title="Editar os valores das OPs"><svg class="i"><use href="#i-lapis"/></svg><span>Editar</span></button>
+    <button class="btn2 salvar" id="bt-salvar" disabled><svg class="i"><use href="#i-check"/></svg><span class="rot">Salvar</span> <span class="n" id="n-salvar">0</span></button>
+    <button class="btn2" data-historico><svg class="i"><use href="#i-hist"/></svg>Histórico de NF</button>
+    <button class="btn2 pri" data-imprimir><svg class="i"><use href="#i-imp"/></svg>Imprimir relatório <span class="n" data-qtd-imp>—</span></button>
   </div>
 
   <div class="bloco so-desk" style="padding:0">
     <div class="tab-wrap" data-encher>
       <table class="tab">
-        <thead><tr><th><input type="checkbox" class="chk" id="chk-todos" title="Selecionar as OPs visíveis"></th><th>Faturamento</th><th>Valor da OP</th><th>OP</th><th>Pedido</th><th>Cliente</th><th>Código</th><th>Descrição</th><th>Liga</th><th class="num">Prazo</th><th class="num">Previsão</th><th class="num">Atraso</th><th>Processo</th></tr></thead>
+        <thead><tr><th><input type="checkbox" class="chk" id="chk-todos" title="Selecionar as OPs visíveis"></th><th>Faturamento</th><th>Valor da OP</th><th>OP</th><th>Pedido</th><th>Cliente</th><th>Código</th><th>Descrição</th><th>Liga</th><th class="num ord-col" data-ord-col="PRAZO" title="Ordenar por prazo">Prazo<i data-seta></i></th><th class="num ord-col" data-ord-col="PREV" title="Ordenar por previsão">Previsão<i data-seta></i></th><th class="num">Atraso</th><th>Processo</th></tr></thead>
         <tbody id="linhas"><tr><td colspan="13"><div class="carregando">Carregando…</div></td></tr></tbody>
       </table>
     </div>
@@ -281,11 +283,12 @@ Sessao.iniciarPagina('comercial').then(function (ctx) {
   // ---------- Filtro (card + mês + dia + busca + sem valor) ----------
   function busca() { return (window.innerWidth <= 760 ? $('#busca-mob') : $('#busca')).value.toUpperCase().trim(); }
   function aplicarFiltro() {
-    const mes = $('#fMes').value, dia = paraBR($('#fDia').value), b = busca();
+    const mes = $('#fMes').value, b = busca();
+    const ini = deIsoF($('#fIni').value), fim = deIsoF($('#fFim').value);
     const lista = base.filter(function (x) {
       let ok = true;
       if (mes !== 'TODOS') ok = ok && !!x.previsao && x.previsao.indexOf(mes) !== -1;
-      if (dia) ok = ok && x.previsao === dia;
+      if (ini || fim) { const pv = dt(x.previsao); ok = ok && !!x.previsao && (!ini || pv >= ini) && (!fim || pv <= fim); }
       if (b) ok = ok && (String(x.op) + String(x.pedido) + String(x.cliente) + String(x.codigo) + String(x.descricao)).toUpperCase().indexOf(b) !== -1;
       if (modo === 'PRONTO') ok = ok && pronto(x);
       if (modo === 'AGUARDANDO') ok = ok && aguardando(x);
@@ -317,7 +320,7 @@ Sessao.iniciarPagina('comercial').then(function (ctx) {
     return lista;
   }
   function temFiltro() {
-    return modo !== 'TODOS' || semValor || $('#fMes').value !== 'TODOS' || !!$('#fDia').value || !!($('#busca').value.trim() || $('#busca-mob').value.trim());
+    return modo !== 'TODOS' || semValor || $('#fMes').value !== 'TODOS' || !!$('#fIni').value || !!$('#fFim').value || !!($('#busca').value.trim() || $('#busca-mob').value.trim());
   }
 
   // ---------- Cards (somas sempre sobre a base toda, como no antigo) ----------
@@ -414,6 +417,7 @@ Sessao.iniciarPagina('comercial').then(function (ctx) {
         '<div class="cm-linha">' + htmlValor(x) + (acao ? '<div class="cm-acoes">' + acao + '</div>' : '') + '</div></div>';
     }).join('') || '<div class="vazio">Nenhuma OP encontrada.</div>';
 
+    setasOrdem();
     const visiveis = lista.map(function (x) { return x.id_item; });
     $('#chk-todos').checked = visiveis.length > 0 && visiveis.every(function (id) { return selecionadas.has(id); });
     atualizarContadores(lista);
@@ -428,7 +432,7 @@ Sessao.iniciarPagina('comercial').then(function (ctx) {
     const imp = listaImpressao(true);
     const txt = nSel ? nSel + ' selecionada' + (nSel > 1 ? 's' : '') : (temFiltro() ? 'filtradas · ' : 'todas · ') + imp.length;
     document.querySelectorAll('[data-qtd-imp]').forEach(function (el) { el.textContent = txt; });
-    const nf = ($('#fMes').value !== 'TODOS' ? 1 : 0) + ($('#fDia').value ? 1 : 0) + ($('#fOrdem').value !== 'NONE' ? 1 : 0) + (semValor ? 1 : 0);
+    const nf = ($('#fMes').value !== 'TODOS' ? 1 : 0) + ($('#fIni').value || $('#fFim').value ? 1 : 0) + ($('#fOrdem').value !== 'NONE' ? 1 : 0) + (semValor ? 1 : 0);
     $('#n-filtros-mob').hidden = !nf;
     $('#n-filtros-mob').textContent = nf;
   }
@@ -556,8 +560,25 @@ Sessao.iniciarPagina('comercial').then(function (ctx) {
   });
   $('#busca').addEventListener('input', desenharLista);
   $('#busca-mob').addEventListener('input', desenharLista);
-  $('#fDia').addEventListener('change', desenharLista);
+  $('#fIni').addEventListener('change', desenharLista);
+  $('#fFim').addEventListener('change', desenharLista);
   $('#fOrdem').addEventListener('change', desenharLista);
+  // Ordenação pelo cabeçalho: clique = menor → maior; de novo = maior → menor; de novo = sem ordem
+  document.querySelectorAll('[data-ord-col]').forEach(function (th) {
+    th.addEventListener('click', function () {
+      const c = th.dataset.ordCol, atual = $('#fOrdem').value;
+      $('#fOrdem').value = atual === c + '_ASC' ? c + '_DESC' : atual === c + '_DESC' ? 'NONE' : c + '_ASC';
+      desenharLista();
+    });
+  });
+  function setasOrdem() {
+    const o = $('#fOrdem').value;
+    document.querySelectorAll('[data-ord-col]').forEach(function (th) {
+      const c = th.dataset.ordCol;
+      th.querySelector('[data-seta]').textContent = o === c + '_ASC' ? '▲' : o === c + '_DESC' ? '▼' : '';
+    });
+  }
+  function deIsoF(v) { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v || ''); return m ? new Date(+m[1], m[2] - 1, +m[3]) : null; }
   $('#fMes').addEventListener('change', desenhar);   // o card "Faturável" muda de nome com o mês
 
   // Filtros do celular numa janela
@@ -566,14 +587,15 @@ Sessao.iniciarPagina('comercial').then(function (ctx) {
       titulo: 'Filtros',
       corpo: '<div class="filt-mob">' +
         '<label>Mês da previsão<select name="mes">' + $('#fMes').innerHTML + '</select></label>' +
-        '<label>Dia da previsão<input type="date" name="dia" value="' + Ui.esc($('#fDia').value) + '"></label>' +
+        '<label>Previsão de<input type="date" name="ini" value="' + Ui.esc($('#fIni').value) + '"></label>' +
+        '<label>Previsão até<input type="date" name="fim" value="' + Ui.esc($('#fFim').value) + '"></label>' +
         '<label>Ordenar<select name="ord">' + $('#fOrdem').innerHTML + '</select></label>' +
         '<label class="ck"><input type="checkbox" name="sv"' + (semValor ? ' checked' : '') + '> Só OPs sem valor</label></div>',
       botoes: [{ texto: 'Limpar', valor: 'limpar' }, { texto: 'Aplicar', classe: 'pri', valor: 'ok' }],
       antesDeFechar: function (v, cx) {
-        if (v === 'limpar') { $('#fMes').value = 'TODOS'; $('#fDia').value = ''; $('#fOrdem').value = 'NONE'; semValor = false; }
+        if (v === 'limpar') { $('#fMes').value = 'TODOS'; $('#fIni').value = ''; $('#fFim').value = ''; $('#fOrdem').value = 'NONE'; semValor = false; }
         else {
-          $('#fMes').value = cx.querySelector('[name="mes"]').value; $('#fDia').value = cx.querySelector('[name="dia"]').value;
+          $('#fMes').value = cx.querySelector('[name="mes"]').value; $('#fIni').value = cx.querySelector('[name="ini"]').value; $('#fFim').value = cx.querySelector('[name="fim"]').value;
           $('#fOrdem').value = cx.querySelector('[name="ord"]').value; semValor = cx.querySelector('[name="sv"]').checked;
         }
         desenhar();
