@@ -65,6 +65,9 @@ table.tab td.desc { max-width: 260px; overflow: hidden; text-overflow: ellipsis;
 .in-valor.sem-valor input::placeholder { color: #dc2626; font-weight: 600; }
 .in-valor.salvando { opacity: .6; }
 .in-valor.travado { background: transparent; }
+.v-leit { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.v-leit.falta { color: #f87171; }
+html.tema-claro .v-leit.falta { color: #b91c1c; }
 .in-valor.sem-pedido { opacity: .55; border-style: dotted; }
 .in-valor.sem-pedido input { color: var(--texto-suave); }
 .chip-sv { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border: 1px dashed #dc2626; color: #dc2626; border-radius: 8px; font-size: 12px; font-weight: 700; background: transparent; cursor: pointer; white-space: nowrap; font-family: inherit; }
@@ -379,12 +382,13 @@ Sessao.iniciarPagina('comercial').then(function (ctx) {
   }
   function htmlValor(x) {
     if (!temPedido(x)) {
-      return '<label class="in-valor travado sem-pedido" title="Sem pedido: o valor libera quando o PCP lançar o pedido"><span>R$</span>' +
-        '<input value="0,00" disabled></label>';
+      return '<span class="v-leit mut" title="Sem pedido: o valor libera quando o PCP lançar o pedido">R$ 0,00</span>';
     }
     const pend = x.id_item in valores;
     const v = pend ? fmtValor(valores[x.id_item]) : valorCampo(x);
     const livre = ctx.podeEditar && editando;
+    // Fora da edição: só leitura, como texto (igual ao PCP)
+    if (!livre) return (pend || temValor(x)) ? '<span class="v-leit">R$ ' + Ui.esc(v) + '</span>' : '<span class="v-leit falta">Sem valor</span>';
     return '<label class="in-valor' + (pend || temValor(x) ? '' : ' sem-valor') + (livre ? '' : ' travado') + (pend ? ' mudou' : '') + '"><span>R$</span>' +
       '<input data-valor value="' + Ui.esc(v) + '" placeholder="' + (livre ? 'Definir valor' : 'Sem valor') + '" inputmode="decimal" autocomplete="off"' + (livre ? '' : ' disabled') + '></label>';
   }
