@@ -197,6 +197,16 @@ html.tema-claro .cm-top .prazo.atraso { color: #b91c1c; }
 .cm-campos { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .cm-campos label { font-size: 10.5px; font-weight: 700; color: var(--texto-suave); text-transform: uppercase; letter-spacing: .3px; display: grid; gap: 4px; }
 .cm-campos select, .cm-campos input { height: 36px; padding: 0 8px; font-size: 13px; border-radius: 8px; }
+/* Cartão do celular nunca passa da largura da tela: texto comprido corta com "…" */
+.lista-mob > * { min-width: 0; max-width: 100%; }
+.cm { grid-template-columns: minmax(0, 1fr); min-width: 0; }
+.cm > * { min-width: 0; }
+.cm-top > * { min-width: 0; }
+.cm-top .op, .cm-top .prazo, .cm-top .chk { flex: none; }
+.cm-desc { overflow-wrap: anywhere; }
+.cm-campos { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.cm-campos label { min-width: 0; }
+.cm-campos select, .cm-campos input { width: 100%; min-width: 0; }
 
 /* barra de ações fixa no rodapé (celular) */
 .barra-mob { position: fixed; left: 0; right: 0; bottom: 0; z-index: 15; background: var(--painel); border-top: 1px solid var(--linha); padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); display: flex; gap: 8px; box-shadow: 0 -6px 18px rgba(0,0,0,.25); }
