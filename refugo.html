@@ -938,7 +938,7 @@ Sessao.iniciarPagina('refugo').then(function (ctx) {
 
   /* ---------- CONFERÊNCIA DO DIA (ao sair) ----------
      Mostra tudo o que o operador apontou hoje. OK sai do sistema;
-     sem OK, sai sozinho em 15 s e volta ao login do sistema. */
+     sem OK, sai sozinho em 15 s e volta para a Visão geral. */
   let confTimer = null;
   function hojeBR() { return new Date().toLocaleDateString('pt-BR'); }
 
@@ -1030,12 +1030,13 @@ Sessao.iniciarPagina('refugo').then(function (ctx) {
     }, 1000);
   }
 
-  // OK ou tempo esgotado: sai de verdade e volta ao login do sistema
+  // OK ou tempo esgotado: volta para a Visão geral (o operador continua logado;
+  // a saída automática por inatividade cuida de deslogar)
   function finalizarSaida() {
     clearInterval(confTimer);
     confTimer = null;
     $('btnConfOk').disabled = true;
-    Sessao.sair();
+    location.href = 'inicio.html';
   }
 
   function irPara(n) {
