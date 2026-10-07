@@ -9,15 +9,19 @@
 <style>
 /* ---------- específico desta página ---------- */
 .cards-g { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-bottom: 14px; }
-.cf { background: var(--painel); border: 1px solid var(--linha); border-radius: 12px; padding: 12px 14px; cursor: pointer; position: relative; overflow: hidden; text-align: left; font: inherit; color: inherit; }
-.cf::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--c); }
-.cf.sel { border-color: var(--c); box-shadow: 0 0 0 1px var(--c) inset; }
-.cf .rot { font-size: 11px; font-weight: 700; color: var(--texto-suave); text-transform: uppercase; letter-spacing: .4px; display: flex; align-items: center; gap: 7px; }
-.cf .rot svg { width: 15px; height: 15px; color: var(--c); }
-.cf .val { font-size: 26px; font-weight: 700; margin-top: 6px; font-variant-numeric: tabular-nums; }
-.cf .qtd { font-size: 12px; color: var(--texto-suave); }
+/* cards compactos, igual ao PCP · Monitor (o detalhe aparece ao passar o mouse) */
+.cf { display: flex; align-items: center; gap: 12px; background: var(--painel); border: 1px solid var(--linha); border-left: 4px solid var(--c); border-radius: 12px; padding: 12px 16px; cursor: pointer; text-align: left; font: inherit; color: inherit; }
+.cf b { font-size: 24px; font-variant-numeric: tabular-nums; }
+.cf span { font-size: 11px; font-weight: 800; letter-spacing: .6px; color: var(--texto-suave); text-transform: uppercase; flex: 1; }
+.cf svg { color: var(--c); }
+.cf.sel { outline: 2px solid var(--c); outline-offset: -1px; }
 .cf.alerta { background: color-mix(in srgb, var(--c) 12%, var(--painel)); }
-.cf.alerta .val { color: var(--c); }
+.cf.alerta b { color: var(--c); }
+/* cabeçalho da tabela fixo ao rolar */
+.tab-wrap table.tab thead th { position: sticky; top: 0; z-index: 2; background: var(--bg); }
+html.tema-claro .tab-wrap table.tab thead th { background: #f1f5f9; }
+.modo-ed { font-size: 12.5px; font-weight: 700; color: var(--destaque); display: flex; align-items: center; gap: 6px; }
+.btn2.travar { background: #9a3412; border-color: #9a3412; color: #fff; }
 @keyframes pisca-g { 0%,100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--c) 0%, transparent); } 50% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--c) 45%, transparent); } }
 .cf.piscando { animation: pisca-g 1.8s infinite; }
 
@@ -80,7 +84,10 @@ html.tema-claro .fcr-t { color: #c2410c; }
     <div><h1>Controle Gerencial</h1><p>Previsão e processo das OPs em produção · OPs na expedição saem desta tela</p></div>
     <div class="acoes-pagina so-desk">
       <button class="btn2 imp" data-imprimir><svg class="i"><use href="#i-imp"/></svg>Imprimir <span class="n" data-qtd-imp>—</span></button>
-      <button class="btn2 salvar" id="bt-salvar" data-editar><svg class="i"><use href="#i-check"/></svg><span class="rot">Salvar</span> <span class="n" id="n-salvar">0</span></button>
+      <span class="modo-ed" id="modo" hidden><svg class="i" style="width:15px;height:15px"><use href="#i-lapis"/></svg>Modo edição</span>
+      <button class="btn2" id="bt-cancelar" hidden>Cancelar</button>
+      <button class="btn2" id="bt-editar" data-editar title="Editar processo e previsão"><svg class="i"><use href="#i-lapis"/></svg><span>Editar</span></button>
+      <button class="btn2 salvar" id="bt-salvar" data-editar hidden><svg class="i"><use href="#i-check"/></svg><span class="rot">Salvar</span> <span class="n" id="n-salvar">0</span></button>
     </div>
   </div>
 
@@ -97,8 +104,8 @@ html.tema-claro .fcr-t { color: #c2410c; }
   <div class="bloco so-desk" style="padding:0">
     <div class="tab-wrap" data-encher>
       <table class="tab">
-        <thead><tr><th><input type="checkbox" class="chk" id="chk-todos" title="Selecionar as OPs visíveis"></th><th>OP</th><th>Pedido</th><th>Cliente</th><th>Código</th><th>Descrição</th><th>Processo</th><th class="num">Prazo</th><th>Previsão</th></tr></thead>
-        <tbody id="linhas"><tr><td colspan="9"><div class="carregando">Carregando…</div></td></tr></tbody>
+        <thead><tr><th><input type="checkbox" class="chk" id="chk-todos" title="Selecionar as OPs visíveis"></th><th>OP</th><th>Pedido</th><th>Cliente</th><th>Código</th><th>Descrição</th><th class="num">Qtd</th><th>Processo</th><th class="num">Prazo</th><th>Previsão</th></tr></thead>
+        <tbody id="linhas"><tr><td colspan="10"><div class="carregando">Carregando…</div></td></tr></tbody>
       </table>
     </div>
     <div class="rod-tab">
@@ -121,7 +128,8 @@ html.tema-claro .fcr-t { color: #c2410c; }
   <div class="lista-mob so-mob" id="cartoes"></div>
   <div class="barra-mob so-mob">
     <button class="ic" data-imprimir title="Imprimir"><svg class="i"><use href="#i-imp"/></svg></button>
-    <button class="pri" id="bt-salvar-mob" data-editar><svg class="i"><use href="#i-check"/></svg><span class="rot">Salvar</span></button>
+    <button class="ic" id="bt-editar-mob" data-editar title="Editar"><svg class="i"><use href="#i-lapis"/></svg></button>
+    <button class="pri" id="bt-salvar-mob" data-editar hidden><svg class="i"><use href="#i-check"/></svg><span class="rot">Salvar</span></button>
   </div>
 </main>
 
@@ -145,6 +153,7 @@ Sessao.iniciarPagina('gerencial').then(function (ctx) {
   let base = [];
   let modo = 'TODOS';
   let salvando = false;
+  let editando = false;          // a tabela abre travada; o lápis libera a edição
   const edicoes = {};            // id_item → { processo?, previsao? (aaaa-mm-dd) } — só o que mudou
   const selecionadas = new Set();  // id_item
 
@@ -229,8 +238,8 @@ Sessao.iniciarPagina('gerencial').then(function (ctx) {
       { m: 'ENGENHARIA', c: '#a855f7', ic: 'i-clip', n: base.filter(function (x) { return x.ehEng; }).length, d: 'itens sem OP', mob: 'Engenharia' }
     ];
     $('#cards').innerHTML = k.map(function (x) {
-      return '<button class="cf' + (modo === x.m ? ' sel' : '') + (x.pisca ? ' alerta piscando' : '') + '" data-modo="' + x.m + '" style="--c:' + x.c + '">' +
-        '<div class="rot">' + Ui.ic(x.ic) + ROTULO[x.m] + '</div><div class="val">' + x.n + '</div><div class="qtd">' + x.d + '</div></button>';
+      return '<button class="cf' + (modo === x.m ? ' sel' : '') + (x.pisca ? ' alerta piscando' : '') + '" data-modo="' + x.m + '" style="--c:' + x.c + '" title="' + Ui.esc(x.n + ' · ' + x.d) + '">' +
+        '<b>' + x.n + '</b><span>' + ROTULO[x.m] + '</span>' + Ui.ic(x.ic) + '</button>';
     }).join('');
     $('#cards-mob').innerHTML = k.map(function (x) {
       return '<button class="km' + (modo === x.m ? ' sel' : '') + (x.pisca ? ' piscando' : '') + '" data-modo="' + x.m + '" style="--c:' + x.c + '"><b>' + x.n + '</b> ' + x.mob + '</button>';
@@ -248,7 +257,7 @@ Sessao.iniciarPagina('gerencial').then(function (ctx) {
 
   function desenharLista() {
     const lista = aplicarFiltro();
-    const dis = ctx.podeEditar ? '' : ' disabled';
+    const dis = ctx.podeEditar && editando ? '' : ' disabled';
     $('#linhas').innerHTML = lista.map(function (x) {
       const ed = edicoes[x.id_item] || {};
       const prev = prevAtualISO(x);
@@ -256,10 +265,11 @@ Sessao.iniciarPagina('gerencial').then(function (ctx) {
         '<td><input type="checkbox" class="chk" data-sel' + (selecionadas.has(x.id_item) ? ' checked' : '') + '><span class="ord" data-ord></span></td>' +
         '<td><b>' + Ui.esc(x.op || '—') + '</b></td><td>' + Ui.esc(x.pedido || '—') + '</td><td>' + Ui.esc(x.cliente || '—') + '</td>' +
         '<td class="mut">' + Ui.esc(x.codigo || '—') + '</td><td class="desc" title="' + Ui.esc(x.descricao) + '">' + Ui.esc(x.descricao || '—') + '</td>' +
+        '<td class="num">' + Ui.esc(x.qtdordem === '' || x.qtdordem === null || x.qtdordem === undefined ? '—' : x.qtdordem) + '</td>' +
         '<td><select class="in' + ('processo' in ed ? ' mudou' : '') + '" data-campo="processo"' + dis + '>' + opcoesProcesso(procAtual(x)) + '</select></td>' +
         '<td class="num' + corPrazo(x) + '" title="' + Ui.esc(x.st.label) + '">' + Ui.esc(x.prazo ? x.prazo.slice(0, 5) : '—') + '</td>' +
         '<td><input type="date" class="in' + ('previsao' in ed ? ' mudou' : '') + (!x.ehEng && !prev ? ' vazio' : '') + '" data-campo="previsao" value="' + Ui.esc(prev) + '"' + dis + '></td></tr>';
-    }).join('') || '<tr><td colspan="9"><div class="vazio">Nenhuma OP encontrada.</div></td></tr>';
+    }).join('') || '<tr><td colspan="10"><div class="vazio">Nenhuma OP encontrada.</div></td></tr>';
 
     $('#cartoes').innerHTML = lista.map(function (x) {
       const ed = edicoes[x.id_item] || {};
@@ -268,7 +278,7 @@ Sessao.iniciarPagina('gerencial').then(function (ctx) {
       return '<div class="cm' + (alterada ? ' alterada' : '') + (selecionadas.has(x.id_item) ? ' sel' : '') + '" data-id="' + Ui.esc(x.id_item) + '">' +
         '<div class="cm-top"><input type="checkbox" class="chk" data-sel' + (selecionadas.has(x.id_item) ? ' checked' : '') + '><span class="ord" data-ord></span><span class="op">' + Ui.esc(x.op || '—') + '</span>' +
         '<span class="cli">' + Ui.esc(x.cliente) + ' · ped. ' + Ui.esc(x.pedido || '—') + '</span><span class="prazo' + corPrazo(x) + '">' + Ui.esc(x.prazo ? x.prazo.slice(0, 5) : '—') + '</span></div>' +
-        '<div class="cm-desc">' + Ui.esc(x.descricao) + '<small>' + Ui.esc(x.codigo) + ' · ' + Ui.esc(x.liga || '—') + '</small></div>' +
+        '<div class="cm-desc">' + Ui.esc(x.descricao) + '<small>' + Ui.esc(x.codigo) + ' · ' + Ui.esc(x.liga || '—') + (x.qtdordem ? ' · ' + Ui.esc(x.qtdordem) + ' pç' : '') + '</small></div>' +
         '<div class="cm-campos"><label>Processo<select class="in' + ('processo' in ed ? ' mudou' : '') + '" data-campo="processo"' + dis + '>' + opcoesProcesso(procAtual(x)) + '</select></label>' +
         '<label>Previsão<input type="date" class="in' + ('previsao' in ed ? ' mudou' : '') + (!x.ehEng && !prev ? ' vazio' : '') + '" data-campo="previsao" value="' + Ui.esc(prev) + '"' + dis + '></label></div></div>';
     }).join('') || '<div class="vazio">Nenhuma OP encontrada.</div>';
@@ -301,6 +311,7 @@ Sessao.iniciarPagina('gerencial').then(function (ctx) {
     const imp = nSel ? nSel + ' selecionada' + (nSel > 1 ? 's' : '') : (temFiltro() ? 'filtradas · ' : 'todas · ') + lista.length;
     document.querySelectorAll('[data-qtd-imp]').forEach(function (el) { el.textContent = imp; });
     $('#n-salvar').textContent = nAlt;
+    atualizarBarraEdicao();
     $('#bt-salvar-mob .rot').textContent = nAlt ? 'Salvar ' + nAlt + ' alteraç' + (nAlt > 1 ? 'ões' : 'ão') : 'Salvar';
   }
 
@@ -375,8 +386,39 @@ Sessao.iniciarPagina('gerencial').then(function (ctx) {
     const m = ev.target.closest('[data-modo]');
     if (m) { modo = m.dataset.modo === modo ? 'TODOS' : m.dataset.modo; desenhar(); return; }
     if (ev.target.closest('[data-imprimir]')) { imprimirPrioridades(); return; }
-    if (ev.target.closest('#bt-salvar, #bt-salvar-mob')) salvarTodos();
+    if (ev.target.closest('#bt-salvar, #bt-salvar-mob')) { salvarTodos(); return; }
+    if (ev.target.closest('#bt-editar, #bt-editar-mob')) { alternarEdicao(); return; }
+    if (ev.target.closest('#bt-cancelar')) cancelarEdicao();
   });
+
+  // ---------- Modo edição (igual ao PCP · Monitor) ----------
+  function atualizarBarraEdicao() {
+    const n = contarAlteracoes();
+    const pode = ctx.podeEditar;
+    [$('#bt-editar'), $('#bt-editar-mob')].forEach(function (b) {
+      b.classList.toggle('travar', editando);
+      b.querySelector('use').setAttribute('href', editando ? '#i-cadeado' : '#i-lapis');
+      b.title = editando ? 'Travar a edição' : 'Editar processo e previsão';
+    });
+    const t = $('#bt-editar span'); if (t) t.textContent = editando ? 'Travar' : 'Editar';
+    $('#bt-salvar').hidden = !(pode && editando);
+    $('#bt-salvar-mob').hidden = !(pode && editando);
+    $('#bt-cancelar').hidden = !(pode && editando);
+    $('#modo').hidden = !(pode && editando);
+    $('#bt-salvar').disabled = $('#bt-salvar-mob').disabled = !n || salvando;
+  }
+  function alternarEdicao() {
+    if (editando && contarAlteracoes()) { Ui.toast('Há alterações não salvas. Salve ou cancele antes de travar.', 'aviso'); return; }
+    editando = !editando;
+    desenharLista();
+  }
+  async function cancelarEdicao() {
+    const n = contarAlteracoes();
+    if (n && !(await Ui.confirmar({ titulo: 'Descartar alterações', texto: 'As ' + n + ' alteração(ões) não salvas serão perdidas.', ok: 'Descartar', perigo: true }))) return;
+    Object.keys(edicoes).forEach(function (id) { delete edicoes[id]; });
+    editando = false;
+    desenharLista();
+  }
 
   // ---------- Salvar (só previsão + processo, só o que mudou) ----------
   async function salvarTodos() {
@@ -394,6 +436,7 @@ Sessao.iniciarPagina('gerencial').then(function (ctx) {
     try {
       const r = await Api.chamar('salvarGerencial', { idReq: Api.idReq(), linhas: linhas });
       ids.forEach(function (id) { delete edicoes[id]; });
+      editando = false;
       const partes = [];
       if (r.previsoes) partes.push(r.previsoes + ' previsão(ões)');
       if (r.apontamentos) partes.push(r.apontamentos + ' processo(s) apontado(s)');
