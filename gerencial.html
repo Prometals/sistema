@@ -49,6 +49,8 @@ table.tab select.in, table.tab input.in { height: 30px; font-size: 12.5px; paddi
 table.tab select.in { min-width: 150px; }
 table.tab td.desc { max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 table.tab input.in[type=date] { width: 138px; }
+td.falta { color: #f87171; }
+html.tema-claro td.falta { color: #b91c1c; }
 input.in.vazio { border: 1px dashed #dc2626; background: rgba(220,38,38,.07); color: #f87171; }
 html.tema-claro input.in.vazio { color: #b91c1c; }
 tr.alterada td { background: color-mix(in srgb, var(--destaque) 8%, transparent); }
@@ -300,9 +302,11 @@ Sessao.iniciarPagina('gerencial').then(function (ctx) {
         '<td><b>' + Ui.esc(x.op || '—') + '</b></td><td>' + Ui.esc(x.pedido || '—') + '</td><td>' + Ui.esc(x.cliente || '—') + '</td>' +
         '<td class="mut">' + Ui.esc(x.codigo || '—') + '</td><td class="desc" title="' + Ui.esc(x.descricao) + '">' + Ui.esc(x.descricao || '—') + '</td>' +
         '<td class="num">' + Ui.esc(x.qtdordem === '' || x.qtdordem === null || x.qtdordem === undefined ? '—' : x.qtdordem) + '</td>' +
-        '<td><select class="in' + ('processo' in ed ? ' mudou' : '') + '" data-campo="processo"' + dis + '>' + opcoesProcesso(procAtual(x)) + '</select></td>' +
+        (dis ? '<td>' + Ui.esc(procAtual(x) || '—') + '</td>'
+             : '<td><select class="in' + ('processo' in ed ? ' mudou' : '') + '" data-campo="processo">' + opcoesProcesso(procAtual(x)) + '</select></td>') +
         '<td class="num' + corPrazo(x) + '" title="' + Ui.esc(x.st.label) + '">' + Ui.esc(x.prazo ? x.prazo.slice(0, 5) : '—') + '</td>' +
-        '<td><input type="date" class="in' + ('previsao' in ed ? ' mudou' : '') + (!x.ehEng && !prev ? ' vazio' : '') + '" data-campo="previsao" value="' + Ui.esc(prev) + '"' + dis + '></td></tr>';
+        (dis ? '<td' + (!x.ehEng && !prev ? ' class="falta">Sem previsão' : '>' + (prev ? prev.slice(8, 10) + '/' + prev.slice(5, 7) : '—')) + '</td></tr>'
+             : '<td><input type="date" class="in' + ('previsao' in ed ? ' mudou' : '') + (!x.ehEng && !prev ? ' vazio' : '') + '" data-campo="previsao" value="' + Ui.esc(prev) + '"></td></tr>');
     }).join('') || '<tr><td colspan="10"><div class="vazio">Nenhuma OP encontrada.</div></td></tr>';
 
     $('#cartoes').innerHTML = lista.map(function (x) {
