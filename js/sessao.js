@@ -253,7 +253,8 @@ const Sessao = (function () {
   function tag(nome, attrs) { const el = document.createElement(nome); Object.keys(attrs).forEach(function (k) { el.setAttribute(k, attrs[k]); }); cab.appendChild(el); }
   tag('link', { rel: 'manifest', href: 'manifest.webmanifest' });
   tag('meta', { name: 'theme-color', content: '#0f1720' });
-  tag('link', { rel: 'apple-touch-icon', href: 'icones/icone-192.png' });
+  tag('link', { rel: 'icon', type: 'image/png', href: 'icones/favicon.png' });
+  tag('link', { rel: 'apple-touch-icon', href: 'icones/apple-touch-icon.png' });
   tag('meta', { name: 'apple-mobile-web-app-capable', content: 'yes' });
   tag('meta', { name: 'apple-mobile-web-app-title', content: 'Prometals' });
   if ('serviceWorker' in navigator) {
