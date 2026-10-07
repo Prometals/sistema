@@ -27,7 +27,7 @@ html body .btn2.so-icone.ativo { background: #dc2626; border-color: #dc2626; col
 .nav button { height: 36px; min-width: 36px; padding: 0 12px; border: 0; background: transparent; cursor: pointer; font-weight: 700; }
 .nav button:hover { background: var(--hover); }
 .nav .per { padding: 0 18px; font-weight: 800; color: var(--destaque); letter-spacing: .5px; min-width: 190px; text-align: center; }
-.ctl .f { position: relative; }
+.ctl .f { position: relative; flex: 1; min-width: 240px; }
 .ctl .f input { height: 38px; padding-left: 36px; }
 .ctl .f svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--texto-suave); }
 
@@ -144,15 +144,16 @@ html.tema-claro .cd { color: #1d4ed8; }
     <div>
       <div class="cx ctl">
         <div class="l1">
+          <div class="f"><svg class="i"><use href="#i-busca"/></svg><input id="busca" placeholder="Buscar OP, pedido, cliente, código, descrição ou liga…" autocomplete="off"></div>
           <select id="fDepto"><option value="">Todos os departamentos</option></select>
-          <label class="per-f" title="Período: o calendário mostra o planejamento destes dias; imprimir e Excel levam as OPs com prazo entre estas datas"><svg class="i"><use href="#i-cal"/></svg><input type="date" id="fIni" aria-label="De"><span>até</span><input type="date" id="fFim" aria-label="Até"></label>
+          <input type="date" id="fIni" data-icone title="De (período do calendário; imprimir e Excel levam as OPs com prazo entre as datas)">
+          <input type="date" id="fFim" data-icone title="Até">
           <button class="btn2" id="btAtr" title="Atrasadas: prazo vencido e fora do crono."><svg class="i"><use href="#i-alerta"/></svg>Atrasadas</button>
-          <button class="btn2" id="btLimpar" title="Limpar filtros e voltar ao mês atual"><svg class="i"><use href="#i-x"/></svg>Limpar</button>
+          <button class="btn2" id="btLimpar" title="Limpar filtros e voltar ao mês atual"><svg class="i"><use href="#i-volta"/></svg>Limpar</button>
           <button class="btn2" data-imprimir title="Imprimir: OPs com prazo no período + atrasadas (com os filtros)"><svg class="i"><use href="#i-imp"/></svg>Imprimir</button>
           <button class="btn2" data-excel title="Excel: OPs com prazo no período + atrasadas (com os filtros)"><svg class="i"><use href="#i-xls"/></svg>Excel</button>
-          <span class="per-rot" id="periodo"></span>
+          <span class="per-rot" id="periodo" hidden></span>
         </div>
-        <div class="f"><svg class="i"><use href="#i-busca"/></svg><input id="busca" placeholder="Buscar OP, pedido, código, descrição ou liga…" autocomplete="off"></div>
       </div>
       <div class="cx" id="grade"><div class="carregando">Carregando o cronograma…</div></div>
       <div class="leg"><span><i class="ok"></i>No prazo / realizado</span><span><i class="bad"></i>Prazo vencido</span><span><i class="late"></i>Fora do crono.</span><span><i class="future"></i>Adiantado / futuro</span></div>
@@ -169,7 +170,7 @@ html.tema-claro .cd { color: #1d4ed8; }
     <div class="kpi-mini" id="mobKpi"></div>
     <div class="mob-cab"><b id="mobMes"></b><div class="nav"><button data-semana="-1">‹</button><button data-semana="0">Hoje</button><button data-semana="1">›</button></div></div>
     <div class="dstrip" id="mobDias"></div>
-    <div class="busca-mob"><div class="f"><svg class="i"><use href="#i-busca"/></svg><input id="buscaMob" placeholder="OP, código, liga…" autocomplete="off"></div>
+    <div class="busca-mob"><div class="f"><svg class="i"><use href="#i-busca"/></svg><input id="buscaMob" placeholder="OP, cliente, código, liga…" autocomplete="off"></div>
       <button class="bt" id="btDeptoMob" title="Departamento"><svg class="i"><use href="#i-filtro"/></svg></button>
       <button class="bt" data-imprimir title="Imprimir"><svg class="i"><use href="#i-imp"/></svg></button></div>
     <div class="info-mob" id="mobInfo"></div>
@@ -274,7 +275,7 @@ Sessao.iniciarPagina('mapa').then(function (ctx) {
     });
   }
   function bateBusca(x) {
-    return !filtBusca || (String(x.op) + String(x.pedido) + String(x.codigo) + String(x.descricao) + String(x.liga)).toUpperCase().indexOf(filtBusca) !== -1;
+    return !filtBusca || (String(x.op) + String(x.pedido) + String(x.cliente) + String(x.codigo) + String(x.descricao) + String(x.liga)).toUpperCase().indexOf(filtBusca) !== -1;
   }
   // Duas leituras:
   //   CALENDÁRIO (chips/pips) = planejamento: em que fase cada OP deveria estar
