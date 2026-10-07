@@ -68,7 +68,7 @@ const Api = (function () {
   // para ninguém ver dado antigo depois de salvar.
   const PREFIXO = 'pm_resp|';
   const LEITURA = /^(listar|buscar|consultar|ler|meu|resumo|painel|situacao|estrutura|setores|inicio|conferencia|dados|embalagens|ping|ajustes)/;
-  const VALIDADE_MS = 12 * 60 * 60 * 1000;   // depois disso a cópia não é usada
+  const VALIDADE_MS = 3 * 24 * 60 * 60 * 1000;   // 3 dias: abre na hora com a última cópia e atualiza por trás
   const REVALIDAR_MS = 30000;               // cópia com menos de 30 s: nem pergunta ao servidor
 
   function chaveResposta(acao, dados) {
