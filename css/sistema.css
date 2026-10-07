@@ -432,3 +432,13 @@ html.modo-terminal body > main.conteudo { margin-left: 0; }
 
 /* Salvar / Descartar visíveis, mas bloqueados fora do modo edição (PCP, Gerencial, Financeiro) */
 #bt-salvar:disabled, #bt-cancelar:disabled, #bt-salvar-mob:disabled { cursor: not-allowed; opacity: .45; }
+
+/* Datas de filtro só com o ícone de calendário (input type=date data-icone — ver ui.js) */
+.dt-ic { position: relative; display: inline-flex; align-items: center; height: 36px; border: 1px solid var(--borda); border-radius: 10px; background: var(--painel); flex: none; }
+.dt-ic input[type=date] { position: absolute; left: 0; bottom: 0; width: 1px !important; height: 1px !important; opacity: 0; pointer-events: none; border: 0 !important; padding: 0 !important; }
+.dt-ic .dt-bt { display: inline-flex; align-items: center; gap: 6px; height: 100%; padding: 0 10px; border: 0; background: transparent; color: var(--texto-suave); cursor: pointer; font: inherit; font-size: 12px; }
+.dt-ic.tem .dt-bt { color: var(--texto); padding-right: 4px; }
+.dt-ic .dt-bt svg, .dt-ic .dt-x svg { width: 16px; height: 16px; }
+.dt-ic .dt-x { display: none; height: 100%; padding: 0 8px 0 2px; border: 0; background: transparent; color: var(--texto-suave); cursor: pointer; }
+.dt-ic.tem .dt-x { display: inline-flex; align-items: center; }
+.dt-ic:hover { border-color: var(--destaque); }
