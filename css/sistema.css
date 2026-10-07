@@ -429,3 +429,6 @@ html.trocando-tema, html.trocando-tema *, html.trocando-tema *::before, html.tro
 html.modo-terminal .app { grid-template-columns: 0 1fr; }
 html.modo-terminal .lateral, html.modo-terminal .hamb, html.modo-terminal .veu, html.modo-terminal .migalha { display: none !important; }
 html.modo-terminal body > main.conteudo { margin-left: 0; }
+
+/* Salvar / Descartar visíveis, mas bloqueados fora do modo edição (PCP, Gerencial, Financeiro) */
+#bt-salvar:disabled, #bt-cancelar:disabled, #bt-salvar-mob:disabled { cursor: not-allowed; opacity: .45; }
