@@ -12,7 +12,10 @@
 .mp > * { min-width: 0; }
 .cx { background: var(--painel); border: 1px solid var(--linha); border-radius: 12px; }
 .ctl { padding: 10px; display: grid; gap: 10px; margin-bottom: 14px; }
-.ctl .l1 { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.ctl .l1 { display: flex; gap: 8px; flex-wrap: nowrap; align-items: center; }
+.ctl .l1 > * { flex: none; }
+.ctl #fDepto { width: 200px; text-overflow: ellipsis; }
+.ctl .l1 .dt-ic .dt-x { display: none; }
 .ctl select { height: 38px; width: auto; padding: 0 10px; }
 /* período: 📅 de [data] até [data] */
 .per-f { display: flex; align-items: center; gap: 6px; border: 1px solid var(--borda); border-radius: 10px; padding: 0 6px 0 10px; height: 38px; background: var(--painel); }
@@ -27,7 +30,7 @@ html body .btn2.so-icone.ativo { background: #dc2626; border-color: #dc2626; col
 .nav button { height: 36px; min-width: 36px; padding: 0 12px; border: 0; background: transparent; cursor: pointer; font-weight: 700; }
 .nav button:hover { background: var(--hover); }
 .nav .per { padding: 0 18px; font-weight: 800; color: var(--destaque); letter-spacing: .5px; min-width: 190px; text-align: center; }
-.ctl .f { position: relative; flex: 1; min-width: 240px; }
+.ctl .l1 .f { position: relative; flex: 1 1 auto; min-width: 120px; }
 .ctl .f input { height: 38px; padding-left: 36px; }
 .ctl .f svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--texto-suave); }
 
@@ -144,10 +147,10 @@ html.tema-claro .cd { color: #1d4ed8; }
     <div>
       <div class="cx ctl">
         <div class="l1">
-          <div class="f"><svg class="i"><use href="#i-busca"/></svg><input id="busca" placeholder="Buscar OP, pedido, cliente, código, descrição ou liga…" autocomplete="off"></div>
-          <select id="fDepto"><option value="">Todos os departamentos</option></select>
-          <input type="date" id="fIni" data-icone title="De (período do calendário; imprimir e Excel levam as OPs com prazo entre as datas)">
-          <input type="date" id="fFim" data-icone title="Até">
+          <select id="fDepto" title="Departamento"><option value="">Todos os departamentos</option></select>
+          <input type="date" id="fIni" data-icone data-rotulo="De" title="De">
+          <input type="date" id="fFim" data-icone data-rotulo="Até" title="Até">
+          <div class="f"><svg class="i"><use href="#i-busca"/></svg><input id="busca" placeholder="Buscar OP, cliente, código…" title="Buscar OP, pedido, cliente, código, descrição ou liga" autocomplete="off"></div>
           <button class="btn2" id="btAtr" title="Atrasadas: prazo vencido e fora do crono."><svg class="i"><use href="#i-alerta"/></svg>Atrasadas</button>
           <button class="btn2" id="btLimpar" title="Limpar filtros e voltar ao mês atual"><svg class="i"><use href="#i-volta"/></svg>Limpar</button>
           <button class="btn2" data-imprimir title="Imprimir: OPs com prazo no período + atrasadas (com os filtros)"><svg class="i"><use href="#i-imp"/></svg>Imprimir</button>
