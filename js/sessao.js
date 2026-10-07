@@ -40,7 +40,16 @@ const Sessao = (function () {
   // 1) a página que pediu o login (?volta=pcp.html), se o usuário puder abrir;
   // 2) se ele só tem UMA página (ex.: operador do refugo), direto nela;
   // 3) senão, a Visão geral.
+  // Terminal do Estoque: quem só tem o Estoque · Operador liberado
+  // (a Visão geral e o Dashboard BI não contam). Entra direto nele, sem menu,
+  // e não consegue abrir nenhuma outra página.
+  function ehTerminalEstoque(paginas) {
+    const lib = (paginas || []).filter(function (p) { return p.nivel !== 'NENHUM' && p.id !== 'inicio' && p.id !== 'bi'; });
+    return lib.length === 1 && lib[0].id === 'estoque';
+  }
+
   function destino(paginas, volta) {
+    if (ehTerminalEstoque(paginas)) return 'estoque.html';
     const abre = function (id) {
       const p = paginas.find(function (x) { return x.id === id; });
       return p && p.nivel !== 'NENHUM' && CONFIG.PAGINAS_PRONTAS.indexOf(id) !== -1;
@@ -61,6 +70,70 @@ const Sessao = (function () {
     } catch (e) { /* sai mesmo sem internet */ }
     limpar();
     location.href = 'index.html';
+  }
+
+  // ---------- Saída automática por inatividade ----------
+  // 10 min sem mexer (mouse, teclado, toque ou rolagem) em NENHUMA aba do sistema:
+  // aparece o aviso com 30 s para continuar; sem resposta, sai sozinho.
+  const INATIVO_MS = 10 * 60 * 1000, AVISO_S = 30, CHAVE_ATIVO = 'pm_ativo';
+  function marcarAtivo() {
+    try { localStorage.setItem(CHAVE_ATIVO, String(Date.now())); } catch (e) { /* ignora */ }
+  }
+  function ultimaAtividade() {
+    try { return Number(localStorage.getItem(CHAVE_ATIVO)) || Date.now(); } catch (e) { return Date.now(); }
+  }
+  function sairPorInatividade() {
+    sessionStorage.setItem(CHAVE_AVISO, 'Você saiu por inatividade (' + (INATIVO_MS / 60000) + ' minutos sem uso). Entre novamente.');
+    const aviso = sessionStorage.getItem(CHAVE_AVISO);
+    try {
+      const corpo = JSON.stringify({ acao: 'logout', token: token(), dados: {} });
+      if (!(navigator.sendBeacon && navigator.sendBeacon(CONFIG.API_URL, new Blob([corpo], { type: 'text/plain;charset=utf-8' })))) {
+        fetch(CONFIG.API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: corpo, keepalive: true }).catch(function () {});
+      }
+    } catch (e) { /* sai mesmo sem internet */ }
+    limpar();
+    sessionStorage.setItem(CHAVE_AVISO, aviso);
+    location.href = 'index.html';
+  }
+  let avisando = false;
+  function vigiarInatividade() {
+    let ultimoMarcado = 0;
+    const atividade = function () {
+      if (avisando) return;
+      const agora = Date.now();
+      if (agora - ultimoMarcado > 5000) { ultimoMarcado = agora; marcarAtivo(); }   // grava no máx. a cada 5 s
+    };
+    ['mousemove', 'mousedown', 'keydown', 'touchstart', 'wheel', 'scroll'].forEach(function (ev) {
+      window.addEventListener(ev, atividade, { passive: true, capture: true });
+    });
+    marcarAtivo();
+    setInterval(function () {
+      if (avisando || !token()) return;
+      if (Date.now() - ultimaAtividade() < INATIVO_MS) return;
+      avisando = true;
+      let resta = AVISO_S;
+      const timer = setInterval(function () {
+        resta--;
+        const el = document.querySelector('[data-resta]');
+        if (el) el.textContent = resta;
+        if (Date.now() - ultimaAtividade() < INATIVO_MS) {   // mexeu em outra aba: continua
+          clearInterval(timer); avisando = false;
+          document.querySelectorAll('.modal-fundo').forEach(function (m) { if (m.querySelector('[data-resta]')) m.remove(); });
+          return;
+        }
+        if (resta <= 0) { clearInterval(timer); sairPorInatividade(); }
+      }, 1000);
+      Ui.janela({
+        titulo: 'Você ainda está aí?',
+        corpo: '<p style="margin:0">Sem uso há ' + (INATIVO_MS / 60000) + ' minutos. O sistema vai sair em <b data-resta>' + resta + '</b> segundos.</p>',
+        botoes: [{ texto: 'Sair agora', valor: 'sair' }, { texto: 'Continuar aqui', classe: 'pri', valor: 'ficar' }]
+      }).then(function (v) {
+        clearInterval(timer);
+        if (v === 'sair') { sairPorInatividade(); return; }
+        avisando = false;
+        marcarAtivo();
+      });
+    }, 5000);
   }
 
   // Chamado pelo api.js quando o servidor responde SESSAO_EXPIRADA.
@@ -109,10 +182,18 @@ const Sessao = (function () {
         Ui.toast('Mostrando o menu da última conexão.', 'aviso', 'Sem conexão');
       }
     }
+    // Terminal do Estoque: qualquer outra página volta para o Estoque · Operador
+    const terminal = ehTerminalEstoque(s.paginas);
+    if (terminal && idPagina !== 'estoque') {
+      location.replace('estoque.html');
+      return new Promise(function () {});
+    }
+    if (terminal) document.documentElement.classList.add('modo-terminal');
     // A Visão geral é a página inicial de TODOS: nunca fica bloqueada, seja qual for o cargo
     s.paginas = s.paginas.map(function (p) { return p.id === 'inicio' && p.nivel === 'NENHUM' ? Object.assign({}, p, { nivel: 'VER' }) : p; });
     const pagina = s.paginas.find(function (p) { return p.id === idPagina; }) || { id: idPagina, nome: idPagina, grupo: '', nivel: 'NENHUM' };
     Shell.montar({ pagina: pagina, usuario: s.usuario, paginas: s.paginas });
+    if (idPagina !== 'bi') vigiarInatividade();   // o Dashboard BI roda na TV 24 h: nunca sai sozinho
     // Depois que esta página carregar o que precisa, busca por trás os dados das outras
     setTimeout(function () { try { Api.preCarregar(s.paginas); } catch (e) { /* ignora */ } }, 4000);
     if (pagina.nivel === 'NENHUM') {
@@ -157,7 +238,7 @@ const Sessao = (function () {
 
   return {
     ler: ler, token: token, entrar: entrar, destino: destino, sair: sair,
-    expirou: expirou, pegarAviso: pegarAviso, iniciarPagina: iniciarPagina, limpar: limpar
+    expirou: expirou, pegarAviso: pegarAviso, iniciarPagina: iniciarPagina, limpar: limpar, ehTerminalEstoque: ehTerminalEstoque
   };
 })();
 
