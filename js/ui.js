@@ -262,6 +262,45 @@ const Fmt = {
 
   function varrer() {
     document.querySelectorAll('.btn2').forEach(ajustar);
+    enfeitarDatas();
+  }
+
+  // ----------------------------------------------------------
+  // Datas de FILTRO (input type=date com data-icone): aparece só o ícone
+  // de calendário. Clicou → abre o calendário; escolheu → mostra dd/mm
+  // pequeno ao lado e um ✕ para limpar. Vale em qualquer página.
+  // ----------------------------------------------------------
+  function rotuloData(w, inp) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(inp.value || '');
+    const t = m ? m[3] + '/' + m[2] : '';
+    const v = w.querySelector('.dt-v');
+    if (v.textContent !== t) v.textContent = t;
+    if (w.classList.contains('tem') !== !!m) w.classList.toggle('tem', !!m);
+  }
+  function enfeitarDatas() {
+    document.querySelectorAll('input[type=date][data-icone]').forEach(function (inp) {
+      let w = inp.parentElement;
+      if (!w || !w.classList.contains('dt-ic')) {
+        w = document.createElement('span');
+        w.className = 'dt-ic';
+        w.title = inp.title || inp.getAttribute('aria-label') || 'Data';
+        inp.parentNode.insertBefore(w, inp);
+        w.appendChild(inp);
+        w.insertAdjacentHTML('afterbegin', '<button type="button" class="dt-bt" aria-label="' + Ui.esc(w.title) + '">' + Ui.ic('i-cal') + '<span class="dt-v"></span></button>');
+        w.insertAdjacentHTML('beforeend', '<button type="button" class="dt-x" title="Limpar data" aria-label="Limpar data">' + Ui.ic('i-x') + '</button>');
+        w.querySelector('.dt-bt').addEventListener('click', function () {
+          try { inp.showPicker(); } catch (e) { inp.focus(); }
+        });
+        w.querySelector('.dt-x').addEventListener('click', function () {
+          inp.value = '';
+          inp.dispatchEvent(new Event('input', { bubbles: true }));
+          inp.dispatchEvent(new Event('change', { bubbles: true }));
+          rotuloData(w, inp);
+        });
+        inp.addEventListener('change', function () { rotuloData(w, inp); });
+      }
+      rotuloData(w, inp);
+    });
   }
 
   let agendado = false;
