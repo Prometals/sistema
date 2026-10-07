@@ -53,8 +53,8 @@ Sessao.iniciarPagina('inicio').then(function (ctx) {
   $('link-pcp').hidden = !podeAbrir('pcp');
 
   desenharAtalhos();
-  // Os indicadores da Visão geral valem para quem abre a Visão geral (não depende do Dashboard BI)
-  const temBI = ctx.nivelDe('inicio') !== 'NENHUM' || ctx.nivelDe('bi') !== 'NENHUM';
+  // Os indicadores da Visão geral valem para todos (não dependem do Dashboard BI)
+  const temBI = true;
   if (!temBI) {
     $('subtitulo').textContent = Fmt.hojeExtenso();
     $('bloco-atencao').innerHTML = '<div class="vazio">Os indicadores da produção aparecem para quem tem acesso ao <b>Dashboard BI</b>.<br>Use os atalhos ao lado para abrir suas páginas.</div>';
