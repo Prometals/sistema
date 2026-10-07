@@ -272,9 +272,9 @@ const Fmt = {
   // ----------------------------------------------------------
   function rotuloData(w, inp) {
     const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(inp.value || '');
-    const t = m ? m[3] + '/' + m[2] : '';
-    const v = w.querySelector('.dt-v');
-    if (v.textContent !== t) v.textContent = t;
+    // A data fica oculta: aparece só na dica ao passar o mouse.
+    const t = (inp.dataset.rotulo || inp.title || 'Data') + (m ? ': ' + m[3] + '/' + m[2] + '/' + m[1] : '');
+    if (w.title !== t) w.title = t;
     if (w.classList.contains('tem') !== !!m) w.classList.toggle('tem', !!m);
   }
   function enfeitarDatas() {
@@ -286,7 +286,7 @@ const Fmt = {
         w.title = inp.title || inp.getAttribute('aria-label') || 'Data';
         inp.parentNode.insertBefore(w, inp);
         w.appendChild(inp);
-        w.insertAdjacentHTML('afterbegin', '<button type="button" class="dt-bt" aria-label="' + Ui.esc(w.title) + '">' + Ui.ic('i-cal') + '<span class="dt-v"></span></button>');
+        w.insertAdjacentHTML('afterbegin', '<button type="button" class="dt-bt" aria-label="' + Ui.esc(w.title) + '">' + (inp.dataset.rotulo ? '<span class="dt-r">' + Ui.esc(inp.dataset.rotulo) + '</span>' : '') + Ui.ic('i-cal') + '</button>');
         w.insertAdjacentHTML('beforeend', '<button type="button" class="dt-x" title="Limpar data" aria-label="Limpar data">' + Ui.ic('i-x') + '</button>');
         w.querySelector('.dt-bt').addEventListener('click', function () {
           try { inp.showPicker(); } catch (e) { inp.focus(); }
