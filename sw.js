@@ -13,7 +13,7 @@
 // backend (POST para o Apps Script, outro domínio) passam direto.
 // ============================================================
 
-const VERSAO = 'prometals-v4';   // mude (v2, v3…) se quiser forçar todos a baixarem tudo de novo
+const VERSAO = 'prometals-v5';   // mude (v2, v3…) se quiser forçar todos a baixarem tudo de novo
 const FIXOS = [
   'css/tema.css', 'css/sistema.css',
   'js/icones.js', 'js/ui.js', 'js/api.js', 'js/sessao.js', 'js/shell.js', 'js/cronograma.js',
