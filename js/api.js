@@ -54,7 +54,7 @@ const Api = (function () {
 
   // Site atualizado (nova versão destes arquivos): apaga as cópias guardadas,
   // para nunca abrir uma página com dados no formato antigo.
-  const VERSAO_DADOS = '2026-10-07a';
+  const VERSAO_DADOS = '2026-10-07-reais';
   try {
     if (localStorage.getItem('pm_versao_dados') !== VERSAO_DADOS) {
       Object.keys(localStorage).forEach(function (k) { if (k.indexOf('pm_resp|') === 0) localStorage.removeItem(k); });
