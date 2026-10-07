@@ -421,3 +421,11 @@ button:disabled, .btn2:disabled { cursor: progress; }
 html.trocando-tema, html.trocando-tema *, html.trocando-tema *::before, html.trocando-tema *::after {
   transition: background-color .3s ease, color .3s ease, border-color .3s ease, fill .3s ease !important;
 }
+
+/* ============================================================
+   Terminal do Estoque (usuário que só tem o Estoque · Operador):
+   sem menu lateral e sem atalhos para outras páginas.
+   ============================================================ */
+html.modo-terminal .app { grid-template-columns: 0 1fr; }
+html.modo-terminal .lateral, html.modo-terminal .hamb, html.modo-terminal .veu, html.modo-terminal .migalha { display: none !important; }
+html.modo-terminal body > main.conteudo { margin-left: 0; }
