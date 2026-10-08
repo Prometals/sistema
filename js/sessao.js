@@ -32,6 +32,7 @@ const Sessao = (function () {
     const r = await Api.chamar('login', { login: login, pin: pin }, { semToken: true });
     salvar({ token: r.token, usuario: r.usuario, paginas: r.paginas, conferidoEm: Date.now() });
     try { localStorage.removeItem('pm_precarga'); } catch (e) { /* ignora */ }   // login novo: pré-carrega de novo
+    marcarAtivo();   // login novo: o relógio da inatividade começa agora
     guardarTema(r.usuario);
     return r;
   }
@@ -95,45 +96,63 @@ const Sessao = (function () {
     sessionStorage.setItem(CHAVE_AVISO, aviso);
     location.href = 'index.html';
   }
+  // Regra: 10 min sem uso → aviso de 30 s → sai. A conta é feita pelo RELÓGIO
+  // (hora da última atividade), e não por contagem de segundos: com a aba em
+  // segundo plano, a tela bloqueada ou o celular em outro app, o navegador
+  // congela os contadores. Ao voltar, se já passou do prazo, sai na hora.
   let avisando = false;
   function vigiarInatividade() {
     let ultimoMarcado = 0;
+    const prazoAviso = function () { return ultimaAtividade() + INATIVO_MS; };            // começa o aviso
+    const prazoSaida = function () { return prazoAviso() + AVISO_S * 1000; };             // sai
     const atividade = function () {
       if (avisando) return;
       const agora = Date.now();
+      // voltou depois do prazo: o mexer do mouse/toque NÃO conta como atividade
+      if (agora >= prazoAviso()) { verificar(); return; }
       if (agora - ultimoMarcado > 5000) { ultimoMarcado = agora; marcarAtivo(); }   // grava no máx. a cada 5 s
     };
     ['mousemove', 'mousedown', 'keydown', 'touchstart', 'wheel', 'scroll'].forEach(function (ev) {
       window.addEventListener(ev, atividade, { passive: true, capture: true });
     });
+    // Página aberta de novo (ex.: app do celular reaberto) depois do prazo: sai na hora
+    if (token() && Date.now() >= prazoSaida()) { sairPorInatividade(); return; }
     marcarAtivo();
-    setInterval(function () {
+
+    function verificar() {
       if (avisando || !token()) return;
-      if (Date.now() - ultimaAtividade() < INATIVO_MS) return;
+      const agora = Date.now();
+      if (agora < prazoAviso()) return;
+      if (agora >= prazoSaida()) { sairPorInatividade(); return; }   // passou de tudo (aba parada/escondida): sai direto
       avisando = true;
-      let resta = AVISO_S;
+      const restante = function () { return Math.max(0, Math.ceil((prazoSaida() - Date.now()) / 1000)); };
       const timer = setInterval(function () {
-        resta--;
         const el = document.querySelector('[data-resta]');
-        if (el) el.textContent = resta;
-        if (Date.now() - ultimaAtividade() < INATIVO_MS) {   // mexeu em outra aba: continua
+        if (el) el.textContent = restante();
+        if (Date.now() < prazoAviso()) {   // mexeu em outra aba: continua
           clearInterval(timer); avisando = false;
           document.querySelectorAll('.modal-fundo').forEach(function (m) { if (m.querySelector('[data-resta]')) m.remove(); });
           return;
         }
-        if (resta <= 0) { clearInterval(timer); sairPorInatividade(); }
+        if (restante() <= 0) { clearInterval(timer); sairPorInatividade(); }
       }, 1000);
       Ui.janela({
         titulo: 'Você ainda está aí?',
-        corpo: '<p style="margin:0">Sem uso há ' + (INATIVO_MS / 60000) + ' minutos. O sistema vai sair em <b data-resta>' + resta + '</b> segundos.</p>',
+        corpo: '<p style="margin:0">Sem uso há ' + (INATIVO_MS / 60000) + ' minutos. O sistema vai sair em <b data-resta>' + restante() + '</b> segundos.</p>',
         botoes: [{ texto: 'Sair agora', valor: 'sair' }, { texto: 'Continuar aqui', classe: 'pri', valor: 'ficar' }]
       }).then(function (v) {
         clearInterval(timer);
-        if (v === 'sair') { sairPorInatividade(); return; }
+        if (v === 'sair' || Date.now() >= prazoSaida()) { sairPorInatividade(); return; }
         avisando = false;
         marcarAtivo();
       });
-    }, 5000);
+    }
+    setInterval(verificar, 5000);
+    // Voltou para a aba / desbloqueou o celular / reabriu o app: confere na hora
+    document.addEventListener('visibilitychange', function () { if (!document.hidden) verificar(); });
+    window.addEventListener('focus', verificar);
+    window.addEventListener('pageshow', verificar);
+    verificar();
   }
 
   // Chamado pelo api.js quando o servidor responde SESSAO_EXPIRADA.
