@@ -56,8 +56,10 @@ svg.i { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-widt
 .lat-item.ativo { background: var(--lateral-ativo); color: #fff; font-weight: 600; }
 .lat-item.ativo::before { content: ""; position: absolute; left: -8px; top: 6px; bottom: 6px; width: 3px; border-radius: 0 3px 3px 0; background: var(--destaque); }
 .lat-item .cont { margin-left: auto; background: var(--destaque); color: #fff; font-size: 10px; font-weight: 700; border-radius: 999px; padding: 1px 7px; }
-.lat-item.bloq { opacity: .38; cursor: not-allowed; }
-.lat-item.bloq:hover { background: transparent; color: var(--lateral-texto); }
+/* Bloqueado: cor apagada em vez de transparência (opacity) — no celular Android a
+   transparência dentro do menu deslizante gerava "chuviscos" na tela */
+.lat-item.bloq { color: color-mix(in srgb, var(--lateral-texto) 38%, var(--lateral)); cursor: not-allowed; }
+.lat-item.bloq:hover { background: transparent; color: color-mix(in srgb, var(--lateral-texto) 38%, var(--lateral)); }
 .lat-item.bloq .cad { margin-left: auto; width: 14px; height: 14px; }
 .lat-rodape { border-top: 1px solid var(--lateral-borda); padding: 12px 14px; font-size: 11px; color: var(--lateral-titulo); flex: none; }
 
