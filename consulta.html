@@ -131,7 +131,9 @@ Sessao.iniciarPagina('consulta').then(function (ctx) {
       if (filtro === 'ENGENHARIA') ok = x.ehEng;
       const txt = (x.op + ' ' + x.pedido + ' ' + x.cliente + ' ' + x.codigo + ' ' + x.descricao).toLowerCase();
       return ok && (!busca || txt.indexOf(busca) !== -1);
-    });
+    })
+      // OPs (com número) sempre acima dos itens de engenharia; dentro de cada grupo, a ordem de sempre
+      .sort(function (a, b) { return (a.ehEng ? 1 : 0) - (b.ehEng ? 1 : 0); });
   }
   $('#busca').addEventListener('input', desenharLista);
   $('#busca-mob').addEventListener('input', desenharLista);
