@@ -292,6 +292,27 @@ Sessao.iniciarPagina('pcp').then(function (ctx) {
     if (e && campo in e) return e[campo];
     return original(x, campo);
   }
+  // ---------- Números no padrão brasileiro ----------
+  // Vírgula = decimal, ponto = milhar. O NW exporta "10,000" = 10 peças (e não 10 mil).
+  //   "10,000" → 10 · "1.234,5" → 1234,5 · "10.000" → 10000 · "12.5" → 12,5 · "10" → 10
+  const NUMS = ['qtdordem', 'qtdmoldes', 'pesomoldes'];
+  function numBR(v) {
+    let t = String(v === null || v === undefined ? '' : v).trim().replace(/\s/g, '');
+    if (!t) return NaN;
+    if (t.indexOf(',') !== -1) t = t.replace(/\./g, '').replace(',', '.');
+    else if (/^\d{1,3}(\.\d{3})+$/.test(t)) t = t.replace(/\./g, '');
+    return /^-?\d+(\.\d+)?$/.test(t) ? Number(t) : NaN;
+  }
+  // Mostra sem zeros sobrando: 10 · 12,5 · 0,75
+  function fmtNumBR(n) { return String(Math.round(n * 1000) / 1000).replace('.', ','); }
+  // Normaliza o que foi digitado/colado ("10,000" → "10"); texto inválido fica como está (o servidor avisa)
+  function normalizarNum(v) { const n = numBR(v); return isNaN(n) ? String(v).trim() : fmtNumBR(n); }
+  // Para enviar ao servidor: "1.234,5" → "1234.5"
+  function paraEnvio(c, v) {
+    if (NUMS.indexOf(c) === -1 || v === '' || v === null || v === undefined) return v;
+    const n = numBR(v); return isNaN(n) ? v : String(n);
+  }
+
   function original(x, campo) {
     if (campo === 'prazo') return brParaIso(x.prazo);
     if (campo === 'qtdmoldes') return x.qtdmoldesPlanejados === '' ? '' : String(x.qtdmoldesPlanejados);
@@ -311,8 +332,8 @@ Sessao.iniciarPagina('pcp').then(function (ctx) {
       (PROCESSOS.indexOf(proc) === -1 ? '<option selected value="' + Ui.esc(proc) + '">' + Ui.esc(proc) + '</option>' : '');
     return '<tr class="' + (edicoes[x.id_item] ? 'alt' : classeLinha(x)) + '" data-linha="' + x.id_item + '">' +
       inp('op', 'w-op', '', ' placeholder="nº OP" inputmode="numeric"') + inp('pedido', 'w-ped') + inp('cliente', 'w-cli') + inp('codigo', 'w-cod') +
-      inp('descricao', 'w-desc') + inp('qtdordem', 'w-q', 'number', ' min="0"') + inp('liga', 'w-liga') + inp('prazo', 'w-prz', 'date') +
-      inp('qtdmoldes', 'w-m', 'number', ' min="0" title="Moldes PLANEJADOS"') + inp('pesomoldes', 'w-p', '', ' inputmode="decimal" title="Peso PLANEJADO (kg)"') +
+      inp('descricao', 'w-desc') + inp('qtdordem', 'w-q', '', ' inputmode="decimal"') + inp('liga', 'w-liga') + inp('prazo', 'w-prz', 'date') +
+      inp('qtdmoldes', 'w-m', '', ' inputmode="decimal" title="Moldes PLANEJADOS"') + inp('pesomoldes', 'w-p', '', ' inputmode="decimal" title="Peso PLANEJADO (kg)"') +
       '<td><select class="w-proc' + mud('processo') + '" data-id="' + x.id_item + '" data-c="processo">' + opcoes + '</select></td><td></td></tr>';
   }
 
@@ -327,8 +348,8 @@ Sessao.iniciarPagina('pcp').then(function (ctx) {
       '<td>' + inp('op', 'w-op', '', ' placeholder="nº OP" inputmode="numeric"') + '</td><td>' + inp('pedido', 'w-ped') + '</td><td>' + inp('cliente', 'w-cli') + '</td>' +
       '<td>' + inp('codigo', 'w-cod', '', ' placeholder="código"') + '</td>' +
       '<td>' + inp('descricao', 'w-desc') + (autoDesc ? '<span class="dica-auto">✓ preenchido pelo cadastro</span>' : '') + '</td>' +
-      '<td>' + inp('qtdordem', 'w-q', 'number', ' min="0"') + '</td><td>' + inp('liga', 'w-liga') + '</td><td>' + inp('prazo', 'w-prz', 'date') + '</td>' +
-      '<td>' + inp('qtdmoldes', 'w-m', 'number', ' min="0"') + (n._mpp && n.qtdordem ? '<span class="dica-auto">' + n.qtdordem + ' pç × ' + n._mpp + '</span>' : '') + '</td>' +
+      '<td>' + inp('qtdordem', 'w-q', '', ' inputmode="decimal"') + '</td><td>' + inp('liga', 'w-liga') + '</td><td>' + inp('prazo', 'w-prz', 'date') + '</td>' +
+      '<td>' + inp('qtdmoldes', 'w-m', '', ' inputmode="decimal"') + (n._mpp && n.qtdordem ? '<span class="dica-auto">' + n.qtdordem + ' pç × ' + n._mpp + '</span>' : '') + '</td>' +
       '<td>' + inp('pesomoldes', 'w-p', '', ' inputmode="decimal"') + '</td>' +
       '<td class="mut" style="font-size:11.5px">definido depois de salvar</td>' +
       '<td><button class="ib" title="Descartar esta linha" data-descartar="' + n.uid + '">' + Ui.ic('i-x') + '</button></td></tr>';
@@ -363,19 +384,29 @@ Sessao.iniciarPagina('pcp').then(function (ctx) {
   function contarAlteracoes() { return novas.length + Object.keys(edicoes).length; }
 
   // ---------- Digitação (escreve direto no estado; a tabela pode redesenhar sem perder nada) ----------
+  // Saiu do campo de número: mostra no padrão ("10,000" colado do NW vira "10")
+  document.addEventListener('change', function (ev) {
+    const el = ev.target;
+    const c = el.dataset && (el.dataset.c || el.name);
+    if (!c || NUMS.indexOf(c) === -1 || el.tagName !== 'INPUT') return;
+    const v = normalizarNum(el.value);
+    if (v === el.value) return;
+    el.value = v;
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+  }, true);
   $('#linhas').addEventListener('input', function (ev) {
     const el = ev.target;
     if (!el.dataset.c) return;
     let v = el.value;
     if (el.dataset.c === 'op' || el.dataset.c === 'pedido') { v = v.replace(/^0+(?=\d)/, ''); if (v !== el.value) el.value = v; }
     if (el.dataset.c === 'pesomoldes') { v = v.replace(/[^0-9,.]/g, ''); if (v !== el.value) el.value = v; }
-    if (el.dataset.c === 'qtdmoldes' && Number(v) < 0) { v = '0'; el.value = v; }
+    if (el.dataset.c === 'qtdmoldes' && numBR(v) < 0) { v = '0'; el.value = v; }
     if (el.dataset.nova) {
       const n = novas.find(function (x) { return x.uid === el.dataset.nova; });
       n[el.dataset.c] = v;
       if (n._erro === el.dataset.c) { n._erro = ''; el.classList.remove('errc'); }
       if (el.dataset.c === 'qtdordem' && n._mpp && (n.qtdmoldes === '' || String(n.qtdmoldes) === String(n._auto.qtdmoldes))) {
-        n.qtdmoldes = n._auto.qtdmoldes = v ? String(Number(v) * n._mpp) : '';
+        n.qtdmoldes = n._auto.qtdmoldes = v && !isNaN(numBR(v)) ? fmtNumBR(numBR(v) * n._mpp) : '';
         redesenharNova(n, el);
       }
     } else {
@@ -403,7 +434,7 @@ Sessao.iniciarPagina('pcp').then(function (ctx) {
       n.descricao = n._auto.descricao = p.DESCRICAO || n.descricao;
       if (p.LIGA_PADRAO) n.liga = n._auto.liga = p.LIGA_PADRAO;
       n._mpp = Number(p.MOLDES_POR_PECA) || 0;
-      if (n._mpp && n.qtdordem) n.qtdmoldes = n._auto.qtdmoldes = String(Number(n.qtdordem) * n._mpp);
+      if (n._mpp && n.qtdordem && !isNaN(numBR(n.qtdordem))) n.qtdmoldes = n._auto.qtdmoldes = fmtNumBR(numBR(n.qtdordem) * n._mpp);
       else if (n._mpp) n._auto.qtdmoldes = '';
     } else if (n.codigo) {
       Ui.toast('Código ' + n.codigo + ' não está no cadastro. Preencha a descrição: o produto será criado ao salvar.', 'aviso');
@@ -469,14 +500,14 @@ Sessao.iniciarPagina('pcp').then(function (ctx) {
       const falta = ['pedido', 'cliente', 'codigo', 'qtdordem', 'prazo'].find(function (c) { return !String(n[c]).trim(); }) ||
         (!produtos[normCod(n.codigo)] && !String(n.descricao).trim() ? 'descricao' : '');
       if (falta) { n._erro = falta; desenharLinhas(); throw new Api.Erro('DADOS_INCOMPLETOS', 'Linha nova: preencha ' + NOMES[falta] + '.'); }
-      linhas.push({ op: n.op, pedido: n.pedido, cliente: n.cliente, codigo: n.codigo, descricao: n.descricao, qtdordem: n.qtdordem,
-        prazo: n.prazo, liga: n.liga, qtdmoldes: n.qtdmoldes, pesomoldes: String(n.pesomoldes).replace(',', '.') });
+      linhas.push({ op: n.op, pedido: n.pedido, cliente: n.cliente, codigo: n.codigo, descricao: n.descricao, qtdordem: paraEnvio('qtdordem', n.qtdordem),
+        prazo: n.prazo, liga: n.liga, qtdmoldes: paraEnvio('qtdmoldes', n.qtdmoldes), pesomoldes: paraEnvio('pesomoldes', n.pesomoldes) });
       mapa.push({ nova: n.uid });
     }
     Object.keys(edicoes).forEach(function (id) {
       const e = edicoes[id];
       const l = { id_item: id };
-      Object.keys(e).forEach(function (c) { l[c] = c === 'pesomoldes' ? String(e[c]).replace(',', '.') : e[c]; });
+      Object.keys(e).forEach(function (c) { l[c] = paraEnvio(c, e[c]); });
       linhas.push(l);
       mapa.push({ id_item: id });
     });
@@ -569,8 +600,8 @@ Sessao.iniciarPagina('pcp').then(function (ctx) {
     const corpo = '<div class="msg-erro"></div><div class="fg">' +
       campo('op', 'OP', '', ' inputmode="numeric" placeholder="vazio = engenharia"') + campo('pedido', 'Pedido') +
       campo('cliente', 'Cliente', '', '', true) + campo('codigo', 'Código', '', ' autocapitalize="characters"') + campo('liga', 'Liga') +
-      campo('descricao', 'Descrição', '', '', true) + campo('qtdordem', 'Qtd (peças)', 'number', ' min="0"') + campo('prazo', 'Prazo', 'date') +
-      campo('qtdmoldes', 'Moldes planejados', 'number', ' min="0"') + campo('pesomoldes', 'Peso planejado (kg)', '', ' inputmode="decimal"') +
+      campo('descricao', 'Descrição', '', '', true) + campo('qtdordem', 'Qtd (peças)', '', ' inputmode="decimal"') + campo('prazo', 'Prazo', 'date') +
+      campo('qtdmoldes', 'Moldes planejados', '', ' inputmode="decimal"') + campo('pesomoldes', 'Peso planejado (kg)', '', ' inputmode="decimal"') +
       (novo ? '' : '<label class="full">Processo<select name="processo">' + PROCESSOS.map(function (p) { return '<option' + (p === proc ? ' selected' : '') + '>' + p + '</option>'; }).join('') +
         (PROCESSOS.indexOf(proc) === -1 ? '<option selected value="' + Ui.esc(proc) + '">' + Ui.esc(proc) + '</option>' : '') + '</select></label>') +
       '</div>';
@@ -591,13 +622,13 @@ Sessao.iniciarPagina('pcp').then(function (ctx) {
           const falta = ['pedido', 'cliente', 'codigo', 'qtdordem', 'prazo'].find(function (c) { return !g(c); });
           if (falta) { Ui.msgErro(erro, 'Preencha ' + NOMES[falta] + '.'); return false; }
           linha = {};
-          CAMPOS.forEach(function (c) { if (c !== 'processo') linha[c] = c === 'pesomoldes' ? g(c).replace(',', '.') : g(c); });
+          CAMPOS.forEach(function (c) { if (c !== 'processo') linha[c] = paraEnvio(c, g(c)); });
           linha.op = linha.op.replace(/^0+(?=\d)/, '');
         } else {
           linha = { id_item: x.id_item };
           CAMPOS.forEach(function (c) {
             const val = c === 'op' || c === 'pedido' ? g(c).replace(/^0+(?=\d)/, '') : g(c);
-            if (val !== original(x, c)) linha[c] = c === 'pesomoldes' ? val.replace(',', '.') : val;
+            if ((NUMS.indexOf(c) !== -1 ? normalizarNum(val) : val) !== original(x, c)) linha[c] = paraEnvio(c, val);
           });
           if (Object.keys(linha).length === 1) return true;
         }
@@ -622,10 +653,10 @@ Sessao.iniciarPagina('pcp').then(function (ctx) {
         if (p.LIGA_PADRAO) q('liga').value = p.LIGA_PADRAO;
         mpp = Number(p.MOLDES_POR_PECA) || 0;
         ['codigo', 'descricao', 'liga'].forEach(function (n) { q(n).style.borderColor = '#22c55e'; });
-        if (mpp && q('qtdordem').value) { q('qtdmoldes').value = Number(q('qtdordem').value) * mpp; q('qtdmoldes').style.borderColor = '#22c55e'; }
+        if (mpp && !isNaN(numBR(q('qtdordem').value))) { q('qtdmoldes').value = fmtNumBR(numBR(q('qtdordem').value) * mpp); q('qtdmoldes').style.borderColor = '#22c55e'; }
       });
       q('qtdordem').addEventListener('input', function () {
-        if (mpp) { q('qtdmoldes').value = q('qtdordem').value ? Number(q('qtdordem').value) * mpp : ''; q('qtdmoldes').style.borderColor = '#22c55e'; }
+        if (mpp) { const n = numBR(q('qtdordem').value); q('qtdmoldes').value = isNaN(n) ? '' : fmtNumBR(n * mpp); q('qtdmoldes').style.borderColor = '#22c55e'; }
       });
     }
   }
