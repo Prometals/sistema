@@ -30,7 +30,7 @@ const Sessao = (function () {
   // Login: guarda token, usuário e páginas liberadas.
   async function entrar(login, pin) {
     const r = await Api.chamar('login', { login: login, pin: pin }, { semToken: true });
-    salvar({ token: r.token, usuario: r.usuario, paginas: r.paginas, conferidoEm: Date.now() });
+    salvar({ token: r.token, usuario: r.usuario, paginas: r.paginas, conferidoEm: Date.now(), entrouEm: Date.now() });
     try { localStorage.removeItem('pm_precarga'); } catch (e) { /* ignora */ }   // login novo: pré-carrega de novo
     marcarAtivo();   // login novo: o relógio da inatividade começa agora
     guardarTema(r.usuario);
@@ -80,8 +80,14 @@ const Sessao = (function () {
   function marcarAtivo() {
     try { localStorage.setItem(CHAVE_ATIVO, String(Date.now())); } catch (e) { /* ignora */ }
   }
+  // Última atividade = a mais recente entre o último uso (todas as abas) e a hora do login
+  // desta sessão. Assim uma marca velha no aparelho NUNCA derruba quem acabou de entrar.
   function ultimaAtividade() {
-    try { return Number(localStorage.getItem(CHAVE_ATIVO)) || Date.now(); } catch (e) { return Date.now(); }
+    let t = 0;
+    try { t = Number(localStorage.getItem(CHAVE_ATIVO)) || 0; } catch (e) { t = 0; }
+    const s = ler();
+    const v = Math.max(t, (s && s.entrouEm) || 0);
+    return v || Date.now();
   }
   function sairPorInatividade() {
     sessionStorage.setItem(CHAVE_AVISO, 'Você saiu por inatividade (' + (INATIVO_MS / 60000) + ' minutos sem uso). Entre novamente.');
@@ -115,8 +121,10 @@ const Sessao = (function () {
     ['mousemove', 'mousedown', 'keydown', 'touchstart', 'wheel', 'scroll'].forEach(function (ev) {
       window.addEventListener(ev, atividade, { passive: true, capture: true });
     });
-    // Página aberta de novo (ex.: app do celular reaberto) depois do prazo: sai na hora
-    if (token() && Date.now() >= prazoSaida()) { sairPorInatividade(); return; }
+    // Página aberta de novo (ex.: app do celular reaberto) depois do prazo: sai na hora.
+    // Só para sessões novas (com a hora do login); sessão antiga só renova a marca.
+    const sess = ler();
+    if (token() && sess && sess.entrouEm && Date.now() >= prazoSaida()) { sairPorInatividade(); return; }
     marcarAtivo();
 
     function verificar() {
