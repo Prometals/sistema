@@ -531,8 +531,12 @@ Sessao.iniciarPagina('pcp').then(function (ctx) {
       if (r.apontamentos) partes.push(r.apontamentos + ' processo(s) apontado(s)');
       Ui.toast(partes.join(' · ') || 'Nada mudou.', 'ok', 'Salvo');
       (r.avisos || []).forEach(function (a) { Ui.toast(a, 'aviso', 'Atenção'); });
+      // Gravou: a tela já mostra o que foi digitado e destrava NA HORA.
+      // A carteira do servidor é relida por trás e substitui esta cópia quando chegar.
+      mostrarSalvoNaTela();
       edicoes = {}; novas = []; editando = false;
-      await carregar();
+      desenhar();
+      carregar(true);
       carregarProdutos();
     } catch (e) {
       Ui.erro(e);
@@ -541,6 +545,31 @@ Sessao.iniciarPagina('pcp').then(function (ctx) {
       $('#bt-salvar .rot').textContent = 'Salvar';
       atualizarBarra();
     }
+  }
+
+  // Aplica na lista da tela as alterações que acabaram de ser gravadas
+  // (até a releitura do servidor chegar e substituir tudo).
+  function mostrarSalvoNaTela() {
+    const isoBR = function (v) { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v || ''); return m ? m[3] + '/' + m[2] + '/' + m[1] : v; };
+    const atualizar = function (x, c, v) {
+      if (c === 'prazo') x.prazo = isoBR(v);
+      else if (c === 'qtdmoldes') { const n = numBR(v); x.qtdmoldesPlanejados = isNaN(n) ? '' : n; }
+      else if (c === 'pesomoldes') { const n = numBR(v); x.pesomoldesPlanejado = isNaN(n) ? '' : n; }
+      else if (NUMS.indexOf(c) !== -1) { const n = numBR(v); x[c] = isNaN(n) ? v : n; }
+      else x[c] = v;
+    };
+    Object.keys(edicoes).forEach(function (id) {
+      const x = dados.find(function (d) { return d.id_item === id; });
+      if (!x) return;
+      Object.keys(edicoes[id]).forEach(function (c) { atualizar(x, c, edicoes[id][c]); });
+      x.ehEng = !x.op; x.st = Cronograma.status(x); x.cat = Cronograma.categoria(x);
+    });
+    novas.forEach(function (n) {
+      const x = { id_item: 'tmp-' + n.uid, processo: '', situacao: n.op ? 'EM PRODUÇÃO' : '', qtdmoldes: '', pesomoldes: '' };
+      CAMPOS.forEach(function (c) { if (c !== 'processo') atualizar(x, c, n[c] === undefined ? '' : n[c]); });
+      x.ehEng = !x.op; x.st = Cronograma.status(x); x.cat = Cronograma.categoria(x);
+      dados.push(x);
+    });
   }
 
   // ---------- Menu ⋯ (Cancelar OP) ----------
