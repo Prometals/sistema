@@ -437,8 +437,8 @@ Sessao.iniciarPagina('refugo').then(function (ctx) {
   function ehMolde() { return estado.form.tipo === 'MOLDE'; }
   function listaProcessos() { return estado.cfg.processos.map(function (p) { return p.processo; }); }
   function motivosDoTipo() {
-    const t = estado.form.tipo === 'MOLDE' ? 'REFUGO' : estado.form.tipo;   // molde usa os motivos do refugo
-    return estado.cfg.motivos.filter(function (m) { return m.tipo === t || m.tipo === 'AMBOS'; }).map(function (m) { return m.motivo; });
+    // Refugo, refugo de molde e retrabalho: uma lista só de motivos (a do refugo)
+    return estado.cfg.motivos.filter(function (m) { return m.tipo === 'REFUGO' || m.tipo === 'AMBOS'; }).map(function (m) { return m.motivo; });
   }
   function tagTipo(t) { return t === 'RETRABALHO' ? '<span class="tt ret">RETRAB.</span>' : t === 'MOLDE' ? '<span class="tt mol">MOLDE</span>' : '<span class="tt ref">REFUGO</span>'; }
   const NOME_TIPO_BT = { REFUGO: 'REFUGO', RETRABALHO: 'RETRABALHO', MOLDE: 'REFUGO DE MOLDE' };
