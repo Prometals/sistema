@@ -113,7 +113,7 @@ html.tema-claro .resumo-op { background: #f8fafc; }
     <select id="fFase" title="Situação da corrida"><option value="ATIVA">Ativas para fundir</option><option value="FUNDIDA">Fundidas</option><option value="">Todas</option></select>
     <select id="fLiga"><option value="">Todas as ligas</option></select>
     <div class="f-busca"><svg class="i"><use href="#i-busca"/></svg><input id="busca" placeholder="Buscar corrida, OP, pedido, cliente, código ou produto…" autocomplete="off"></div>
-    <label class="chk-lbl"><input type="checkbox" class="chk" id="fCanc">Mostrar canceladas</label>
+    <input type="checkbox" id="fCanc" hidden>
     <div class="mes"><button data-mes="-1" title="Mês anterior">‹</button><span class="r" id="resumo-mes">Carregando…</span><button data-mes="1" title="Próximo mês">›</button></div>
   </div>
   <div class="so-desk" id="lista"><div class="carregando">Carregando histórico…</div></div>
@@ -122,7 +122,7 @@ html.tema-claro .resumo-op { background: #f8fafc; }
   <div class="kpi-mini so-mob" id="kpi-mob"></div>
   <div class="busca-mob so-mob">
     <div class="f"><svg class="i"><use href="#i-busca"/></svg><input id="busca-mob" placeholder="Corrida, OP, cliente…" autocomplete="off"></div>
-    <button class="bt" id="bt-filtro-mob" title="Liga, canceladas"><svg class="i"><use href="#i-filtro"/></svg><span class="pt" id="n-filtro-mob" hidden></span></button>
+    <button class="bt" id="bt-filtro-mob" title="Situação, liga"><svg class="i"><use href="#i-filtro"/></svg><span class="pt" id="n-filtro-mob" hidden></span></button>
   </div>
   <div class="lista-mob so-mob" id="cartoes"></div>
 </main>
@@ -177,10 +177,13 @@ Sessao.iniciarPagina('historico').then(function (ctx) {
     const liga = $('#fLiga').value, b = busca(), canc = $('#fCanc').checked, fase = $('#fFase').value;
     const r = [];
     corridas.forEach(function (c) {
-      if (c.status === 'CANCELADA' && !canc) return;
-      if (fase && c.status !== 'CANCELADA' && (c.fase || 'ATIVA') !== fase) return;
+      // Canceladas e totalmente estornadas ficam só na planilha (não aparecem aqui)
+      if (c.status === 'CANCELADA') return;
+      if (!(Number(c.moldes_liquido) > 0)) return;
+      if (fase && (c.fase || 'ATIVA') !== fase) return;
       if (liga && c.liga !== liga) return;
-      const itens = b ? c.itens.filter(function (it) { return textoItem(c, it).indexOf(b) !== -1; }) : c.itens;
+      const ativos = c.itens.filter(function (it) { return it.moldes_liquido > 0; });   // OP estornada some da lista
+      const itens = b ? ativos.filter(function (it) { return textoItem(c, it).indexOf(b) !== -1; }) : ativos;
       if (b && !itens.length) return;
       r.push({ c: c, itens: itens });
     });
@@ -224,7 +227,7 @@ Sessao.iniciarPagina('historico').then(function (ctx) {
       '<span class="km" style="--c:#f07a1f"><b>' + rm.n + '</b>corridas</span>' +
       '<span class="km" style="--c:#60a5fa"><b>' + rm.moldes + '</b>moldes</span>' +
       '<span class="km" style="--c:#34d399"><b>' + Fmt.num(rm.peso / 1000, 1) + ' t</b>fundidas</span>';
-    const nf = ($('#fLiga').value ? 1 : 0) + ($('#fCanc').checked ? 1 : 0) + ($('#fFase').value !== 'ATIVA' ? 1 : 0);
+    const nf = ($('#fLiga').value ? 1 : 0) + ($('#fFase').value !== 'ATIVA' ? 1 : 0);
     $('#n-filtro-mob').hidden = !nf;
     $('#n-filtro-mob').textContent = nf;
 
@@ -240,6 +243,7 @@ Sessao.iniciarPagina('historico').then(function (ctx) {
         (c.motivo_cancelamento ? ' · motivo: ' + c.motivo_cancelamento : '') + ' · o registro continua no histórico'];
     }
     const r = [];
+    return r;   // estornos ficam só na planilha
     c.itens.forEach(function (it) {
       it.estornos.forEach(function (x) {
         r.push('Estorno em ' + dhCurta(x.data_hora) + ' por ' + x.usuario + ' · ' + pl(x.moldes, 'molde devolvido', 'moldes devolvidos') + ' à OP ' + it.op + (x.motivo ? ' · motivo: ' + x.motivo : ''));
@@ -254,11 +258,12 @@ Sessao.iniciarPagina('historico').then(function (ctx) {
     const p = String(c.data_fusao || '').split('/');
     const iso = p.length === 3 ? p[2] + '-' + p[1] + '-' + p[0] : '';
     const rem = c.remarcacoes ? '<span class="rem" title="Remarcada ' + c.remarcacoes + '×">' + c.remarcacoes + '×</span>' : '';
-    const cls = !iso ? ' falta' : (c.fase === 'FUNDIDA' ? ' fundida' : '');
+    // alerta "falta data" só em corrida ATIVA (migrada/fundida sem data não precisa)
+    const cls = c.fase === 'FUNDIDA' ? ' fundida' : (!iso ? ' falta' : '');
     if (!ctx.podeEditar) {
-      return '<span class="dfu-v' + cls + '" title="' + (iso ? 'Data de fusão: ' + e(c.data_fusao) : 'Sem data de fusão') + '">' + Ui.ic(iso ? 'i-cal' : 'i-alerta') + '</span>' + rem;
+      return '<span class="dfu-v' + cls + '" title="' + (iso ? 'Data de fusão: ' + e(c.data_fusao) : (c.fase === 'FUNDIDA' ? 'Fundida' : 'Sem data de fusão')) + '">' + Ui.ic(iso || c.fase === 'FUNDIDA' ? 'i-cal' : 'i-alerta') + '</span>' + rem;
     }
-    return '<span class="dfu' + cls + '"><input type="date" data-icone data-dfusao="' + e(c.id_corrida) + '" value="' + iso + '" title="' + (iso ? 'Data de fusão' : 'Definir data de fusão') + '">' + rem + '</span>';
+    return '<span class="dfu' + cls + '"><input type="date" data-icone data-dfusao="' + e(c.id_corrida) + '" value="' + iso + '" title="' + (iso ? 'Data de fusão' : (c.fase === 'FUNDIDA' ? 'Fundida · remarcar' : 'Definir data de fusão')) + '">' + rem + '</span>';
   }
 
   function botoesCorrida(c, curto) {
@@ -278,7 +283,7 @@ Sessao.iniciarPagina('historico').then(function (ctx) {
     const linhas = g.itens.map(function (it) {
       return '<tr class="' + (it.moldes_liquido <= 0 ? 'estornado' : '') + '"><td><span class="seq">' + e(it.ordem) + '</span></td><td><b>' + e(it.op) + '</b></td>' +
         '<td>' + e(it.cliente || '-') + '</td><td class="mut">' + e(it.codigo || '-') + '</td><td class="desc" title="' + e(it.descricao) + '">' + e(it.descricao || '-') + '</td>' +
-        '<td class="num n-mol">' + e(it.moldes_liquido) + (it.moldes_estornados > 0 ? '<span class="est-info">' + it.moldes_estornados + ' estornado' + (it.moldes_estornados > 1 ? 's' : '') + ' de ' + it.moldes + '</span>' : '') + '</td>' +
+        '<td class="num n-mol">' + e(it.moldes_liquido) + '</td>' +
         '<td class="num n-kg">' + kg(it.peso_liquido) + ' kg</td><td>' + acaoItem(c, it) + '</td></tr>';
     }).join('');
     const rod = rodape(c);
@@ -346,13 +351,11 @@ Sessao.iniciarPagina('historico').then(function (ctx) {
     Ui.janela({
       titulo: 'Filtrar corridas',
       corpo: '<label class="est-campo">Situação<select name="fase">' + $('#fFase').innerHTML + '</select></label>' +
-        '<label class="est-campo">Liga<select name="liga">' + $('#fLiga').innerHTML + '</select></label>' +
-        '<label class="chk-lbl"><input type="checkbox" class="chk" name="canc"' + ($('#fCanc').checked ? ' checked' : '') + '>Mostrar canceladas</label>',
+        '<label class="est-campo">Liga<select name="liga">' + $('#fLiga').innerHTML + '</select></label>',
       botoes: [{ texto: 'Limpar', valor: 'limpar' }, { texto: 'Aplicar', classe: 'pri', valor: 'ok' }],
       antesDeFechar: function (v, cx) {
         $('#fFase').value = v === 'limpar' ? 'ATIVA' : cx.querySelector('[name="fase"]').value;
         $('#fLiga').value = v === 'limpar' ? '' : cx.querySelector('[name="liga"]').value;
-        $('#fCanc').checked = v === 'limpar' ? false : cx.querySelector('[name="canc"]').checked;
         desenhar();
         return true;
       }
