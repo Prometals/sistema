@@ -83,6 +83,16 @@ html.tema-claro .resumo-op { background: #f8fafc; }
 .cm-corr .acs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 10px 12px; }
 .cm-corr .acs .btn2 { justify-content: center; height: 38px; }
 @media (max-width: 760px) { .lista-mob.so-mob { padding-bottom: 12px; } }
+/* data de fusão: só o ícone (data na dica); sem data = ícone de alerta */
+.dfu { display: inline-flex; align-items: center; gap: 4px; }
+.dfu .dt-ic { height: 30px; }
+.dfu .dt-ic .dt-x { display: none !important; }
+.dfu.falta .dt-ic { border-color: #f59e0b; }
+.dfu.falta .dt-ic .dt-bt, .dfu-v.falta { color: #f59e0b; }
+.dfu.fundida .dt-ic .dt-bt { color: #34d399; }
+.dfu-v { display: inline-flex; align-items: center; color: var(--texto-suave); }
+.dfu-v svg { width: 16px; height: 16px; }
+.dfu .rem { font-size: 11px; font-weight: 800; color: #f59e0b; }
 </style>
 </head>
 <body>
@@ -100,6 +110,7 @@ html.tema-claro .resumo-op { background: #f8fafc; }
   </div>
 
   <div class="filtros so-desk">
+    <select id="fFase" title="Situação da corrida"><option value="ATIVA">Ativas para fundir</option><option value="FUNDIDA">Fundidas</option><option value="">Todas</option></select>
     <select id="fLiga"><option value="">Todas as ligas</option></select>
     <div class="f-busca"><svg class="i"><use href="#i-busca"/></svg><input id="busca" placeholder="Buscar corrida, OP, pedido, cliente, código ou produto…" autocomplete="off"></div>
     <label class="chk-lbl"><input type="checkbox" class="chk" id="fCanc">Mostrar canceladas</label>
@@ -163,15 +174,21 @@ Sessao.iniciarPagina('historico').then(function (ctx) {
 
   // Devolve [{ c, itens }] — itens = linhas que batem com a busca (igual ao antigo: a busca filtra as OPs)
   function filtrar() {
-    const liga = $('#fLiga').value, b = busca(), canc = $('#fCanc').checked;
+    const liga = $('#fLiga').value, b = busca(), canc = $('#fCanc').checked, fase = $('#fFase').value;
     const r = [];
     corridas.forEach(function (c) {
       if (c.status === 'CANCELADA' && !canc) return;
+      if (fase && c.status !== 'CANCELADA' && (c.fase || 'ATIVA') !== fase) return;
       if (liga && c.liga !== liga) return;
       const itens = b ? c.itens.filter(function (it) { return textoItem(c, it).indexOf(b) !== -1; }) : c.itens;
       if (b && !itens.length) return;
       r.push({ c: c, itens: itens });
     });
+    // Ativas: sem data primeiro (alerta), depois a data de fusão mais próxima
+    if (fase === 'ATIVA') {
+      const chave = function (g) { const p = String(g.c.data_fusao || '').split('/'); return p.length === 3 ? p[2] + p[1] + p[0] : ''; };
+      r.sort(function (a, b) { return chave(a).localeCompare(chave(b)); });
+    }
     return r;
   }
 
@@ -207,7 +224,7 @@ Sessao.iniciarPagina('historico').then(function (ctx) {
       '<span class="km" style="--c:#f07a1f"><b>' + rm.n + '</b>corridas</span>' +
       '<span class="km" style="--c:#60a5fa"><b>' + rm.moldes + '</b>moldes</span>' +
       '<span class="km" style="--c:#34d399"><b>' + Fmt.num(rm.peso / 1000, 1) + ' t</b>fundidas</span>';
-    const nf = ($('#fLiga').value ? 1 : 0) + ($('#fCanc').checked ? 1 : 0);
+    const nf = ($('#fLiga').value ? 1 : 0) + ($('#fCanc').checked ? 1 : 0) + ($('#fFase').value !== 'ATIVA' ? 1 : 0);
     $('#n-filtro-mob').hidden = !nf;
     $('#n-filtro-mob').textContent = nf;
 
@@ -229,6 +246,19 @@ Sessao.iniciarPagina('historico').then(function (ctx) {
       });
     });
     return r;
+  }
+
+  // Data de fusão: só o ícone de calendário (a data aparece na dica). Sem data = alerta.
+  function dataFusao(c) {
+    if (c.status === 'CANCELADA') return '';
+    const p = String(c.data_fusao || '').split('/');
+    const iso = p.length === 3 ? p[2] + '-' + p[1] + '-' + p[0] : '';
+    const rem = c.remarcacoes ? '<span class="rem" title="Remarcada ' + c.remarcacoes + '×">' + c.remarcacoes + '×</span>' : '';
+    const cls = !iso ? ' falta' : (c.fase === 'FUNDIDA' ? ' fundida' : '');
+    if (!ctx.podeEditar) {
+      return '<span class="dfu-v' + cls + '" title="' + (iso ? 'Data de fusão: ' + e(c.data_fusao) : 'Sem data de fusão') + '">' + Ui.ic(iso ? 'i-cal' : 'i-alerta') + '</span>' + rem;
+    }
+    return '<span class="dfu' + cls + '"><input type="date" data-icone data-dfusao="' + e(c.id_corrida) + '" value="' + iso + '" title="' + (iso ? 'Data de fusão' : 'Definir data de fusão') + '">' + rem + '</span>';
   }
 
   function botoesCorrida(c, curto) {
@@ -255,6 +285,7 @@ Sessao.iniciarPagina('historico').then(function (ctx) {
     const ocultas = c.itens.length - g.itens.length;
     return '<div class="corr' + (canc ? ' cancelada' : '') + '" data-corrida="' + e(c.id_corrida) + '">' +
       '<div class="corr-cab"><span class="id">' + e(c.id_corrida) + '</span><span class="liga">' + e(c.liga || '—') + '</span>' +
+      dataFusao(c) +
       '<div class="meta"><span title="Fechada em">' + Ui.ic('i-relogio') + e(dh(c.data_hora)) + '</span><span title="Fechada por">' + Ui.ic('i-user') + e(c.usuario || '—') + '</span></div>' +
       '<div class="tot"><span class="n-mol">' + c.moldes_liquido + ' moldes</span><span class="n-kg">' + kg(c.peso_liquido) + ' kg</span>' + botoesCorrida(c) + '</div></div>' +
       '<div class="tab-wrap"><table class="tab"><thead><tr><th>#</th><th>OP</th><th>Cliente</th><th>Código</th><th>Descrição</th><th class="num">Moldes</th><th class="num">Peso</th><th>Ação</th></tr></thead><tbody>' + linhas + '</tbody></table></div>' +
@@ -272,7 +303,7 @@ Sessao.iniciarPagina('historico').then(function (ctx) {
     }).join('');
     const rod = rodape(c);
     return '<div class="cm-corr' + (canc ? ' cancelada' : '') + '" data-corrida="' + e(c.id_corrida) + '">' +
-      '<div class="c1"><span class="id">' + e(c.id_corrida) + '</span><span class="liga">' + e(c.liga || '—') + '</span><span class="dt">' + e(dh(c.data_hora)) + '</span></div>' +
+      '<div class="c1"><span class="id">' + e(c.id_corrida) + '</span><span class="liga">' + e(c.liga || '—') + '</span>' + dataFusao(c) + '<span class="dt">' + e(dh(c.data_hora)) + '</span></div>' +
       '<div class="c2"><span class="n-mol">' + c.moldes_liquido + ' moldes</span> · <span class="n-kg">' + kg(c.peso_liquido) + ' kg</span> · ' + pl(c.itens.length, 'OP', 'OPs') + ' · <span class="quem">por ' + e(c.usuario || '—') + '</span></div>' +
       '<div class="ops">' + ops + '</div>' +
       (rod.length ? '<div class="rod">' + rod.map(e).join('<br>') + '</div>' : '') +
@@ -281,6 +312,20 @@ Sessao.iniciarPagina('historico').then(function (ctx) {
 
   // ---------- Eventos ----------
   $('#fLiga').addEventListener('change', desenhar);
+  $('#fFase').addEventListener('change', desenhar);
+  // Definiu / remarcou a data de fusão: grava na hora
+  document.addEventListener('change', async function (ev) {
+    const inp = ev.target.closest && ev.target.closest('[data-dfusao]');
+    if (!inp || !inp.value) return;
+    const c = acharCorrida(inp.dataset.dfusao);
+    if (!c) return;
+    try {
+      const r = await Api.chamar('definirDataFusao', { id_corrida: c.id_corrida, data: inp.value });
+      c.data_fusao = r.data_fusao; c.remarcacoes = r.remarcacoes; c.fase = r.fase;
+      if (r.alterado) Ui.toast(c.id_corrida + ' · ' + r.data_fusao + (r.fase === 'FUNDIDA' ? ' · fundida' : ''), 'ok', 'Data de fusão');
+      desenhar();
+    } catch (err) { Ui.erro(err); desenhar(); }
+  });
   $('#fCanc').addEventListener('change', desenhar);
   $('#busca').addEventListener('input', desenhar);
   $('#busca-mob').addEventListener('input', desenhar);
@@ -300,10 +345,12 @@ Sessao.iniciarPagina('historico').then(function (ctx) {
   $('#bt-filtro-mob').addEventListener('click', function () {
     Ui.janela({
       titulo: 'Filtrar corridas',
-      corpo: '<label class="est-campo">Liga<select name="liga">' + $('#fLiga').innerHTML + '</select></label>' +
+      corpo: '<label class="est-campo">Situação<select name="fase">' + $('#fFase').innerHTML + '</select></label>' +
+        '<label class="est-campo">Liga<select name="liga">' + $('#fLiga').innerHTML + '</select></label>' +
         '<label class="chk-lbl"><input type="checkbox" class="chk" name="canc"' + ($('#fCanc').checked ? ' checked' : '') + '>Mostrar canceladas</label>',
       botoes: [{ texto: 'Limpar', valor: 'limpar' }, { texto: 'Aplicar', classe: 'pri', valor: 'ok' }],
       antesDeFechar: function (v, cx) {
+        $('#fFase').value = v === 'limpar' ? 'ATIVA' : cx.querySelector('[name="fase"]').value;
         $('#fLiga').value = v === 'limpar' ? '' : cx.querySelector('[name="liga"]').value;
         $('#fCanc').checked = v === 'limpar' ? false : cx.querySelector('[name="canc"]').checked;
         desenhar();
@@ -312,6 +359,8 @@ Sessao.iniciarPagina('historico').then(function (ctx) {
     });
     const sel = document.querySelector('.modal-fundo [name="liga"]');
     if (sel) sel.value = $('#fLiga').value;
+    const sf = document.querySelector('.modal-fundo [name="fase"]');
+    if (sf) sf.value = $('#fFase').value;
   });
 
   const acharCorrida = function (id) { return corridas.find(function (c) { return c.id_corrida === id; }); };
