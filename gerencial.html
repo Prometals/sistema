@@ -514,6 +514,7 @@ Sessao.iniciarPagina('gerencial').then(function (ctx) {
       <td>${e(x.liga || '-')}</td>
       <td>${e(procAtual(x) || '-')}</td>
       <td>${e(x.prazo || '-')}</td>
+      <td>${e(paraBR(prevAtualISO(x)) || '-')}</td>
     </tr>`;
     }).join('');
     const w = abrirJanela(); if (!w) return;
@@ -530,7 +531,7 @@ Sessao.iniciarPagina('gerencial').then(function (ctx) {
   <body><h2>PRIORIDADES PRODUÇÃO</h2>
   <div class="sub">Emitido em: ${new Date().toLocaleString('pt-BR')} &nbsp;|&nbsp; Total: ${lista.length} OPs</div>
   <table><thead><tr><th>#</th><th>OP</th><th>PEDIDO</th><th>CLIENTE</th><th>CÓDIGO</th><th>DESCRIÇÃO</th>
-  <th style="text-align:center">QTD</th><th>LIGA</th><th>PROCESSO</th><th>PRAZO</th></tr></thead>
+  <th style="text-align:center">QTD</th><th>LIGA</th><th>PROCESSO</th><th>PRAZO</th><th>PREVISÃO DE SAÍDA</th></tr></thead>
   <tbody>${htmlRows}</tbody></table>
   <script>window.onload=()=>window.print();<\/script></body></html>`);
     w.document.close();
