@@ -53,6 +53,8 @@ html.tema-claro .prz.atr { color: #b91c1c; }
 .ib:hover { color: var(--texto); background: var(--hover); }
 .ib.et { border-color: #c2410c; color: var(--destaque); }
 .ib svg { width: 16px; height: 16px; }
+.chk { width: 16px; height: 16px; accent-color: var(--destaque); cursor: pointer; vertical-align: middle; }
+table.op tr.sel td { background: rgba(59,130,246,.08); }
 
 /* modo edição */
 table.op input, table.op select { height: 32px; padding: 0 8px; font-size: 12.5px; border-radius: 7px; }
@@ -116,20 +118,21 @@ table.op .errc { border-color: #ef4444; }
   <div class="barra so-desk">
     <div class="f"><svg class="i"><use href="#i-busca"/></svg><input id="busca" placeholder="Buscar por OP, cliente, código, pedido ou descrição…" autocomplete="off"></div>
     <span id="modo" hidden><span></span></span>
+    <button class="btn2" id="bt-imp"><svg class="i"><use href="#i-imp"/></svg>Imprimir <span class="n">0</span></button>
     <button class="btn2" id="bt-editar" data-editar><svg class="i"><use href="#i-lapis"/></svg><span>Editar</span></button>
     <button class="btn2" id="bt-nova" data-editar><svg class="i"><use href="#i-mais"/></svg>Nova OP</button>
     <button class="btn2" id="bt-cancelar" data-editar disabled title="Descartar alterações"><svg class="i"><use href="#i-x"/></svg>Descartar</button>
     <button class="btn2 salvar" id="bt-salvar" data-editar disabled><svg class="i"><use href="#i-check"/></svg><span class="rot">Salvar</span> <span class="n">0</span></button>
   </div>
-  <div class="busca-mob so-mob"><div class="f"><svg class="i"><use href="#i-busca"/></svg><input id="busca-mob" placeholder="OP, cliente, código…" autocomplete="off"></div></div>
+  <div class="busca-mob so-mob"><div class="f"><svg class="i"><use href="#i-busca"/></svg><input id="busca-mob" placeholder="OP, cliente, código…" autocomplete="off"></div><button class="bt" id="bt-imp-mob" title="Imprimir"><svg class="i"><use href="#i-imp"/></svg></button></div>
 
   <div class="tb so-desk" data-encher>
     <table class="op">
       <thead><tr>
-        <th>OP</th><th>PEDIDO</th><th>CLIENTE</th><th>CÓDIGO</th><th>DESCRIÇÃO</th><th class="num">QTD</th><th>LIGA</th>
+        <th><input type="checkbox" class="chk" id="chk-todos" title="Selecionar as OPs visíveis"></th><th>OP</th><th>PEDIDO</th><th>CLIENTE</th><th>CÓDIGO</th><th>DESCRIÇÃO</th><th class="num">QTD</th><th>LIGA</th>
         <th>PRAZO</th><th class="num">MOLDES</th><th class="num">PESO (KG)</th><th>PROCESSO</th><th></th>
       </tr></thead>
-      <tbody id="linhas"><tr><td colspan="12"><div class="carregando">Carregando a carteira…</div></td></tr></tbody>
+      <tbody id="linhas"><tr><td colspan="13"><div class="carregando">Carregando a carteira…</div></td></tr></tbody>
     </table>
     <div class="leg" id="legenda"></div>
   </div>
@@ -165,6 +168,7 @@ Sessao.iniciarPagina('pcp').then(function (ctx) {
   let novas = [];            // linhas novas ainda não salvas
   let contNova = 0;
   let salvando = false;
+  const selecionadas = new Set();   // id_item marcados para imprimir
 
   if (!ctx.podeEditar) document.querySelectorAll('[data-editar]').forEach(function (b) { b.hidden = true; });
   $('#barra-mob').hidden = !ctx.podeEditar;
@@ -191,6 +195,9 @@ Sessao.iniciarPagina('pcp').then(function (ctx) {
         x.cat = Cronograma.categoria(x);
         return x;
       });
+      // tira da seleção o que saiu da carteira
+      const ids = new Set(dados.map(function (x) { return x.id_item; }));
+      selecionadas.forEach(function (id) { if (!ids.has(id)) selecionadas.delete(id); });
       desenhar();
     } catch (e) {
       if (!silencioso) Ui.erro(e);
@@ -268,14 +275,14 @@ Sessao.iniciarPagina('pcp').then(function (ctx) {
     const lista = visiveis();
     let html = novas.map(htmlNova).join('');
     html += lista.map(function (x) { return editando ? htmlEdicao(x) : htmlLeitura(x); }).join('');
-    $('#linhas').innerHTML = html || '<tr><td colspan="12"><div class="vazio">Nenhuma OP ' + (filtro !== 'TODAS' ? 'neste filtro' : 'encontrada') + '.</div></td></tr>';
+    $('#linhas').innerHTML = html || '<tr><td colspan="13"><div class="vazio">Nenhuma OP ' + (filtro !== 'TODAS' ? 'neste filtro' : 'encontrada') + '.</div></td></tr>';
     atualizarBarra();
   }
 
   function htmlLeitura(x) {
     const acoes = (x.op ? '<button class="ib et" title="Gerar etiquetas" data-etiqueta="' + x.id_item + '">' + Ui.ic('i-tag') + '</button>' : '') +
       (ctx.podeEditar ? '<button class="ib" title="Mais ações" data-menu="' + x.id_item + '">' + Ui.ic('i-pontos') + '</button>' : '');
-    return '<tr class="' + classeLinha(x) + '">' +
+    return '<tr class="' + classeLinha(x) + (selecionadas.has(x.id_item) ? ' sel' : '') + '">' + tdSel(x) +
       '<td><b>' + Ui.esc(x.op ? semZeros(x.op) : '—') + '</b></td><td>' + Ui.esc(semZeros(x.pedido)) + '</td><td>' + Ui.esc(x.cliente) + '</td>' +
       '<td class="cod">' + Ui.esc(x.codigo) + selo(x.codigo) + '</td><td class="desc" title="' + Ui.esc(x.descricao) + '">' + Ui.esc(x.descricao) + '</td>' +
       '<td class="num">' + Ui.esc(x.qtdordem) + '</td><td>' + Ui.esc(x.liga) + '</td>' +
@@ -330,7 +337,7 @@ Sessao.iniciarPagina('pcp').then(function (ctx) {
     const proc = valor(x, 'processo');
     const opcoes = PROCESSOS.map(function (p) { return '<option' + (p === proc ? ' selected' : '') + '>' + p + '</option>'; }).join('') +
       (PROCESSOS.indexOf(proc) === -1 ? '<option selected value="' + Ui.esc(proc) + '">' + Ui.esc(proc) + '</option>' : '');
-    return '<tr class="' + (edicoes[x.id_item] ? 'alt' : classeLinha(x)) + '" data-linha="' + x.id_item + '">' +
+    return '<tr class="' + (edicoes[x.id_item] ? 'alt' : classeLinha(x)) + '" data-linha="' + x.id_item + '">' + tdSel(x) +
       inp('op', 'w-op', '', ' placeholder="nº OP" inputmode="numeric"') + inp('pedido', 'w-ped') + inp('cliente', 'w-cli') + inp('codigo', 'w-cod') +
       inp('descricao', 'w-desc') + inp('qtdordem', 'w-q', '', ' inputmode="decimal"') + inp('liga', 'w-liga') + inp('prazo', 'w-prz', 'date') +
       inp('qtdmoldes', 'w-m', '', ' inputmode="decimal" title="Moldes PLANEJADOS"') + inp('pesomoldes', 'w-p', '', ' inputmode="decimal" title="Peso PLANEJADO (kg)"') +
@@ -344,7 +351,7 @@ Sessao.iniciarPagina('pcp').then(function (ctx) {
         (tipo ? ' type="' + tipo + '"' : '') + (extra || '') + ' value="' + Ui.esc(n[c]) + '">';
     };
     const autoDesc = n._auto.descricao && n._auto.descricao === n.descricao;
-    return '<tr class="nova" data-nova-linha="' + n.uid + '">' +
+    return '<tr class="nova" data-nova-linha="' + n.uid + '"><td></td>' +
       '<td>' + inp('op', 'w-op', '', ' placeholder="nº OP" inputmode="numeric"') + '</td><td>' + inp('pedido', 'w-ped') + '</td><td>' + inp('cliente', 'w-cli') + '</td>' +
       '<td>' + inp('codigo', 'w-cod', '', ' placeholder="código"') + '</td>' +
       '<td>' + inp('descricao', 'w-desc') + (autoDesc ? '<span class="dica-auto">✓ preenchido pelo cadastro</span>' : '') + '</td>' +
@@ -362,7 +369,7 @@ Sessao.iniciarPagina('pcp').then(function (ctx) {
         (ctx.podeEditar ? '<button class="ib" data-editar-mob="' + x.id_item + '" title="Editar">' + Ui.ic('i-lapis') + '</button>' : '');
       const cls = classeLinha(x);
       return '<div class="cm"' + (cls ? ' style="border-left:3px solid ' + corProcesso(x) + '"' : '') + '>' +
-        '<div class="cm-top"><span class="op">' + Ui.esc(x.op ? semZeros(x.op) : '—') + '</span><span class="cli">' + Ui.esc(x.cliente) + ' · ped. ' + Ui.esc(semZeros(x.pedido)) + '</span>' +
+        '<div class="cm-top">' + chkSel(x) + '<span class="op">' + Ui.esc(x.op ? semZeros(x.op) : '—') + '</span><span class="cli">' + Ui.esc(x.cliente) + ' · ped. ' + Ui.esc(semZeros(x.pedido)) + '</span>' +
         '<span class="prazo' + (x.cat === 'VENCIDO' ? ' atraso' : '') + '">' + Ui.esc(prazoCurto(x.prazo)) + '</span></div>' +
         '<div class="cm-desc">' + Ui.esc(x.descricao) + '<small>' + Ui.esc(x.codigo) + ' · ' + Ui.esc(x.liga) + ' · ' + Ui.esc(x.qtdordem) + ' pç · moldes ' + fmtN(x.qtdmoldes) + ' de ' + fmtN(x.qtdmoldesPlanejados) + '</small></div>' +
         '<div class="cm-rod"><span class="proc" style="--c:' + corProcesso(x) + '">' + Ui.esc(x.processo) + '</span><div class="acs">' + acoes + '</div></div></div>';
@@ -380,8 +387,72 @@ Sessao.iniciarPagina('pcp').then(function (ctx) {
     $('#bt-salvar .n').textContent = n;
     $('#modo').hidden = !(editando || novas.length);
     $('#modo span').textContent = '';
+    atualizarImpressao();
   }
   function contarAlteracoes() { return novas.length + Object.keys(edicoes).length; }
+
+  // ---------- Seleção para impressão ----------
+  function chkSel(x) { return '<input type="checkbox" class="chk" data-sel="' + Ui.esc(x.id_item) + '"' + (selecionadas.has(x.id_item) ? ' checked' : '') + ' title="Selecionar para imprimir">'; }
+  function tdSel(x) { return '<td>' + chkSel(x) + '</td>'; }
+  function atualizarImpressao() {
+    const vis = visiveis();
+    $('#chk-todos').checked = vis.length > 0 && vis.every(function (x) { return selecionadas.has(x.id_item); });
+    $('#bt-imp .n').textContent = selecionadas.size;
+  }
+  document.addEventListener('change', function (ev) {
+    const el = ev.target;
+    if (el.id === 'chk-todos') {
+      visiveis().forEach(function (x) { if (el.checked) selecionadas.add(x.id_item); else selecionadas.delete(x.id_item); });
+      desenharLinhas(); desenharCartoes(); return;
+    }
+    if (!el.dataset || !el.dataset.sel) return;
+    if (el.checked) selecionadas.add(el.dataset.sel); else selecionadas.delete(el.dataset.sel);
+    const tr = el.closest('tr'); if (tr) tr.classList.toggle('sel', el.checked);
+    document.querySelectorAll('[data-sel="' + el.dataset.sel + '"]').forEach(function (c) { c.checked = el.checked; });
+    atualizarImpressao();
+  });
+
+  // ---------- Impressão (selecionadas › filtro/busca › tudo), em ordem de OP ----------
+  function listaImpressao() {
+    const lista = selecionadas.size ? dados.filter(function (x) { return selecionadas.has(x.id_item); }) : visiveis();
+    return lista.slice().sort(function (a, b) {
+      if (!a.op !== !b.op) return a.op ? -1 : 1;            // sem OP (engenharia) por último
+      const na = Number(semZeros(a.op)), nb = Number(semZeros(b.op));
+      if (!isNaN(na) && !isNaN(nb) && na !== nb) return na - nb;
+      return String(semZeros(a.op)).localeCompare(String(semZeros(b.op))) || String(a.pedido).localeCompare(String(b.pedido));
+    });
+  }
+  function imprimirCarteira() {
+    const lista = listaImpressao();
+    if (!lista.length) { Ui.toast('Nenhuma OP para imprimir.', 'aviso'); return; }
+    const e = Ui.esc;
+    const linhas = lista.map(function (x, i) {
+      return '<tr><td style="text-align:center">' + (i + 1) + '</td><td>' + e(x.op ? semZeros(x.op) : '-') + '</td><td>' + e(semZeros(x.pedido) || '-') + '</td>' +
+        '<td>' + e(x.cliente || '-') + '</td><td>' + e(x.codigo || '-') + '</td><td>' + e(x.descricao || '-') + '</td>' +
+        '<td style="text-align:center">' + e(x.qtdordem === '' || x.qtdordem === null || x.qtdordem === undefined ? '-' : x.qtdordem) + '</td>' +
+        '<td>' + e(x.liga || '-') + '</td><td>' + e(x.prazo || '-') + '</td></tr>';
+    }).join('');
+    const w = window.open('', '_blank');
+    if (!w) { Ui.toast('O navegador bloqueou a janela de impressão. Libere pop-ups para este site.', 'erro'); return; }
+    w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>CARTEIRA PCP</title>
+  <style>
+    body{font-family:Arial;padding:20px;color:#000;background:#fff}
+    h2{font-size:16px;margin:0 0 2px}
+    .sub{font-size:10px;margin-bottom:12px;font-weight:normal}
+    table{width:100%;border-collapse:collapse}
+    th,td{border:1px solid #000;padding:4px 5px;font-size:10px;text-align:left;font-weight:normal}
+    th{font-weight:bold}
+  </style></head>
+  <body><h2>CARTEIRA PCP</h2>
+  <div class="sub">Emitido em: ${new Date().toLocaleString('pt-BR')} &nbsp;|&nbsp; Total: ${lista.length} OP${lista.length === 1 ? '' : 's'}</div>
+  <table><thead><tr><th style="text-align:center">#</th><th>OP</th><th>PEDIDO</th><th>CLIENTE</th><th>CÓDIGO</th><th>DESCRIÇÃO</th>
+  <th style="text-align:center">QTD</th><th>LIGA</th><th>PRAZO</th></tr></thead>
+  <tbody>${linhas}</tbody></table>
+  <script>window.onload=function(){window.print();};<\/script></body></html>`);
+    w.document.close();
+  }
+  $('#bt-imp').addEventListener('click', imprimirCarteira);
+  $('#bt-imp-mob').addEventListener('click', imprimirCarteira);
 
   // ---------- Digitação (escreve direto no estado; a tabela pode redesenhar sem perder nada) ----------
   // Saiu do campo de número: mostra no padrão ("10,000" colado do NW vira "10")
