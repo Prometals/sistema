@@ -1017,7 +1017,7 @@ Sessao.iniciarPagina('refugo').then(function (ctx) {
       (comRet ? '<div class="dado"><span>RETRABALHO</span><b>' + somaQtd(ret) + ' pç · ' + kg(somaPeso(ret)) + ' kg</b></div>' : '') +
       (comMol ? '<div class="dado"><span>REFUGO DE MOLDE</span><b>' + somaQtd(mol) + ' un · ' + kg(somaPeso(mol)) + ' kg</b></div>' : '') +
       '<div class="dado"><span>OPs</span><b>' + new Set(lista.map(function (x) { return String(x.op); })).size + '</b></div>';
-    $('confTotais').style.gridTemplateColumns = window.innerWidth <= 760 ? '' : 'repeat(' + (2 + (comRet ? 1 : 0) + (comMol ? 1 : 0)) + ', minmax(0, 1fr))';
+    $('confTotais').style.gridTemplateColumns = window.innerWidth <= 760 ? '' : 'repeat(' + (3 + (comRet ? 1 : 0) + (comMol ? 1 : 0)) + ', minmax(0, 1fr))';
     setMsg('confFonte',
       fonte === 'carregando' ? 'buscando o dia completo no servidor…'
         : fonte === 'falhou' ? '⚠ servidor indisponível: mostrando só o que foi apontado neste terminal'
