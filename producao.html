@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Registro de Produção · Prometals</title>
+<link rel="stylesheet" href="css/tema.css">
+<link rel="stylesheet" href="css/sistema.css">
+<style>
+/* ---------- específico desta página ----------
+   Terminal do operador (touch): sem menu lateral, sem topo do sistema.
+   A moldura do Shell é montada (permissões, tema), mas fica escondida;
+   a página tem o próprio cabeçalho (mockup aprovado). */
+.app { display: block; height: auto; }
+.app > .lateral, .app > .topo, .app > .status, .app > .veu { display: none !important; }
+body.kiosque main.conteudo { display: grid; grid-template-rows: 56px auto 1fr 58px; height: 100vh; height: 100dvh; overflow: hidden; padding: 0; }
+body.kiosque.sem-step main.conteudo { grid-template-rows: 56px 1fr; }
+body.sem-step .stepper, body.sem-step .rod { display: none !important; }
+
+/* cabeçalho */
+.kcab { display: flex; align-items: center; gap: 16px; padding: 0 20px; background: var(--painel); border-bottom: 1px solid var(--linha); min-width: 0; }
+.kcab .m { white-space: nowrap; }
+.kcab .m b { letter-spacing: 1.5px; } .kcab .m span { color: var(--destaque); font-weight: 800; margin-left: 10px; font-size: 13px; letter-spacing: 1px; }
+.kcab .u { margin-left: auto; display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--texto-suave); min-width: 0; }
+.kcab .u b { color: var(--texto); }
+.kcab .nome-op { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.chip { font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 999px; background: rgba(59,130,246,.18); color: #93c5fd; letter-spacing: .5px; white-space: nowrap; }
+html.tema-claro .chip { color: #1d4ed8; }
+.kbt { height: 36px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--borda); background: transparent; display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 12px; cursor: pointer; text-decoration: none; color: var(--texto); white-space: nowrap; }
+.kbt svg { width: 15px; height: 15px; }
+.kbt.ic { width: 36px; padding: 0; justify-content: center; }
+
+/* stepper */
+.stepper { display: flex; padding: 12px 20px; background: var(--bg); }
+.st { flex: 1; display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 700; color: var(--texto-suave); min-width: 0; }
+.st span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.st i { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-style: normal; background: var(--painel-2); font-size: 13px; flex: none; }
+.st::after { content: ""; flex: 1; height: 2px; background: var(--linha); margin: 0 12px; min-width: 12px; }
+.st:last-child::after { display: none; }
+.st.feito i { background: #16a34a; color: #fff; } .st.feito { color: var(--texto); }
+.st.atual i { background: var(--destaque); color: #fff; } .st.atual { color: var(--destaque); }
+
+/* área das etapas */
+.corpo { padding: 6px 20px 14px; min-height: 0; display: flex; }
+.etapa { display: none; flex: 1; min-width: 0; min-height: 0; gap: 16px; }
+.etapa.ativa { display: grid; }
+#etapa2 { grid-template-columns: minmax(300px, 400px) 1fr; }
+#etapa3 { grid-template-columns: 1.05fr 1fr; }
+#etapa4 { grid-template-columns: 1fr 340px; }
+#etapa5.ativa { display: grid; place-items: center; }
+#etapa6 { grid-template-columns: 1fr; }
+.cx { background: var(--painel); border: 1px solid var(--linha); border-radius: 14px; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; min-height: 0; min-width: 0; }
+.cx h2 { margin: 0; font-size: 18px; } .cx .sub { margin: -8px 0 0; font-size: 12.5px; color: var(--texto-suave); }
+.cx h2 small { color: var(--texto-suave); font-weight: 600; font-size: 18px; }
+.rot { font-size: 11px; font-weight: 800; color: var(--texto-suave); letter-spacing: .5px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+kbd { font: 700 10px var(--fonte); padding: 1px 5px; border-radius: 4px; border: 1px solid var(--borda); background: var(--painel-2); color: var(--texto-suave); }
+
+/* botões de escolha (tipo, processo, lado) */
+.grade { display: grid; gap: 8px; }
+.op-b { min-width: 0; min-height: 46px; padding: 4px 8px; border-radius: 10px; border: 1px solid var(--borda); background: var(--painel-2); font-weight: 800; font-size: 13.5px; line-height: 1.15; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; text-align: center; }
+.op-b small { font-size: 10px; color: var(--texto-suave); font-weight: 700; }
+.op-b.on { background: color-mix(in srgb, var(--destaque) 20%, var(--painel-2)); border-color: var(--destaque); color: var(--destaque); }
+.op-b.ref.on { background: rgba(220,38,38,.18); border-color: #dc2626; color: #f87171; }
+.op-b.ret.on { background: rgba(59,130,246,.18); border-color: #3b82f6; color: #93c5fd; }
+.op-b.mol.on { background: rgba(168,85,247,.18); border-color: #a855f7; color: #d8b4fe; }
+html.tema-claro .op-b.mol.on { color: #7e22ce; }
+.tt-mob { display: none; }
+.tt.mol { background: rgba(168,85,247,.18); color: #d8b4fe; } html.tema-claro .tt.mol { color: #7e22ce; }
+html.tema-claro .op-b.ref.on { color: #b91c1c; } html.tema-claro .op-b.ret.on { color: #1d4ed8; }
+.op-b:disabled { opacity: .4; cursor: not-allowed; }
+.op-b:focus-visible { outline: 2px solid #3b82f6; outline-offset: 1px; }
+
+/* campos */
+.lin { display: grid; gap: 10px; }
+.cmp { display: grid; gap: 6px; position: relative; align-content: start; min-width: 0; }
+.cmp input { height: 46px; font-size: 16px; font-weight: 700; }
+.cmp input:disabled { opacity: .4; }
+input.valido { border-color: #16a34a; } input.invalido { border-color: #dc2626; }
+.op-grande { height: 60px !important; font-size: 28px !important; font-weight: 800; letter-spacing: 2px; }
+.msg { font-size: 11.5px; font-weight: 700; min-height: 14px; color: var(--texto-suave); }
+.msg.erro { color: #f87171; } .msg.ok { color: #34d399; } .msg.aviso { color: #fbbf24; }
+html.tema-claro .msg.erro { color: #b91c1c; } html.tema-claro .msg.ok { color: #15803d; }
+.inp-mot { position: relative; }
+.sug { position: absolute; top: calc(100% + 4px); left: 0; right: 0; margin: 0; padding: 0; list-style: none; background: var(--painel); border: 1px solid var(--destaque); border-radius: 10px; box-shadow: var(--sombra); z-index: 5; overflow: hidden; }
+.sug li { padding: 11px 12px; font-size: 13px; font-weight: 700; cursor: pointer; border-top: 1px solid var(--linha); }
+.sug li:first-child { border-top: 0; }
+.sug li.on, .sug li:hover { background: color-mix(in srgb, var(--destaque) 18%, transparent); }
+.sug mark { background: none; color: var(--destaque); font-weight: 800; }
+.add { height: 46px; border-radius: 10px; background: #16a34a; border: 0; color: #fff; font-weight: 800; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; width: 100%; }
+.add svg { width: 18px; height: 18px; }
+.add:disabled { opacity: .45; cursor: not-allowed; }
+.bbusca { height: 50px; border-radius: 10px; border: 1px solid var(--borda); background: var(--painel-2); font-weight: 800; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; width: 100%; }
+.bbusca.ok { background: #16a34a; border-color: #16a34a; color: #fff; }
+.aviso { padding: 9px 12px; font-size: 12.5px; font-weight: 700; border-radius: 10px; background: rgba(220,38,38,.12); color: #f87171; border: 1px solid rgba(220,38,38,.35); }
+.aviso.trava { background: rgba(234,179,8,.13); color: #eab308; border-color: rgba(234,179,8,.4); }
+html.tema-claro .aviso { color: #b91c1c; } html.tema-claro .aviso.trava { color: #92400e; }
+.so-ver { font-size: 12.5px; }
+
+/* dados da OP */
+.dados { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.dado { background: var(--painel-2); border-radius: 10px; padding: 10px 12px; min-width: 0; }
+.dado span { display: block; font-size: 10.5px; font-weight: 800; color: var(--texto-suave); letter-spacing: .5px; }
+.dado b { display: block; font-size: 15px; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dado.inteiro { grid-column: 1 / -1; }
+.dado.destaque b { font-size: 24px; color: #34d399; }
+html.tema-claro .dado.destaque b { color: #15803d; }
+.dado b small { font-size: 12px; color: var(--texto-suave); font-weight: 600; }
+.vazio-op { flex: 1; display: grid; place-items: center; color: var(--texto-suave); font-size: 13px; border: 1px dashed var(--borda); border-radius: 10px; min-height: 140px; }
+
+/* tabelas de itens */
+.lista-box { flex: 1; min-height: 0; overflow: auto; }
+table.it { width: 100%; border-collapse: collapse; font-size: 13px; }
+table.it th { text-align: left; font-size: 10.5px; color: var(--texto-suave); letter-spacing: .5px; padding: 7px 8px; border-bottom: 1px solid var(--linha); position: sticky; top: 0; background: var(--painel); }
+table.it td { padding: 9px 8px; border-bottom: 1px solid var(--linha); }
+table.it tr.novo td { background: color-mix(in srgb, #16a34a 10%, transparent); }
+table.it .n { text-align: right; font-variant-numeric: tabular-nums; }
+.tt { font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 5px; white-space: nowrap; } .tt.ref { background: rgba(220,38,38,.18); color: #f87171; } .tt.ret { background: rgba(59,130,246,.18); color: #93c5fd; }
+html.tema-claro .tt.ref { color: #b91c1c; } html.tema-claro .tt.ret { color: #1d4ed8; }
+.tt.est { background: var(--painel-2); color: var(--texto-suave); }
+.x { width: 34px; height: 34px; border: 1px solid var(--borda); background: transparent; border-radius: 8px; color: var(--texto-suave); cursor: pointer; font-size: 16px; }
+.lista-vazia { padding: 22px; text-align: center; font-size: 13px; color: var(--texto-suave); border: 1px dashed var(--borda); border-radius: 10px; }
+.med { margin-top: auto; display: grid; gap: 6px; font-size: 12.5px; color: var(--texto-suave); }
+.med .l { display: flex; justify-content: space-between; gap: 10px; } .med b { color: var(--texto); }
+.bar { height: 12px; border-radius: 999px; background: var(--painel-2); overflow: hidden; } .bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #16a34a, #eab308); transition: width .2s; }
+.bar.cheio i { background: #dc2626; }
+
+/* confirmar */
+.tot { display: grid; gap: 10px; }
+.tot div { background: var(--painel-2); border-radius: 10px; padding: 12px 14px; font-size: 11px; font-weight: 800; color: var(--texto-suave); letter-spacing: .5px; }
+.tot b { display: block; font-size: 24px; color: var(--texto); letter-spacing: 0; margin-top: 3px; } .tot b small { font-size: 12px; color: var(--texto-suave); font-weight: 600; }
+.reg { height: 56px; border-radius: 12px; border: 0; background: #dc2626; color: #fff; font-weight: 800; font-size: 16px; margin-top: auto; cursor: pointer; width: 100%; }
+.reg:disabled { opacity: .55; cursor: wait; }
+
+/* resultado */
+.cartao { width: min(460px, 100%); background: var(--painel); border: 1px solid var(--linha); border-radius: 16px; padding: 26px; display: grid; gap: 12px; text-align: center; box-shadow: var(--sombra); }
+.cartao h2 { margin: 0; font-size: 20px; } .cartao p { margin: 0; color: var(--texto-suave); font-size: 13.5px; }
+.res-ic { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; margin: 0 auto; background: rgba(22,163,74,.16); color: #34d399; }
+.res-ic svg { width: 34px; height: 34px; }
+.res-ic.aviso-ic { background: rgba(234,179,8,.16); color: #eab308; }
+.bgrande { height: 52px; border-radius: 12px; border: 1px solid var(--borda); background: var(--painel-2); font-weight: 800; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; width: 100%; color: var(--texto); }
+.bgrande.verde { background: #16a34a; border-color: #16a34a; color: #fff; }
+
+/* conferência do dia */
+.conf-topo { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+.conf-totais { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.conf-rod { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.contagem { font-size: 13px; color: var(--texto-suave); } .contagem b { font-size: 20px; color: #eab308; display: inline-block; min-width: 26px; text-align: center; }
+.barra-tempo { height: 6px; border-radius: 999px; background: var(--painel-2); overflow: hidden; }
+.barra-tempo i { display: block; height: 100%; width: 100%; background: #eab308; transition: width 1s linear; }
+.conf-rod .bgrande { width: auto; min-width: 230px; padding: 0 20px; }
+
+/* rodapé */
+.rod { display: flex; align-items: center; gap: 14px; padding: 0 20px; background: var(--painel); border-top: 1px solid var(--linha); min-width: 0; }
+.rod .dica { font-size: 12px; color: var(--texto-suave); display: flex; gap: 6px; align-items: center; flex-wrap: wrap; min-width: 0; }
+.rod .dir { margin-left: auto; display: flex; gap: 10px; align-items: center; }
+.rod .trava { font-size: 12px; color: #eab308; font-weight: 700; }
+html.tema-claro .rod .trava { color: #92400e; }
+.bn { height: 42px; padding: 0 18px; border-radius: 10px; border: 1px solid var(--borda); background: var(--painel-2); font-weight: 800; cursor: pointer; color: var(--texto); white-space: nowrap; }
+.bn.pri { background: var(--destaque); border-color: var(--destaque); color: #fff; }
+.bn:disabled { opacity: .45; cursor: not-allowed; }
+
+/* ---------- tela baixa (notebook, navegador com barras) ----------
+   Nada pode passar por baixo da barra de botões do rodapé:
+   1) até 800 px de altura: tudo um pouco mais compacto;
+   2) até 680 px: a página passa a rolar inteira (rodapé vai para o fim,
+      nunca por cima do conteúdo). */
+@media (min-width: 761px) and (max-height: 800px) {
+  .corpo { padding: 4px 20px 10px; }
+  .cx { padding: 12px 14px; gap: 8px; }
+  .cx h2, .cx h3 { margin: 0; }
+  .grade { gap: 6px; }
+  .op-b { min-height: 38px; font-size: 12.5px; }
+  .cmp input { height: 40px; }
+  .add, .bbusca { height: 42px; }
+  .op-grande { height: 52px !important; font-size: 24px !important; }
+  .stepper { padding-top: 6px; padding-bottom: 6px; }
+}
+@media (min-width: 761px) and (max-height: 680px) {
+  body.kiosque main.conteudo { grid-template-rows: 56px auto auto 58px; height: auto; min-height: 100vh; overflow: visible; }
+  body.kiosque.sem-step main.conteudo { grid-template-rows: 56px auto; }
+  .lista-box { max-height: 320px; }
+}
+
+/* ---------- celular / terminal estreito ---------- */
+@media (max-width: 760px) {
+  body.kiosque main.conteudo { grid-template-rows: 52px auto auto; height: auto; min-height: 100vh; overflow: visible; }
+  body.kiosque.sem-step main.conteudo { grid-template-rows: 52px auto; }
+  .kcab { padding: 0 12px; gap: 10px; }
+  .kcab .m span, .kcab .nome-op, .kcab .u > .quem { display: none; }
+  .kcab .kbt .tx { display: none; } .kcab .kbt { width: 40px; padding: 0; justify-content: center; }
+  .kcab .kbt.sair .tx { display: inline; } .kcab .kbt.sair { width: auto; padding: 0 10px; }
+  .stepper { padding: 8px 12px; } .st span { display: none; } .st::after { margin: 0 6px; }
+  .corpo { padding: 8px 12px 84px; display: block; }
+  .etapa.ativa { display: grid; grid-template-columns: 1fr !important; }
+  #etapa3 .lista-itens { order: 2; }
+  .grade.g4 { grid-template-columns: repeat(2, 1fr) !important; }
+  .lin.ml { grid-template-columns: 1fr !important; }
+  .lin.qp { grid-template-columns: 1fr 1fr !important; } .lin.qp .cmp:last-child { grid-column: 1 / -1; } .lin.qp .cmp:last-child .rot { display: none; }
+  .op-b { min-height: 50px; } kbd, .op-b small, .dica-k { display: none !important; }
+  table.it th.c-lado, table.it td.c-lado { display: none; }
+  #boxConf table.it .c-tipo { display: none; } .tt-mob { display: inline !important; }
+  table.it { font-size: 12px; } table.it td, table.it th { padding: 8px 5px; }
+  .lista-box { overflow: visible; }
+  .conf-totais { grid-template-columns: 1fr 1fr; }
+  .conf-rod .bgrande { width: 100%; }
+  .rod { position: fixed; left: 0; right: 0; bottom: 0; height: 64px; padding: 0 12px; z-index: 20; }
+  .rod .dica, .rod .trava { display: none; } .rod .dir { width: 100%; } .rod .dir .bn { flex: 1; height: 46px; }
+  .dados { grid-template-columns: 1fr 1fr; }
+  .dado.destaque b { font-size: 20px; }
+}
+
+/* ---------- produção ---------- */
+.reg.verde { background: #16a34a; }
+.tt.mol { background: rgba(168,85,247,.18); color: #d8b4fe; }
+.tt.pec { background: rgba(59,130,246,.18); color: #93c5fd; }
+html.tema-claro .tt.pec { color: #1d4ed8; }
+.prod-lista { display: grid; gap: 6px; font-size: 13px; }
+.prod-lista div { display: flex; justify-content: space-between; gap: 10px; padding: 6px 10px; background: var(--painel-2); border-radius: 8px; }
+.prod-lista b { font-variant-numeric: tabular-nums; }
+.prod-lista .acima b { color: #eab308; }
+.bt-est { height: 30px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--borda); background: transparent; color: var(--texto-suave); font-weight: 700; font-size: 11px; cursor: pointer; }
+.bt-est:hover { color: #f87171; border-color: #dc2626; }
+#etapa3 { grid-template-columns: 1.05fr 1fr; }
+</style>
+</head>
+<body>
+
+<!-- Registro de Produção — terminal do operador.
+     Mesmo fluxo do Registro de Refugo (OP → Lançar itens → Confirmar →
+     Resultado 15 s → Conferência do dia 15 s). Login do sistema; o setor
+     vem do cadastro (inicioProducao). MOLDAGEM aponta MOLDE de areia
+     (tampa + fundo = 1 molde); os outros processos apontam PEÇA.
+     Acima do planejado pode (reposição), com confirmação.
+     Não mexe no processo da OP. -->
+<main class="conteudo">
+  <header class="kcab">
+    <div class="m"><b>PROMETALS</b><span>APONTAMENTO DE PRODUÇÃO</span></div>
+    <div class="u">
+      <span class="quem">Operador <b id="nomeOperador">—</b></span>
+      <span class="chip" id="chipSetor">—</span>
+      <span class="nome-op" id="nomeOP"></span>
+      <a class="kbt" id="lnkInicio" href="inicio.html" hidden title="Voltar ao sistema"><svg class="i"><use href="#i-home"/></svg><span class="tx">Início</span></a>
+      <button class="kbt ic" id="btnTema" title="Tema claro/escuro"><svg class="i"><use href="#i-lua"/></svg></button>
+      <button class="kbt sair" id="btnSairTopo" title="Sair"><svg class="i"><use href="#i-sair"/></svg><span class="tx">Sair</span></button>
+    </div>
+  </header>
+
+  <nav class="stepper" id="stepper">
+    <div class="st" data-etapa="2"><i>1</i><span>Ordem de Produção</span></div>
+    <div class="st" data-etapa="3"><i>2</i><span>Lançar produção</span></div>
+    <div class="st" data-etapa="4"><i>3</i><span>Confirmar</span></div>
+  </nav>
+
+  <div class="corpo">
+    <div class="carregando" id="carregandoCfg" style="flex:1">Carregando processos…</div>
+
+    <!-- ETAPA 2 · OP -->
+    <section class="etapa" id="etapa2">
+      <div class="cx">
+        <h2>Qual a OP?</h2><p class="sub">Digite o número e aperte <kbd>Enter</kbd>.</p>
+        <div class="cmp">
+          <span class="rot">NÚMERO DA OP</span>
+          <input id="op" class="op-grande" inputmode="numeric" autocomplete="off" placeholder="00000">
+          <span class="msg" id="msgOP"></span>
+        </div>
+        <button type="button" class="bbusca" id="btnBuscar"><svg class="i"><use href="#i-busca"/></svg><span>BUSCAR OP</span></button>
+        <div class="aviso trava so-ver" id="avisoSoVer" hidden>Seu perfil só pode consultar esta página. Para apontar produção é preciso permissão EDITAR.</div>
+      </div>
+      <div class="cx">
+        <h2>Dados da OP</h2><p class="sub">Confira se é a peça certa antes de continuar.</p>
+        <div class="vazio-op" id="opVazia">Nenhuma OP carregada.</div>
+        <div class="dados" id="opDados" hidden>
+          <div class="dado"><span>CLIENTE</span><b id="dCliente">-</b></div>
+          <div class="dado"><span>PEDIDO</span><b id="dPedido">-</b></div>
+          <div class="dado"><span>CÓDIGO</span><b id="dCodigo">-</b></div>
+          <div class="dado"><span>LIGA</span><b id="dLiga">-</b></div>
+          <div class="dado inteiro"><span>DESCRIÇÃO</span><b id="dDescricao">-</b></div>
+          <div class="dado destaque"><span>PEÇAS DA OP</span><b id="dPecas">-</b></div>
+          <div class="dado destaque"><span>MOLDES PLANEJADOS</span><b id="dMoldes">-</b></div>
+          <div class="dado inteiro"><span>JÁ PRODUZIDO NOS SEUS PROCESSOS</span><div class="prod-lista" id="dProduzido" style="margin-top:6px"></div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ETAPA 3 · LANÇAR -->
+    <section class="etapa" id="etapa3">
+      <div class="cx">
+        <h2>Novo item</h2><p class="sub">Escolha o processo e digite a quantidade produzida.</p>
+        <span class="rot" id="rotuloProcesso">PROCESSO</span>
+        <div class="grade g4" id="gradeProcessos"></div>
+        <div class="lin qp" style="grid-template-columns:1fr 1.1fr">
+          <div class="cmp"><span class="rot" id="rotuloQtd">QTD</span><input id="qtd" inputmode="numeric" autocomplete="off"><span class="msg" id="msgQtd"></span></div>
+          <div class="cmp"><span class="rot">&nbsp;</span><button type="button" class="add" id="btnAdicionar" disabled><svg class="i"><use href="#i-mais"/></svg>ADICIONAR <span class="dica-k">(Enter)</span></button></div>
+        </div>
+        <div class="aviso trava" id="avisoAcima" hidden></div>
+      </div>
+      <div class="cx lista-itens">
+        <h2>Itens desta OP <small id="contItens"></small></h2><p class="sub">O item mais recente fica destacado.</p>
+        <div class="lista-box" id="boxItens"></div>
+      </div>
+    </section>
+
+    <!-- ETAPA 4 · CONFIRMAR -->
+    <section class="etapa" id="etapa4">
+      <div class="cx">
+        <h2>Confira antes de registrar</h2><p class="sub" id="resumoOP"></p>
+        <div class="lista-box" id="boxResumo"></div>
+        <div class="aviso trava" id="avisoResumoAcima" hidden></div>
+        <div class="aviso" id="avisoRegistro" hidden></div>
+      </div>
+      <div class="cx">
+        <div class="tot">
+          <div>MOLDES<b id="totMoldes">0</b></div>
+          <div>PEÇAS<b id="totPecas">0</b></div>
+          <div>ITENS<b id="totItens">0</b></div>
+        </div>
+        <button type="button" class="reg verde" id="btnRegistrar">REGISTRAR PRODUÇÃO</button>
+        <span class="msg dica-k" style="text-align:center"><kbd>Ctrl</kbd> + <kbd>Enter</kbd> registrar</span>
+      </div>
+    </section>
+
+    <!-- ETAPA 5 · RESULTADO -->
+    <section class="etapa" id="etapa5">
+      <div class="cartao">
+        <div class="res-ic" id="resIcone"><svg class="i"><use href="#i-check"/></svg></div>
+        <h2 id="resTitulo">Produção registrada!</h2>
+        <p id="resTexto"></p>
+        <button type="button" class="bgrande verde" id="btnNovo"><svg class="i"><use href="#i-mais"/></svg>NOVO APONTAMENTO <span class="dica-k">(Enter)</span></button>
+        <button type="button" class="bgrande" id="btnSair"><svg class="i"><use href="#i-sair"/></svg>SAIR</button>
+        <div class="contagem" style="margin-top:14px">Sem resposta, sai do sistema em <b id="novoSeg">15</b> s</div>
+        <div class="barra-tempo" style="margin-top:6px"><i id="novoBarra"></i></div>
+      </div>
+    </section>
+
+    <!-- ETAPA 6 · CONFERÊNCIA DO DIA (ao sair) -->
+    <section class="etapa" id="etapa6">
+      <div class="cx">
+        <div class="conf-topo">
+          <div><h2 id="confTitulo">Conferência do dia</h2><p class="sub" id="confSub" style="margin-top:4px">Confira se os apontamentos de hoje estão corretos.</p></div>
+          <span class="msg" id="confFonte"></span>
+        </div>
+        <div class="conf-totais" id="confTotais"></div>
+        <div class="lista-box" id="boxConf"></div>
+        <div class="conf-rod">
+          <div class="contagem">Saindo do sistema em <b id="confSeg">15</b> s</div>
+          <button type="button" class="bgrande verde" id="btnConfOk"><svg class="i"><use href="#i-check"/></svg>OK, CONFERI <span class="dica-k">(Enter)</span></button>
+        </div>
+        <div class="barra-tempo"><i id="confBarra"></i></div>
+      </div>
+    </section>
+  </div>
+
+  <footer class="rod">
+    <div class="dica" id="dicaTeclas"></div>
+    <div class="dir">
+      <span class="trava" id="trava"></span>
+      <button type="button" class="bn" id="btnVoltar">◀ VOLTAR</button>
+      <button type="button" class="bn pri" id="btnAvancar">PRÓXIMO ▶</button>
+    </div>
+  </footer>
+</main>
+
+<script src="js/config.js"></script>
+<script src="js/icones.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/api.js"></script>
+<script src="js/sessao.js"></script>
+<script src="js/shell.js"></script>
+<script>
+Sessao.iniciarPagina('producao').then(function (ctx) {
+  document.body.classList.add('kiosque');
+  const $ = function (id) { return document.getElementById(id); };
+  const esc = Ui.esc;
+
+  const CONFERENCIA_SEGUNDOS = 15;
+  const PERGUNTA_NOVO_SEGUNDOS = 15;   // sem resposta depois de registrar → desloga
+  const NOME_SETOR = { FUNDICAO: 'FUNDIÇÃO', USINAGEM: 'USINAGEM' };
+
+  /* ---------- ESTADO ---------- */
+  const opVazia = function () { return { valida: false, numero: '', dados: null }; };
+  const estado = {
+    etapa: 2,
+    cfg: { setor: '', processos: [] },
+    op: opVazia(),
+    processo: '',
+    itens: [],             // [{processo, unidade, qtd}]
+    gravadosSessao: [],
+    enviando: false, buscando: false,
+    idReq: null
+  };
+
+  /* ---------- UTILITÁRIOS ---------- */
+  function setMsg(id, texto, tipo) { const el = $(id); el.textContent = texto || ''; el.className = 'msg' + (tipo ? ' ' + tipo : ''); }
+  function marcarCampo(id, ok) { $(id).classList.toggle('invalido', ok === false); $(id).classList.toggle('valido', ok === true); }
+  function haModal() { return !!document.querySelector('.modal-fundo'); }
+  function unidadeDe(processo) { const p = estado.cfg.processos.find(function (x) { return x.processo === processo; }); return p ? p.unidade : 'PECA'; }
+  function nomeUn(u, n) { return u === 'MOLDE' ? (n === 1 ? 'molde' : 'moldes') : (n === 1 ? 'peça' : 'peças'); }
+  function tagUn(u) { return u === 'MOLDE' ? '<span class="tt mol">MOLDE</span>' : '<span class="tt pec">PEÇA</span>'; }
+  function soma(lista, filtro) { return lista.filter(filtro || function () { return true; }).reduce(function (s, it) { return s + it.qtd; }, 0); }
+  // Planejado da OP para a unidade: molde → moldes planejados; peça → peças da OP
+  function planejado(unidade) {
+    const d = estado.op.dados || {};
+    return unidade === 'MOLDE' ? Number(d.qtdMoldes) || 0 : Number(d.qtdPecas) || 0;
+  }
+  function jaProduzido(processo) { const d = estado.op.dados || {}; return Number((d.produzido || {})[processo]) || 0; }
+  function naLista(processo) { return soma(estado.itens, function (it) { return it.processo === processo; }); }
+  // Processos que, com esta lista, passam do planejado
+  function acimaDoPlanejado(extra) {
+    const proc = {};
+    estado.itens.concat(extra ? [extra] : []).forEach(function (it) { proc[it.processo] = true; });
+    return Object.keys(proc).map(function (p) {
+      const u = unidadeDe(p), plan = planejado(u);
+      const total = jaProduzido(p) + naLista(p) + (extra && extra.processo === p ? extra.qtd : 0);
+      return { processo: p, unidade: u, total: total, plan: plan };
+    }).filter(function (x) { return x.plan > 0 && x.total > x.plan; });
+  }
+
+  /* ---------- CABEÇALHO ---------- */
+  $('nomeOperador').textContent = ctx.usuario.nome || ctx.usuario.login;
+  const outras = ctx.paginas.filter(function (p) {
+    return p.id !== 'inicio' && p.id !== 'producao' && p.nivel !== 'NENHUM' && CONFIG.PAGINAS_PRONTAS.indexOf(p.id) !== -1;
+  });
+  $('lnkInicio').hidden = !outras.length;
+  $('btnTema').addEventListener('click', function () {
+    const b = document.querySelector('.topo [data-acao="tema"]');
+    if (b) b.click();
+  });
+  if (!ctx.podeEditar) $('avisoSoVer').hidden = false;
+
+  /* ---------- CARGA INICIAL ---------- */
+  carregarConfig();
+  async function carregarConfig() {
+    try {
+      const r = await Api.chamar('inicioProducao', {}, { rapido: function (n) { estado.cfg = n; } });
+      estado.cfg = r;
+      $('chipSetor').textContent = r.setor ? (NOME_SETOR[r.setor] || r.setor) : 'TODOS OS SETORES';
+      $('carregandoCfg').remove();
+      ligarEventos();
+      montarProcessos();
+      irPara(2);
+    } catch (e) {
+      $('carregandoCfg').className = 'vazio';
+      $('carregandoCfg').innerHTML = esc(e.message) + '<br><br><button class="bn pri" id="btnDeNovo">Tentar de novo</button>';
+      $('btnDeNovo').addEventListener('click', function () { $('carregandoCfg').className = 'carregando'; $('carregandoCfg').textContent = 'Carregando…'; carregarConfig(); });
+    }
+  }
+
+  /* ---------- ETAPA 2 · OP ---------- */
+  function onOpDigitada() {
+    $('op').value = $('op').value.replace(/\D/g, '');
+    if (estado.op.valida && $('op').value !== estado.op.numero) {
+      estado.op = opVazia();
+      limparItens();
+    }
+    renderOP();
+    render();
+  }
+
+  function renderOP() {
+    const op = estado.op;
+    $('opVazia').hidden = op.valida;
+    $('opDados').hidden = !op.valida;
+    const b = $('btnBuscar');
+    if (op.valida) {
+      const d = op.dados;
+      $('dCliente').textContent = d.cliente || '-';
+      $('dPedido').textContent = d.pedido || '-';
+      $('dCodigo').textContent = d.codigo || '-';
+      $('dLiga').textContent = d.liga || '-';
+      $('dDescricao').textContent = d.descricao || '-';
+      $('dPecas').textContent = Number(d.qtdPecas) || 0;
+      $('dMoldes').textContent = Number(d.qtdMoldes) || 0;
+      $('dProduzido').innerHTML = estado.cfg.processos.map(function (p) {
+        const ja = jaProduzido(p.processo), plan = planejado(p.unidade);
+        return '<div class="' + (plan > 0 && ja > plan ? 'acima' : '') + '"><span>' + esc(p.processo) + '</span><b>' + ja + ' de ' + plan + ' ' + nomeUn(p.unidade, plan) + '</b></div>';
+      }).join('');
+      setMsg('msgOP', 'OP encontrada' + (d.status && d.status !== 'ABERTA' && d.status !== 'EM_PRODUCAO' ? ' · situação ' + d.status.replace(/_/g, ' ') : ''), 'ok');
+      marcarCampo('op', true);
+      b.classList.add('ok');
+      b.querySelector('span').textContent = 'OP VALIDADA';
+    } else {
+      marcarCampo('op', null);
+      b.classList.remove('ok');
+      b.querySelector('span').textContent = estado.buscando ? 'BUSCANDO...' : 'BUSCAR OP';
+    }
+  }
+
+  async function buscarOP() {
+    const numero = $('op').value.trim();
+    if (!numero) { setMsg('msgOP', 'Digite o número da OP', 'erro'); marcarCampo('op', false); return; }
+    if (estado.buscando) return;
+    estado.buscando = true;
+    $('btnBuscar').disabled = true;
+    $('btnBuscar').querySelector('span').textContent = 'BUSCANDO...';
+    setMsg('msgOP', '');
+    try {
+      const d = await Api.chamar('buscarOPProducao', { op: numero });
+      if ($('op').value.trim() !== numero) return;
+      estado.op = { valida: true, numero: numero, dados: d };
+      limparItens();
+      renderOP();
+      $('btnAvancar').focus();
+    } catch (e) {
+      if ($('op').value.trim() !== numero) return;
+      estado.op = opVazia();
+      renderOP();
+      setMsg('msgOP', e.codigo === 'SEM_CONEXAO' ? 'Erro ao buscar a OP. Verifique a conexão e tente de novo.' : e.message, 'erro');
+      marcarCampo('op', false);
+    } finally {
+      estado.buscando = false;
+      $('btnBuscar').disabled = false;
+      if (!estado.op.valida) $('btnBuscar').querySelector('span').textContent = 'BUSCAR OP';
+      render();
+    }
+  }
+
+  /* ---------- ETAPA 3 · LANÇAR ---------- */
+  function montarProcessos() {
+    const lista = estado.cfg.processos;
+    const grade = $('gradeProcessos');
+    grade.style.gridTemplateColumns = 'repeat(' + (lista.length > 6 && window.innerWidth >= 1150 ? 4 : lista.length >= 3 ? 3 : Math.max(lista.length, 1)) + ', minmax(0, 1fr))';
+    grade.innerHTML = lista.map(function (p, i) {
+      return '<button type="button" class="op-b" data-processo="' + esc(p.processo) + '">' + (i < 9 ? '<small>' + (i + 1) + '</small>' : '') +
+        esc(p.processo) + ' <small>' + (p.unidade === 'MOLDE' ? 'molde' : 'peça') + '</small></button>';
+    }).join('');
+    const setor = estado.cfg.setor ? (NOME_SETOR[estado.cfg.setor] || estado.cfg.setor) : 'TODOS OS SETORES';
+    $('rotuloProcesso').innerHTML = 'PROCESSO · ' + esc(setor) + (lista.length ? ' <kbd>1</kbd>–<kbd>' + Math.min(lista.length, 9) + '</kbd>' : '');
+    // Setor com um processo só: já vem escolhido
+    if (lista.length === 1) estado.processo = lista[0].processo;
+  }
+
+  function escolherProcesso(nome) {
+    estado.processo = nome;
+    renderForm();
+    $('qtd').focus();
+  }
+
+  function lerQtd() { const t = $('qtd').value.trim(); return { txt: t, n: Number(t) }; }
+  function erroForm() {
+    const q = lerQtd();
+    if (!estado.processo) return 'Escolha o processo';
+    if (!q.txt) return 'Informe a quantidade';
+    if (!/^\d+$/.test(q.txt) || q.n < 1) return 'Número inteiro, mínimo 1';
+    return '';
+  }
+  function formVazio() { return !$('qtd').value.trim(); }
+
+  function renderForm() {
+    document.querySelectorAll('#gradeProcessos .op-b').forEach(function (b) { b.classList.toggle('on', b.dataset.processo === estado.processo); });
+    const u = estado.processo ? unidadeDe(estado.processo) : '';
+    $('rotuloQtd').textContent = u === 'MOLDE' ? 'QTD (moldes · tampa + fundo = 1)' : u ? 'QTD (peças)' : 'QTD';
+    const q = lerQtd();
+    const erro = q.txt ? erroForm() : '';
+    if (erro && erro !== 'Escolha o processo') setMsg('msgQtd', '✖ ' + erro, 'erro');
+    else if (estado.processo) {
+      const plan = planejado(u), feito = jaProduzido(estado.processo) + naLista(estado.processo);
+      setMsg('msgQtd', plan > 0 ? 'planejado ' + plan + ' · já ' + feito + ' ' + nomeUn(u, feito) : '');
+    } else setMsg('msgQtd', '');
+    marcarCampo('qtd', q.txt ? !erro : null);
+    // Aviso (não trava): passa do planejado
+    const acima = !erroForm() ? acimaDoPlanejado({ processo: estado.processo, qtd: q.n }) .filter(function (x) { return x.processo === estado.processo; }) : [];
+    $('avisoAcima').textContent = acima.length
+      ? 'Passa do planejado: ' + acima[0].total + ' de ' + acima[0].plan + ' ' + nomeUn(acima[0].unidade, acima[0].plan) + '. Se for reposição de refugo, pode lançar.'
+      : '';
+    $('avisoAcima').hidden = !acima.length;
+    $('btnAdicionar').disabled = !!erroForm();
+    renderRodape();
+  }
+
+  function adicionarItem() {
+    if (erroForm()) { setMsg('msgQtd', '✖ ' + erroForm(), 'erro'); return false; }
+    estado.itens.push({ processo: estado.processo, unidade: unidadeDe(estado.processo), qtd: lerQtd().n });
+    estado.idReq = null;
+    $('qtd').value = '';
+    if (estado.cfg.processos.length > 1) estado.processo = '';
+    renderItens();
+    renderForm();
+    focarProcesso();
+    return true;
+  }
+  function removerItem(i) {
+    estado.itens.splice(i, 1);
+    estado.idReq = null;
+    renderItens();
+    renderForm();
+  }
+  function limparItens() {
+    estado.itens = [];
+    estado.idReq = null;
+    if (estado.cfg.processos.length > 1) estado.processo = '';
+    $('qtd').value = '';
+    renderItens();
+  }
+  function focarProcesso() {
+    if (estado.cfg.processos.length === 1) { $('qtd').focus(); return; }
+    const b = document.querySelector('#gradeProcessos .op-b'); if (b) b.focus();
+  }
+
+  function tabelaItens(lista, comRemover) {
+    return '<table class="it"><thead><tr>' + (comRemover ? '' : '<th>#</th>') +
+      '<th>PROCESSO</th><th>TIPO</th><th class="n">QTD</th>' + (comRemover ? '<th></th>' : '') + '</tr></thead><tbody>' +
+      lista.map(function (it, i) { return { it: it, i: i }; }).reverse().map(function (o) {
+        const it = o.it;
+        return '<tr class="' + (comRemover && o.i === lista.length - 1 ? 'novo' : '') + '">' + (comRemover ? '' : '<td>' + (o.i + 1) + '</td>') +
+          '<td>' + esc(it.processo) + '</td><td>' + tagUn(it.unidade) + '</td><td class="n">' + it.qtd + '</td>' +
+          (comRemover ? '<td class="n"><button type="button" class="x" data-remover="' + o.i + '" title="Remover">×</button></td>' : '') + '</tr>';
+      }).join('') + '</tbody></table>';
+  }
+
+  function renderItens() {
+    const lista = estado.itens;
+    $('contItens').textContent = lista.length ? '· ' + lista.length : '';
+    $('boxItens').innerHTML = lista.length ? tabelaItens(lista, true) : '<div class="lista-vazia">Nenhum item lançado ainda.</div>';
+  }
+
+  /* ---------- ETAPA 4 · CONFIRMAR ---------- */
+  function textoAcima() {
+    const a = acimaDoPlanejado();
+    return a.length ? 'Acima do planejado (reposição): ' + a.map(function (x) { return x.processo + ' ' + x.total + ' de ' + x.plan; }).join(' · ') : '';
+  }
+  function renderResumo() {
+    const d = estado.op.dados;
+    $('resumoOP').textContent = 'OP ' + estado.op.numero + ' · ' + (d.cliente || '-') + ' · ' + (d.codigo || '-') + ' · ' + (d.descricao || '-');
+    $('boxResumo').innerHTML = tabelaItens(estado.itens, false);
+    $('totMoldes').textContent = soma(estado.itens, function (it) { return it.unidade === 'MOLDE'; });
+    $('totPecas').textContent = soma(estado.itens, function (it) { return it.unidade !== 'MOLDE'; });
+    $('totItens').textContent = estado.itens.length;
+    const t = textoAcima();
+    $('avisoResumoAcima').textContent = t;
+    $('avisoResumoAcima').hidden = !t;
+    $('avisoRegistro').hidden = true;
+    $('btnRegistrar').disabled = estado.enviando || !ctx.podeEditar;
+    $('btnRegistrar').textContent = estado.enviando ? 'SALVANDO...' : 'REGISTRAR PRODUÇÃO';
+  }
+
+  async function registrar() {
+    if (estado.enviando || estado.etapa !== 4 || !estado.itens.length || !ctx.podeEditar) return;
+    const acima = acimaDoPlanejado();
+    if (acima.length && !(await Ui.confirmar({
+      titulo: 'Acima do planejado',
+      texto: acima.map(function (x) { return x.processo + ': ' + x.total + ' de ' + x.plan + ' ' + nomeUn(x.unidade, x.plan); }).join(' · ') + '. É reposição de refugo?',
+      ok: 'Sim, registrar'
+    }))) return;
+    estado.enviando = true;
+    if (!estado.idReq) estado.idReq = Api.idReq();
+    renderResumo();
+    renderRodape();
+    const itens = estado.itens.slice();
+    const mol = soma(itens, function (it) { return it.unidade === 'MOLDE'; }), pec = soma(itens, function (it) { return it.unidade !== 'MOLDE'; });
+    const resumo = 'OP ' + estado.op.numero + ' · ' + (mol ? mol + ' ' + nomeUn('MOLDE', mol) : '') + (mol && pec ? ' · ' : '') + (pec ? pec + ' ' + nomeUn('PECA', pec) : '');
+    try {
+      const r = await Api.chamar('registrarProducao', {
+        idReq: estado.idReq, op: estado.op.numero,
+        itens: itens.map(function (it) { return { processo: it.processo, qtd: it.qtd }; })
+      });
+      estado.idReq = null;
+      const agora = new Date();
+      itens.forEach(function (it, i) {
+        estado.gravadosSessao.push(Object.assign({}, it, { id: r.ids ? r.ids[i] : '', op: estado.op.numero, cliente: estado.op.dados.cliente || '', hora: agora }));
+      });
+      estado.enviando = false;
+      $('resTexto').textContent = resumo + (r.ids && r.ids.length ? ' · ' + r.ids[0] + (r.ids.length > 1 ? ' a ' + r.ids[r.ids.length - 1] : '') : '');
+      irPara(5);
+    } catch (e) {
+      estado.enviando = false;
+      if (e.codigo !== 'SEM_CONEXAO') estado.idReq = null;
+      renderResumo();
+      $('avisoRegistro').textContent = e.codigo === 'SEM_CONEXAO'
+        ? '⚠ Sem confirmação do servidor. Toque em REGISTRAR de novo: o mesmo envio não grava em dobro.'
+        : '✖ NÃO gravado: ' + e.message;
+      $('avisoRegistro').hidden = false;
+      renderRodape();
+    }
+  }
+
+  /* ---------- NAVEGAÇÃO ---------- */
+  function trava(etapa) {
+    if (etapa === 2) {
+      if (!estado.op.valida) return 'Busque e valide a OP';
+      if (!ctx.podeEditar) return 'Seu perfil só pode consultar';
+    }
+    if (etapa === 3) {
+      if (estado.itens.length === 0 && erroForm()) return 'Adicione pelo menos 1 item';
+      if (!formVazio() && erroForm() && estado.itens.length) return 'Termine ou limpe o item em edição';
+    }
+    return '';
+  }
+  function avancar() {
+    if (estado.etapa === 3 && !formVazio()) {
+      if (!erroForm()) adicionarItem(); else { setMsg('msgQtd', '✖ ' + erroForm(), 'erro'); return; }
+    }
+    if (trava(estado.etapa)) return;
+    if (estado.etapa === 2 || estado.etapa === 3) irPara(estado.etapa + 1);
+  }
+  function voltar() {
+    if (estado.enviando) return;
+    if (estado.etapa >= 3 && estado.etapa <= 4) irPara(estado.etapa - 1);
+  }
+  function novoApontamento() {
+    estado.op = opVazia();
+    $('op').value = '';
+    setMsg('msgOP', '');
+    renderOP();
+    limparItens();
+    irPara(2);
+  }
+
+  /* ---------- RESULTADO / CONFERÊNCIA ---------- */
+  let confTimer = null, novoTimer = null;
+  function contagem(segundos, idSeg, idBarra, aoAcabar) {
+    let restante = segundos;
+    const barra = $(idBarra);
+    barra.style.transition = 'none'; barra.style.width = '100%'; void barra.offsetWidth; barra.style.transition = '';
+    $(idSeg).textContent = restante;
+    return setInterval(function () {
+      restante--;
+      $(idSeg).textContent = Math.max(restante, 0);
+      barra.style.width = (Math.max(restante, 0) / segundos * 100) + '%';
+      if (restante <= 0) aoAcabar();
+    }, 1000);
+  }
+  function iniciarContagemNovo() {
+    pararContagemNovo();
+    novoTimer = contagem(PERGUNTA_NOVO_SEGUNDOS, 'novoSeg', 'novoBarra', function () { pararContagemNovo(); if (estado.etapa === 5) Sessao.sair(); });
+  }
+  function pararContagemNovo() { clearInterval(novoTimer); novoTimer = null; }
+  function iniciarContagem() {
+    clearInterval(confTimer);
+    confTimer = contagem(CONFERENCIA_SEGUNDOS, 'confSeg', 'confBarra', finalizarSaida);
+  }
+
+  async function sair() {
+    if (estado.etapa === 6) return finalizarSaida();
+    if (estado.enviando) return;
+    if (estado.itens.length && estado.etapa !== 5) {
+      const ok = await Ui.confirmar({ titulo: 'Sair', texto: 'Existem itens lançados que ainda não foram registrados. Sair mesmo assim?', ok: 'Sair mesmo assim', perigo: true });
+      if (!ok) return;
+    }
+    abrirConferencia();
+  }
+
+  function abrirConferencia() {
+    const nome = ctx.usuario.nome || ctx.usuario.login;
+    $('confTitulo').textContent = 'Conferência do dia · ' + nome;
+    $('confSub').textContent = 'Produção apontada hoje (' + new Date().toLocaleDateString('pt-BR') + '). Confira se está tudo certo.';
+    const pad = function (n) { return String(n).padStart(2, '0'); };
+    const daSessao = estado.gravadosSessao.map(function (x) {
+      return Object.assign({}, x, { horaTxt: pad(x.hora.getHours()) + ':' + pad(x.hora.getMinutes()), estornado: false, daSessao: true });
+    });
+    renderConferencia(daSessao, 'carregando');
+    irPara(6);
+    iniciarContagem();
+    carregarConferencia(daSessao);
+  }
+  function carregarConferencia(reserva) {
+    Api.chamar('conferenciaProducao', {}).then(function (r) {
+      if (estado.etapa !== 6) return;
+      const lista = (r.itens || []).map(function (x) {
+        return { id: x.id, horaTxt: String(x.dataHora || '').slice(11, 16), op: x.op, cliente: x.cliente, processo: x.processo,
+                 unidade: x.unidade, qtd: Number(x.qtd) || 0, estornado: !!x.estornado };
+      }).sort(function (a, b) { return a.horaTxt.localeCompare(b.horaTxt); });
+      renderConferencia(lista, 'servidor');
+    }).catch(function () {
+      if (estado.etapa === 6) renderConferencia(reserva || [], 'falhou');
+    });
+  }
+
+  function renderConferencia(lista, fonte) {
+    const validos = lista.filter(function (x) { return !x.estornado; });
+    const mol = soma(validos, function (x) { return x.unidade === 'MOLDE'; }), pec = soma(validos, function (x) { return x.unidade !== 'MOLDE'; });
+    $('confTotais').innerHTML =
+      '<div class="dado"><span>APONTAMENTOS</span><b>' + validos.length + '</b></div>' +
+      '<div class="dado"><span>MOLDES</span><b>' + mol + '</b></div>' +
+      '<div class="dado"><span>PEÇAS</span><b>' + pec + '</b></div>' +
+      '<div class="dado"><span>OPs</span><b>' + new Set(validos.map(function (x) { return String(x.op); })).size + '</b></div>';
+    setMsg('confFonte',
+      fonte === 'carregando' ? 'buscando o dia completo no servidor…'
+        : fonte === 'falhou' ? '⚠ servidor indisponível: mostrando só o que foi apontado neste terminal'
+          : '✓ dia completo, conferido no servidor',
+      fonte === 'servidor' ? 'ok' : fonte === 'falhou' ? 'erro' : '');
+    if (!lista.length) {
+      $('boxConf').innerHTML = '<div class="lista-vazia">' + (fonte === 'carregando' ? 'Buscando…' : 'Nenhum apontamento hoje.') + '</div>';
+      return;
+    }
+    const podeEstornar = fonte === 'servidor' && ctx.podeEditar;
+    $('boxConf').innerHTML = '<table class="it"><thead><tr><th>HORA</th><th>OP</th><th class="c-lado">CLIENTE</th><th>PROCESSO</th><th>TIPO</th><th class="n">QTD</th>' +
+      (podeEstornar ? '<th></th>' : '') + '</tr></thead><tbody>' +
+      lista.map(function (x) {
+        return '<tr' + (x.estornado ? ' style="opacity:.5"' : '') + '><td>' + esc(x.horaTxt) + '</td><td><b>' + esc(x.op) + '</b></td><td class="c-lado">' + esc(x.cliente) + '</td>' +
+          '<td>' + esc(x.processo) + '</td><td>' + tagUn(x.unidade) + (x.estornado ? ' <span class="tt est">estornado</span>' : '') + '</td><td class="n">' + x.qtd + '</td>' +
+          (podeEstornar ? '<td class="n">' + (x.estornado || !x.id ? '' : '<button type="button" class="bt-est" data-estornar="' + esc(x.id) + '" title="Estornar: lançado errado">ESTORNAR</button>') + '</td>' : '') + '</tr>';
+      }).join('') + '</tbody></table>';
+  }
+
+  async function estornar(id) {
+    clearInterval(confTimer);   // pausa a saída enquanto decide
+    const ok = await Ui.confirmar({ titulo: 'Estornar apontamento', texto: 'Este apontamento foi lançado errado? Ele fica registrado como estornado (nada é apagado).', ok: 'Estornar', perigo: true });
+    if (ok) {
+      try {
+        await Api.chamar('estornarProducao', { idReq: Api.idReq(), id: id, motivo: 'Lançado errado' });
+        Ui.toast('Apontamento estornado.');
+      } catch (e) { Ui.erro(e); }
+    }
+    if (estado.etapa !== 6) return;
+    iniciarContagem();
+    carregarConferencia();
+  }
+
+  function finalizarSaida() {
+    clearInterval(confTimer);
+    confTimer = null;
+    $('btnConfOk').disabled = true;
+    location.href = 'inicio.html';
+  }
+
+  function irPara(n) {
+    estado.etapa = n;
+    document.querySelectorAll('.etapa').forEach(function (s) { s.classList.toggle('ativa', s.id === 'etapa' + n); });
+    if (n === 3) { renderItens(); renderForm(); }
+    if (n === 4) renderResumo();
+    render();
+    if (n === 2) (estado.op.valida ? $('btnAvancar') : $('op')).focus();
+    if (n === 3) focarProcesso();
+    if (n === 4) $('btnRegistrar').focus();
+    if (n === 5) { $('btnNovo').focus(); iniciarContagemNovo(); } else pararContagemNovo();
+    if (n === 6) $('btnConfOk').focus();
+    if (window.innerWidth <= 760) window.scrollTo(0, 0);
+  }
+
+  const DICAS = {
+    2: '<kbd>Enter</kbd> buscar / avançar',
+    3: function () { return '<kbd>1</kbd>–<kbd>' + Math.min(estado.cfg.processos.length, 9) + '</kbd> processo · <kbd>Enter</kbd> adicionar · <kbd>Ctrl</kbd>+<kbd>Enter</kbd> revisar · <kbd>Esc</kbd> voltar'; },
+    4: '<kbd>Ctrl</kbd>+<kbd>Enter</kbd> registrar · <kbd>Esc</kbd> voltar e editar itens'
+  };
+  function renderRodape() {
+    const e = estado.etapa;
+    const d = DICAS[e];
+    $('dicaTeclas').innerHTML = typeof d === 'function' ? d() : (d || '');
+    $('btnVoltar').disabled = estado.enviando;
+    $('btnVoltar').hidden = e === 2;
+    $('btnAvancar').hidden = e === 4;
+    $('btnAvancar').textContent = e === 3 ? 'REVISAR ▶' : 'PRÓXIMO ▶';
+    const t = trava(e);
+    $('btnAvancar').disabled = !!t;
+    $('trava').textContent = t && e !== 4 ? t : '';
+  }
+  function render() {
+    const e = estado.etapa;
+    document.body.classList.toggle('sem-step', e === 5 || e === 6);
+    document.querySelectorAll('.st').forEach(function (st) {
+      const n = Number(st.dataset.etapa);
+      st.classList.toggle('feito', n < e);
+      st.classList.toggle('atual', n === e);
+      st.querySelector('i').textContent = n < e ? '✓' : n - 1;
+    });
+    document.querySelector('.st[data-etapa="2"] span').textContent = e > 2 && estado.op.valida ? 'OP ' + estado.op.numero : 'Ordem de Produção';
+    document.querySelector('.st[data-etapa="3"] span').textContent = e > 3 ? estado.itens.length + ' ' + (estado.itens.length === 1 ? 'item' : 'itens') : 'Lançar produção';
+    const d = estado.op.dados;
+    $('nomeOP').innerHTML = estado.op.valida && e >= 3 && e <= 4 ? 'OP <b>' + esc(estado.op.numero) + '</b> · ' + esc(d.cliente || '') + ' · ' + esc(d.codigo || '') : '';
+    renderRodape();
+  }
+
+  /* ---------- TECLADO ---------- */
+  function emCampoDeTexto(el) { return el && (el.tagName === 'INPUT' || el.tagName === 'SELECT' || el.tagName === 'TEXTAREA'); }
+  function onTeclaGlobal(e) {
+    if (haModal()) return;
+    const alvo = e.target, etapa = estado.etapa;
+    if (e.key === 'Enter' && e.ctrlKey) { e.preventDefault(); if (etapa === 3) avancar(); else if (etapa === 4) registrar(); return; }
+    if (e.key === 'Escape') { if (etapa >= 3 && etapa <= 4) { e.preventDefault(); voltar(); } return; }
+    if (etapa === 6 && e.key === 'Enter' && alvo.tagName !== 'BUTTON') { e.preventDefault(); finalizarSaida(); return; }
+    if (etapa === 5 && e.key === 'Enter' && alvo.tagName !== 'BUTTON') { e.preventDefault(); novoApontamento(); return; }
+    if (etapa === 2 && e.key === 'Enter' && alvo.tagName !== 'BUTTON') {
+      e.preventDefault();
+      if (estado.op.valida && $('op').value === estado.op.numero) avancar(); else buscarOP();
+      return;
+    }
+    if (etapa !== 3 || e.ctrlKey || e.altKey || e.metaKey) return;
+    if (e.key === 'Enter') {
+      if (alvo.id === 'qtd' || (alvo.tagName !== 'BUTTON' && !emCampoDeTexto(alvo))) { e.preventDefault(); adicionarItem(); }
+      return;
+    }
+    if (emCampoDeTexto(alvo)) return;
+    const lista = estado.cfg.processos, num = Number(e.key);
+    if (num >= 1 && num <= Math.min(lista.length, 9)) { e.preventDefault(); escolherProcesso(lista[num - 1].processo); }
+  }
+
+  /* ---------- EVENTOS ---------- */
+  function ligarEventos() {
+    $('op').addEventListener('input', onOpDigitada);
+    $('btnBuscar').addEventListener('click', buscarOP);
+    $('gradeProcessos').addEventListener('click', function (e) { const b = e.target.closest('[data-processo]'); if (b) escolherProcesso(b.dataset.processo); });
+    $('qtd').addEventListener('input', function () { $('qtd').value = $('qtd').value.replace(/\D/g, ''); renderForm(); });
+    $('btnAdicionar').addEventListener('click', adicionarItem);
+    $('boxItens').addEventListener('click', function (e) { const b = e.target.closest('[data-remover]'); if (b) removerItem(Number(b.dataset.remover)); });
+    $('boxConf').addEventListener('click', function (e) { const b = e.target.closest('[data-estornar]'); if (b) estornar(b.dataset.estornar); });
+    $('btnRegistrar').addEventListener('click', registrar);
+    $('btnNovo').addEventListener('click', novoApontamento);
+    $('btnSair').addEventListener('click', sair);
+    $('btnSairTopo').addEventListener('click', sair);
+    $('btnConfOk').addEventListener('click', finalizarSaida);
+    $('btnVoltar').addEventListener('click', voltar);
+    $('btnAvancar').addEventListener('click', avancar);
+    document.addEventListener('keydown', onTeclaGlobal);
+    window.addEventListener('beforeunload', function (ev) {
+      if (estado.itens.length && estado.etapa >= 3 && estado.etapa <= 4 && !estado.enviando) { ev.preventDefault(); ev.returnValue = ''; }
+    });
+  }
+});
+</script>
+</body>
+</html>

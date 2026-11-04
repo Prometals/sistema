@@ -11,13 +11,13 @@ const CONFIG = {
 
   // Páginas já construídas. As outras aparecem no menu com a etiqueta
   // "em breve" até ficarem prontas (evita link quebrado durante a Fase 5).
-  PAGINAS_PRONTAS: ['inicio', 'consulta', 'pcp', 'mapa', 'gerencial', 'fusao', 'historico', 'comercial', 'refugo', 'qualidade', 'estoque', 'compras', 'produtos', 'insumos', 'bi', 'usuarios'],
+  PAGINAS_PRONTAS: ['inicio', 'consulta', 'pcp', 'mapa', 'producao', 'gerencial', 'fusao', 'historico', 'comercial', 'refugo', 'qualidade', 'estoque', 'compras', 'produtos', 'insumos', 'bi', 'usuarios'],
 
   // Ícone de cada página no menu (id da página → símbolo do icones.js)
   ICONES: {
     inicio: 'i-home', consulta: 'i-busca', pcp: 'i-tabela', mapa: 'i-cal',
     gerencial: 'i-clip', fusao: 'i-fogo', historico: 'i-hist', comercial: 'i-moeda',
-    refugo: 'i-alerta', qualidade: 'i-graf', estoque: 'i-pacote', compras: 'i-carrinho',
+    producao: 'i-check', refugo: 'i-alerta', qualidade: 'i-graf', estoque: 'i-pacote', compras: 'i-carrinho',
     produtos: 'i-camadas', insumos: 'i-cubo', bi: 'i-tv', usuarios: 'i-usuarios'
   },
 
