@@ -148,6 +148,8 @@ html.tema-claro .tt.ref { color: #b91c1c; } html.tema-claro .tt.ret { color: #1d
 .barra-tempo { height: 6px; border-radius: 999px; background: var(--painel-2); overflow: hidden; }
 .barra-tempo i { display: block; height: 100%; width: 100%; background: #eab308; transition: width 1s linear; }
 .conf-rod .bgrande { width: auto; min-width: 230px; padding: 0 20px; }
+.bt-est { height: 30px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--borda); background: transparent; color: var(--texto-suave); font-weight: 700; font-size: 11px; cursor: pointer; }
+.bt-est:hover { color: #f87171; border-color: #dc2626; }
 
 /* rodapé */
 .rod { display: flex; align-items: center; gap: 14px; padding: 0 20px; background: var(--painel); border-top: 1px solid var(--linha); min-width: 0; }
@@ -989,19 +991,38 @@ Sessao.iniciarPagina('refugo').then(function (ctx) {
     irPara(6);
     iniciarContagem();
     // 2) Completa com o servidor (inclui o que ele apontou antes, em outro terminal etc.)
+    carregarConferencia(daSessao);
+  }
+
+  function carregarConferencia(reserva) {
     Api.chamar('conferenciaRefugo', {}).then(function (r) {
       if (estado.etapa !== 6) return;
       const lista = (r.itens || []).map(function (x) {
         return {
-          horaTxt: String(x.dataHora || '').slice(11, 16), op: x.op, cliente: x.cliente,
+          id: x.id, horaTxt: String(x.dataHora || '').slice(11, 16), op: x.op, cliente: x.cliente,
           tipo: x.tipo === 'RETRABALHO' || x.tipo === 'MOLDE' ? x.tipo : 'REFUGO', processo: x.processo, motivo: x.motivo, lado: x.lado,
           qtd: Number(x.qtdRefugo) || 0, peso: Number(x.pesoLiquidoInformado) || 0, estornado: Number(x.qtdEstornada) || 0
         };
       }).sort(function (a, b) { return a.horaTxt.localeCompare(b.horaTxt); });
       renderConferencia(lista, 'servidor');
     }).catch(function () {
-      if (estado.etapa === 6) renderConferencia(daSessao, 'falhou');
+      if (estado.etapa === 6) renderConferencia(reserva || [], 'falhou');
     });
+  }
+
+  // Estorno pelo próprio operador (lançou errado): só os dele, de hoje.
+  async function estornarConferencia(id) {
+    clearInterval(confTimer);   // pausa a saída enquanto decide
+    const ok = await Ui.confirmar({ titulo: 'Estornar apontamento', texto: 'Este apontamento foi lançado errado? Ele fica registrado como estornado (nada é apagado).', ok: 'Estornar', perigo: true });
+    if (ok) {
+      try {
+        await Api.chamar('estornarMeuRefugo', { idReq: Api.idReq(), id: id });
+        Ui.toast('Apontamento estornado.');
+      } catch (e) { Ui.erro(e); }
+    }
+    if (estado.etapa !== 6) return;
+    iniciarContagem();
+    carregarConferencia();
   }
 
   function renderConferencia(lista, fonte) {
@@ -1027,13 +1048,15 @@ Sessao.iniciarPagina('refugo').then(function (ctx) {
       $('boxConf').innerHTML = '<div class="lista-vazia">' + (fonte === 'carregando' ? 'Buscando…' : 'Nenhum apontamento hoje.') + '</div>';
       return;
     }
+    const podeEstornar = fonte === 'servidor' && ctx.podeEditar;
     $('boxConf').innerHTML = '<table class="it"><thead><tr><th>HORA</th><th>OP</th><th class="c-lado">CLIENTE</th>' + (comTipo ? '<th class="c-tipo">TIPO</th>' : '') +
-      '<th>PROCESSO</th><th>MOTIVO</th><th class="c-lado">LADO</th><th class="n">QTD</th><th class="n">KG</th></tr></thead><tbody>' +
+      '<th>PROCESSO</th><th>MOTIVO</th><th class="c-lado">LADO</th><th class="n">QTD</th><th class="n">KG</th>' + (podeEstornar ? '<th></th>' : '') + '</tr></thead><tbody>' +
       lista.map(function (x) {
         return '<tr><td>' + esc(x.horaTxt) + '</td><td><b>' + esc(x.op) + '</b></td><td class="c-lado">' + esc(x.cliente) + '</td>' +
           (comTipo ? '<td class="c-tipo">' + tagTipo(x.tipo) + '</td>' : '') +
           '<td>' + esc(x.processo) + '</td><td>' + (comTipo && x.tipo !== 'REFUGO' ? '<span class="tt-mob">' + tagTipo(x.tipo) + ' </span>' : '') + esc(x.motivo) + (x.estornado ? ' <span class="tt est">estornado ' + x.estornado + '</span>' : '') + '</td>' +
-          '<td class="c-lado">' + esc(x.lado) + '</td><td class="n">' + x.qtd + '</td><td class="n">' + kg(x.peso) + '</td></tr>';
+          '<td class="c-lado">' + esc(x.lado) + '</td><td class="n">' + x.qtd + '</td><td class="n">' + kg(x.peso) + '</td>' +
+          (podeEstornar ? '<td class="n">' + (x.id && x.qtd > 0 ? '<button type="button" class="bt-est" data-estornar="' + esc(x.id) + '" title="Estornar: lançado errado">ESTORNAR</button>' : '') + '</td>' : '') + '</tr>';
       }).join('') + '</tbody></table>';
   }
 
@@ -1209,6 +1232,7 @@ Sessao.iniciarPagina('refugo').then(function (ctx) {
     $('btnSair').addEventListener('click', sair);
     $('btnSairTopo').addEventListener('click', sair);
     $('btnConfOk').addEventListener('click', finalizarSaida);
+    $('boxConf').addEventListener('click', function (e) { const b = e.target.closest('[data-estornar]'); if (b) estornarConferencia(b.dataset.estornar); });
     $('btnVoltar').addEventListener('click', voltar);
     $('btnAvancar').addEventListener('click', avancar);
     document.addEventListener('keydown', onTeclaGlobal);
