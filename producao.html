@@ -228,8 +228,9 @@ html.tema-claro .tt.pec { color: #1d4ed8; }
 <!-- Registro de Produção — terminal do operador.
      Mesmo fluxo do Registro de Refugo (OP → Lançar itens → Confirmar →
      Resultado 15 s → Conferência do dia 15 s). Login do sistema; o setor
-     vem do cadastro (inicioProducao). MOLDAGEM aponta MOLDE de areia
-     (tampa + fundo = 1 molde); os outros processos apontam PEÇA.
+     vem do cadastro e os processos são os mesmos do refugo. Depois da
+     OP o operador escolhe PEÇA ou MOLDE (molde: tampa + fundo = 1; só
+     Fundição). Um tipo por apontamento, sem misturar.
      Acima do planejado pode (reposição), com confirmação.
      Não mexe no processo da OP. -->
 <main class="conteudo">
@@ -275,9 +276,10 @@ html.tema-claro .tt.pec { color: #1d4ed8; }
           <div class="dado"><span>CÓDIGO</span><b id="dCodigo">-</b></div>
           <div class="dado"><span>LIGA</span><b id="dLiga">-</b></div>
           <div class="dado inteiro"><span>DESCRIÇÃO</span><b id="dDescricao">-</b></div>
-          <div class="dado destaque"><span>PEÇAS DA OP</span><b id="dPecas">-</b></div>
-          <div class="dado destaque"><span>MOLDES PLANEJADOS</span><b id="dMoldes">-</b></div>
-          <div class="dado inteiro"><span>JÁ PRODUZIDO NOS SEUS PROCESSOS</span><div class="prod-lista" id="dProduzido" style="margin-top:6px"></div></div>
+          <div class="dado"><span>QTD ORDEM / QTD MOLDES</span><b id="dQtds">-</b></div>
+          <div class="dado"><span>PESO BRUTO UNITÁRIO</span><b id="dPesoBruto">-</b></div>
+          <div class="dado destaque"><span>QTD TOTAL DA OP</span><b id="dLimite">-</b></div>
+          <div class="dado destaque"><span>JÁ APONTADO</span><b id="dJa">-</b></div>
         </div>
       </div>
     </section>
@@ -285,7 +287,11 @@ html.tema-claro .tt.pec { color: #1d4ed8; }
     <!-- ETAPA 3 · LANÇAR -->
     <section class="etapa" id="etapa3">
       <div class="cx">
-        <h2>Novo item</h2><p class="sub">Escolha o processo e digite a quantidade produzida.</p>
+        <h2>Novo item</h2><p class="sub">Escolha o que vai apontar, o processo e a quantidade.</p>
+        <div id="blocoTipo" hidden>
+          <span class="rot" style="margin-bottom:6px">O QUE VOCÊ VAI APONTAR? <kbd>T</kbd> <span class="dica-k">alterna</span></span>
+          <div class="grade" id="gradeTipos" style="grid-template-columns:1fr 1fr"></div>
+        </div>
         <span class="rot" id="rotuloProcesso">PROCESSO</span>
         <div class="grade g4" id="gradeProcessos"></div>
         <div class="lin qp" style="grid-template-columns:1fr 1.1fr">
@@ -310,8 +316,7 @@ html.tema-claro .tt.pec { color: #1d4ed8; }
       </div>
       <div class="cx">
         <div class="tot">
-          <div>MOLDES<b id="totMoldes">0</b></div>
-          <div>PEÇAS<b id="totPecas">0</b></div>
+          <div><span id="rotTotal">TOTAL</span><b id="totQtd">0</b></div>
           <div>ITENS<b id="totItens">0</b></div>
         </div>
         <button type="button" class="reg verde" id="btnRegistrar">REGISTRAR PRODUÇÃO</button>
@@ -382,8 +387,9 @@ Sessao.iniciarPagina('producao').then(function (ctx) {
     etapa: 2,
     cfg: { setor: '', processos: [] },
     op: opVazia(),
+    tipo: '',              // PECA ou MOLDE (um por apontamento)
     processo: '',
-    itens: [],             // [{processo, unidade, qtd}]
+    itens: [],             // [{processo, unidade, qtd}] — todos do mesmo tipo
     gravadosSessao: [],
     enviando: false, buscando: false,
     idReq: null
@@ -393,7 +399,9 @@ Sessao.iniciarPagina('producao').then(function (ctx) {
   function setMsg(id, texto, tipo) { const el = $(id); el.textContent = texto || ''; el.className = 'msg' + (tipo ? ' ' + tipo : ''); }
   function marcarCampo(id, ok) { $(id).classList.toggle('invalido', ok === false); $(id).classList.toggle('valido', ok === true); }
   function haModal() { return !!document.querySelector('.modal-fundo'); }
-  function unidadeDe(processo) { const p = estado.cfg.processos.find(function (x) { return x.processo === processo; }); return p ? p.unidade : 'PECA'; }
+  function tipos() { return estado.cfg.tipos || ['PECA']; }
+  function temTipo() { return tipos().length > 1; }
+  function unidadeDe() { return estado.tipo || 'PECA'; }
   function nomeUn(u, n) { return u === 'MOLDE' ? (n === 1 ? 'molde' : 'moldes') : (n === 1 ? 'peça' : 'peças'); }
   function tagUn(u) { return u === 'MOLDE' ? '<span class="tt mol">MOLDE</span>' : '<span class="tt pec">PEÇA</span>'; }
   function soma(lista, filtro) { return lista.filter(filtro || function () { return true; }).reduce(function (s, it) { return s + it.qtd; }, 0); }
@@ -402,14 +410,14 @@ Sessao.iniciarPagina('producao').then(function (ctx) {
     const d = estado.op.dados || {};
     return unidade === 'MOLDE' ? Number(d.qtdMoldes) || 0 : Number(d.qtdPecas) || 0;
   }
-  function jaProduzido(processo) { const d = estado.op.dados || {}; return Number((d.produzido || {})[processo]) || 0; }
+  function jaProduzido(processo) { const d = estado.op.dados || {}; return Number((d.produzido || {})[unidadeDe() + '|' + processo]) || 0; }
   function naLista(processo) { return soma(estado.itens, function (it) { return it.processo === processo; }); }
   // Processos que, com esta lista, passam do planejado
   function acimaDoPlanejado(extra) {
     const proc = {};
     estado.itens.concat(extra ? [extra] : []).forEach(function (it) { proc[it.processo] = true; });
     return Object.keys(proc).map(function (p) {
-      const u = unidadeDe(p), plan = planejado(u);
+      const u = unidadeDe(), plan = planejado(u);
       const total = jaProduzido(p) + naLista(p) + (extra && extra.processo === p ? extra.qtd : 0);
       return { processo: p, unidade: u, total: total, plan: plan };
     }).filter(function (x) { return x.plan > 0 && x.total > x.plan; });
@@ -468,12 +476,12 @@ Sessao.iniciarPagina('producao').then(function (ctx) {
       $('dCodigo').textContent = d.codigo || '-';
       $('dLiga').textContent = d.liga || '-';
       $('dDescricao').textContent = d.descricao || '-';
-      $('dPecas').textContent = Number(d.qtdPecas) || 0;
-      $('dMoldes').textContent = Number(d.qtdMoldes) || 0;
-      $('dProduzido').innerHTML = estado.cfg.processos.map(function (p) {
-        const ja = jaProduzido(p.processo), plan = planejado(p.unidade);
-        return '<div class="' + (plan > 0 && ja > plan ? 'acima' : '') + '"><span>' + esc(p.processo) + '</span><b>' + ja + ' de ' + plan + ' ' + nomeUn(p.unidade, plan) + '</b></div>';
-      }).join('');
+      const lim = Number(d.qtdPrevalece) || 0;
+      $('dQtds').textContent = (Number(d.qtdPecas) || 0) + ' / ' + (Number(d.qtdMoldes) || 0);
+      $('dPesoBruto').textContent = (lim > 0 ? (Number(d.pesoTotalMoldes) || 0) / lim : 0).toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 3 }) + ' kg';
+      $('dLimite').textContent = lim;
+      $('dJa').innerHTML = (temTipo() ? (Number(d.jaMoldes) || 0) + ' <small>' + nomeUn('MOLDE', Number(d.jaMoldes) || 0) + '</small> · ' : '') +
+        (Number(d.jaPecas) || 0) + ' <small>' + nomeUn('PECA', Number(d.jaPecas) || 0) + '</small>';
       setMsg('msgOP', 'OP encontrada' + (d.status && d.status !== 'ABERTA' && d.status !== 'EM_PRODUCAO' ? ' · situação ' + d.status.replace(/_/g, ' ') : ''), 'ok');
       marcarCampo('op', true);
       b.classList.add('ok');
@@ -520,9 +528,15 @@ Sessao.iniciarPagina('producao').then(function (ctx) {
     const grade = $('gradeProcessos');
     grade.style.gridTemplateColumns = 'repeat(' + (lista.length > 6 && window.innerWidth >= 1150 ? 4 : lista.length >= 3 ? 3 : Math.max(lista.length, 1)) + ', minmax(0, 1fr))';
     grade.innerHTML = lista.map(function (p, i) {
-      return '<button type="button" class="op-b" data-processo="' + esc(p.processo) + '">' + (i < 9 ? '<small>' + (i + 1) + '</small>' : '') +
-        esc(p.processo) + ' <small>' + (p.unidade === 'MOLDE' ? 'molde' : 'peça') + '</small></button>';
+      return '<button type="button" class="op-b" data-processo="' + esc(p.processo) + '">' + (i < 9 ? '<small>' + (i + 1) + '</small>' : '') + esc(p.processo) + '</button>';
     }).join('');
+    // PEÇA | MOLDE (molde só para a Fundição). Um tipo só: já vem escolhido.
+    const ts = tipos();
+    $('gradeTipos').innerHTML = ts.map(function (t) {
+      return '<button type="button" class="op-b ' + (t === 'MOLDE' ? 'mol' : 'ret') + '" data-tipo="' + t + '">' + (t === 'MOLDE' ? 'PRODUÇÃO DE MOLDE' : 'PRODUÇÃO DE PEÇA') + '</button>';
+    }).join('');
+    $('blocoTipo').hidden = !temTipo();
+    if (!temTipo()) estado.tipo = ts[0];
     const setor = estado.cfg.setor ? (NOME_SETOR[estado.cfg.setor] || estado.cfg.setor) : 'TODOS OS SETORES';
     $('rotuloProcesso').innerHTML = 'PROCESSO · ' + esc(setor) + (lista.length ? ' <kbd>1</kbd>–<kbd>' + Math.min(lista.length, 9) + '</kbd>' : '');
     // Setor com um processo só: já vem escolhido
@@ -530,14 +544,28 @@ Sessao.iniciarPagina('producao').then(function (ctx) {
   }
 
   function escolherProcesso(nome) {
+    if (!estado.tipo) return;
     estado.processo = nome;
     renderForm();
     $('qtd').focus();
   }
 
+  // Troca peça/molde. Com itens na lista, pergunta antes (não mistura os dois).
+  async function escolherTipo(t) {
+    if (estado.tipo === t || tipos().indexOf(t) === -1) return;
+    if (estado.itens.length && !(await Ui.confirmar({ titulo: 'Trocar para ' + (t === 'MOLDE' ? 'molde' : 'peça'),
+      texto: 'Os ' + estado.itens.length + ' item(ns) já lançados de ' + (estado.tipo === 'MOLDE' ? 'molde' : 'peça') + ' saem da lista. Peça e molde são apontados separados.', ok: 'Trocar', perigo: true }))) return;
+    estado.itens = []; estado.idReq = null;
+    estado.tipo = t;
+    renderItens();
+    renderForm();
+    focarProcesso();
+  }
+
   function lerQtd() { const t = $('qtd').value.trim(); return { txt: t, n: Number(t) }; }
   function erroForm() {
     const q = lerQtd();
+    if (!estado.tipo) return 'Escolha peça ou molde';
     if (!estado.processo) return 'Escolha o processo';
     if (!q.txt) return 'Informe a quantidade';
     if (!/^\d+$/.test(q.txt) || q.n < 1) return 'Número inteiro, mínimo 1';
@@ -546,12 +574,15 @@ Sessao.iniciarPagina('producao').then(function (ctx) {
   function formVazio() { return !$('qtd').value.trim(); }
 
   function renderForm() {
-    document.querySelectorAll('#gradeProcessos .op-b').forEach(function (b) { b.classList.toggle('on', b.dataset.processo === estado.processo); });
-    const u = estado.processo ? unidadeDe(estado.processo) : '';
+    document.querySelectorAll('#gradeTipos .op-b').forEach(function (b) { b.classList.toggle('on', b.dataset.tipo === estado.tipo); });
+    document.querySelectorAll('#gradeProcessos .op-b').forEach(function (b) { b.classList.toggle('on', b.dataset.processo === estado.processo); b.disabled = !estado.tipo; });
+    $('qtd').disabled = !estado.tipo;
+    const u = estado.tipo;
     $('rotuloQtd').textContent = u === 'MOLDE' ? 'QTD (moldes · tampa + fundo = 1)' : u ? 'QTD (peças)' : 'QTD';
     const q = lerQtd();
     const erro = q.txt ? erroForm() : '';
-    if (erro && erro !== 'Escolha o processo') setMsg('msgQtd', '✖ ' + erro, 'erro');
+    if (!estado.tipo) setMsg('msgQtd', 'Escolha primeiro: peça ou molde', 'aviso');
+    else if (erro && erro !== 'Escolha o processo') setMsg('msgQtd', '✖ ' + erro, 'erro');
     else if (estado.processo) {
       const plan = planejado(u), feito = jaProduzido(estado.processo) + naLista(estado.processo);
       setMsg('msgQtd', plan > 0 ? 'planejado ' + plan + ' · já ' + feito + ' ' + nomeUn(u, feito) : '');
@@ -569,7 +600,7 @@ Sessao.iniciarPagina('producao').then(function (ctx) {
 
   function adicionarItem() {
     if (erroForm()) { setMsg('msgQtd', '✖ ' + erroForm(), 'erro'); return false; }
-    estado.itens.push({ processo: estado.processo, unidade: unidadeDe(estado.processo), qtd: lerQtd().n });
+    estado.itens.push({ processo: estado.processo, unidade: unidadeDe(), qtd: lerQtd().n });
     estado.idReq = null;
     $('qtd').value = '';
     if (estado.cfg.processos.length > 1) estado.processo = '';
@@ -587,22 +618,24 @@ Sessao.iniciarPagina('producao').then(function (ctx) {
   function limparItens() {
     estado.itens = [];
     estado.idReq = null;
+    if (temTipo()) estado.tipo = '';
     if (estado.cfg.processos.length > 1) estado.processo = '';
     $('qtd').value = '';
     renderItens();
   }
   function focarProcesso() {
+    if (!estado.tipo) { const t = document.querySelector('#gradeTipos .op-b'); if (t) t.focus(); return; }
     if (estado.cfg.processos.length === 1) { $('qtd').focus(); return; }
     const b = document.querySelector('#gradeProcessos .op-b'); if (b) b.focus();
   }
 
   function tabelaItens(lista, comRemover) {
     return '<table class="it"><thead><tr>' + (comRemover ? '' : '<th>#</th>') +
-      '<th>PROCESSO</th><th>TIPO</th><th class="n">QTD</th>' + (comRemover ? '<th></th>' : '') + '</tr></thead><tbody>' +
+      '<th>PROCESSO</th><th class="n">' + (unidadeDe() === 'MOLDE' ? 'MOLDES' : 'PEÇAS') + '</th>' + (comRemover ? '<th></th>' : '') + '</tr></thead><tbody>' +
       lista.map(function (it, i) { return { it: it, i: i }; }).reverse().map(function (o) {
         const it = o.it;
         return '<tr class="' + (comRemover && o.i === lista.length - 1 ? 'novo' : '') + '">' + (comRemover ? '' : '<td>' + (o.i + 1) + '</td>') +
-          '<td>' + esc(it.processo) + '</td><td>' + tagUn(it.unidade) + '</td><td class="n">' + it.qtd + '</td>' +
+          '<td>' + esc(it.processo) + '</td><td class="n">' + it.qtd + '</td>' +
           (comRemover ? '<td class="n"><button type="button" class="x" data-remover="' + o.i + '" title="Remover">×</button></td>' : '') + '</tr>';
       }).join('') + '</tbody></table>';
   }
@@ -622,8 +655,8 @@ Sessao.iniciarPagina('producao').then(function (ctx) {
     const d = estado.op.dados;
     $('resumoOP').textContent = 'OP ' + estado.op.numero + ' · ' + (d.cliente || '-') + ' · ' + (d.codigo || '-') + ' · ' + (d.descricao || '-');
     $('boxResumo').innerHTML = tabelaItens(estado.itens, false);
-    $('totMoldes').textContent = soma(estado.itens, function (it) { return it.unidade === 'MOLDE'; });
-    $('totPecas').textContent = soma(estado.itens, function (it) { return it.unidade !== 'MOLDE'; });
+    $('rotTotal').textContent = unidadeDe() === 'MOLDE' ? 'TOTAL DE MOLDES' : 'TOTAL DE PEÇAS';
+    $('totQtd').textContent = soma(estado.itens);
     $('totItens').textContent = estado.itens.length;
     const t = textoAcima();
     $('avisoResumoAcima').textContent = t;
@@ -651,7 +684,7 @@ Sessao.iniciarPagina('producao').then(function (ctx) {
     try {
       const r = await Api.chamar('registrarProducao', {
         idReq: estado.idReq, op: estado.op.numero,
-        itens: itens.map(function (it) { return { processo: it.processo, qtd: it.qtd }; })
+        itens: itens.map(function (it) { return { processo: it.processo, tipo: it.unidade, qtd: it.qtd }; })
       });
       estado.idReq = null;
       const agora = new Date();
@@ -770,8 +803,8 @@ Sessao.iniciarPagina('producao').then(function (ctx) {
     const mol = soma(validos, function (x) { return x.unidade === 'MOLDE'; }), pec = soma(validos, function (x) { return x.unidade !== 'MOLDE'; });
     $('confTotais').innerHTML =
       '<div class="dado"><span>APONTAMENTOS</span><b>' + validos.length + '</b></div>' +
-      '<div class="dado"><span>MOLDES</span><b>' + mol + '</b></div>' +
-      '<div class="dado"><span>PEÇAS</span><b>' + pec + '</b></div>' +
+      (mol || temTipo() && !pec ? '<div class="dado"><span>MOLDES</span><b>' + mol + '</b></div>' : '') +
+      (pec || !mol ? '<div class="dado"><span>PEÇAS</span><b>' + pec + '</b></div>' : '') +
       '<div class="dado"><span>OPs</span><b>' + new Set(validos.map(function (x) { return String(x.op); })).size + '</b></div>';
     setMsg('confFonte',
       fonte === 'carregando' ? 'buscando o dia completo no servidor…'
@@ -829,7 +862,7 @@ Sessao.iniciarPagina('producao').then(function (ctx) {
 
   const DICAS = {
     2: '<kbd>Enter</kbd> buscar / avançar',
-    3: function () { return '<kbd>1</kbd>–<kbd>' + Math.min(estado.cfg.processos.length, 9) + '</kbd> processo · <kbd>Enter</kbd> adicionar · <kbd>Ctrl</kbd>+<kbd>Enter</kbd> revisar · <kbd>Esc</kbd> voltar'; },
+    3: function () { return (temTipo() ? '<kbd>T</kbd> peça/molde · ' : '') + '<kbd>1</kbd>–<kbd>' + Math.min(estado.cfg.processos.length, 9) + '</kbd> processo · <kbd>Enter</kbd> adicionar · <kbd>Ctrl</kbd>+<kbd>Enter</kbd> revisar · <kbd>Esc</kbd> voltar'; },
     4: '<kbd>Ctrl</kbd>+<kbd>Enter</kbd> registrar · <kbd>Esc</kbd> voltar e editar itens'
   };
   function renderRodape() {
@@ -880,6 +913,7 @@ Sessao.iniciarPagina('producao').then(function (ctx) {
       return;
     }
     if (emCampoDeTexto(alvo)) return;
+    if (e.key.toLowerCase() === 't' && temTipo()) { e.preventDefault(); const ts = tipos(); escolherTipo(ts[(ts.indexOf(estado.tipo) + 1) % ts.length]); return; }
     const lista = estado.cfg.processos, num = Number(e.key);
     if (num >= 1 && num <= Math.min(lista.length, 9)) { e.preventDefault(); escolherProcesso(lista[num - 1].processo); }
   }
@@ -888,6 +922,7 @@ Sessao.iniciarPagina('producao').then(function (ctx) {
   function ligarEventos() {
     $('op').addEventListener('input', onOpDigitada);
     $('btnBuscar').addEventListener('click', buscarOP);
+    $('gradeTipos').addEventListener('click', function (e) { const b = e.target.closest('[data-tipo]'); if (b) escolherTipo(b.dataset.tipo); });
     $('gradeProcessos').addEventListener('click', function (e) { const b = e.target.closest('[data-processo]'); if (b) escolherProcesso(b.dataset.processo); });
     $('qtd').addEventListener('input', function () { $('qtd').value = $('qtd').value.replace(/\D/g, ''); renderForm(); });
     $('btnAdicionar').addEventListener('click', adicionarItem);
