@@ -3,169 +3,366 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Produtos e Estrutura · Prometals</title>
+<title>Registro de Produção · Prometals</title>
 <link rel="stylesheet" href="css/tema.css">
 <link rel="stylesheet" href="css/sistema.css">
 <style>
-/* ---------- específico desta página ---------- */
-.cadg { display: grid; grid-template-columns: 340px 1fr; gap: 14px; height: calc(100vh - 56px - 28px - 40px - 70px); min-height: 560px; }
-.cadg > * { min-width: 0; }
+/* ---------- específico desta página ----------
+   Terminal do operador (touch): sem menu lateral, sem topo do sistema.
+   A moldura do Shell é montada (permissões, tema), mas fica escondida;
+   a página tem o próprio cabeçalho (mockup aprovado). */
+.app { display: block; height: auto; }
+.app > .lateral, .app > .topo, .app > .status, .app > .veu { display: none !important; }
+body.kiosque main.conteudo { display: grid; grid-template-rows: 56px auto 1fr 58px; height: 100vh; height: 100dvh; overflow: hidden; padding: 0; }
+body.kiosque.sem-step main.conteudo { grid-template-rows: 56px 1fr; }
+body.sem-step .stepper, body.sem-step .rod { display: none !important; }
 
-/* lista de produtos (esquerda) */
-.lst { background: var(--painel); border: 1px solid var(--linha); border-radius: 12px; display: flex; flex-direction: column; min-height: 0; }
-.lst-top { padding: 12px; display: grid; gap: 10px; border-bottom: 1px solid var(--linha); }
-.f-busca { position: relative; }
-.f-busca input { width: 100%; padding-left: 34px; height: 38px; font-size: 13px; }
-.f-busca svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--texto-suave); }
-.chips { display: flex; gap: 6px; flex-wrap: wrap; }
-.chips button { height: 28px; padding: 0 10px; border-radius: 999px; border: 1px solid var(--borda); background: transparent; font-size: 11.5px; font-weight: 800; color: var(--texto-suave); cursor: pointer; }
-.chips button.on { background: var(--destaque); border-color: var(--destaque); color: #fff; }
-.chips button.am.on { background: #ca8a04; border-color: #ca8a04; }
-.lst-l { overflow: auto; flex: 1; min-height: 0; }
-.pi { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; padding: 10px 14px; border-bottom: 1px solid var(--linha); cursor: pointer; }
-.pi:hover { background: var(--hover); }
-.pi b { font-size: 13px; }
-.pi .d { grid-column: 1; font-size: 11.5px; color: var(--texto-suave); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.pi .bom { grid-row: 1 / span 2; grid-column: 2; align-self: center; }
-.pi.sel { background: color-mix(in srgb, var(--destaque) 12%, transparent); box-shadow: inset 3px 0 0 var(--destaque); }
-.pi.inativo { opacity: .5; }
-.bom { font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 5px; white-space: nowrap; }
-.bom.ok { background: rgba(34,197,94,.15); color: #34d399; }
-.bom.sem { background: rgba(234,179,8,.18); color: #eab308; }
-html.tema-claro .bom.ok { color: #166534; }
-html.tema-claro .bom.sem { color: #92400e; }
-.lst-rod { padding: 9px 14px; font-size: 11.5px; color: var(--texto-suave); border-top: 1px solid var(--linha); }
+/* cabeçalho */
+.kcab { display: flex; align-items: center; gap: 16px; padding: 0 20px; background: var(--painel); border-bottom: 1px solid var(--linha); min-width: 0; }
+.kcab .m { white-space: nowrap; }
+.kcab .m b { letter-spacing: 1.5px; } .kcab .m span { color: var(--destaque); font-weight: 800; margin-left: 10px; font-size: 13px; letter-spacing: 1px; }
+.kcab .u { margin-left: auto; display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--texto-suave); min-width: 0; }
+.kcab .u b { color: var(--texto); }
+.kcab .nome-op { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.chip { font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 999px; background: rgba(59,130,246,.18); color: #93c5fd; letter-spacing: .5px; white-space: nowrap; }
+html.tema-claro .chip { color: #1d4ed8; }
+.kbt { height: 36px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--borda); background: transparent; display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 12px; cursor: pointer; text-decoration: none; color: var(--texto); white-space: nowrap; }
+.kbt svg { width: 15px; height: 15px; }
+.kbt.ic { width: 36px; padding: 0; justify-content: center; }
 
-/* detalhe (direita) */
-.det { display: flex; flex-direction: column; gap: 14px; min-height: 0; overflow: auto; }
-.bx { background: var(--painel); border: 1px solid var(--linha); border-radius: 12px; }
-.bx-cab { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--linha); }
-.bx-cab h3 { margin: 0; font-size: 14px; }
-.bx-cab .s { font-size: 12px; color: var(--texto-suave); }
-.bx-cab .dir { margin-left: auto; display: flex; gap: 8px; align-items: center; }
-.frm { padding: 14px 16px; display: grid; grid-template-columns: 170px 1fr 120px 130px; gap: 12px; }
-.fc { display: grid; gap: 5px; font-size: 11px; font-weight: 800; color: var(--texto-suave); letter-spacing: .4px; align-content: start; }
-.fc input, .fc select { height: 38px; font-size: 13.5px; padding: 0 10px; }
-.fc input:disabled { opacity: .7; }
-.fc.largo { grid-column: 1 / -1; }
-.fc small { font-weight: 600; font-size: 11px; letter-spacing: 0; }
-.fc input.mud { border-color: var(--destaque); }
-/* chave Ativo */
-.at-sw { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; cursor: pointer; user-select: none; background: none; border: 0; padding: 0; }
-.at-sw:disabled { cursor: default; opacity: .8; }
-.sw { width: 38px; height: 22px; border-radius: 999px; background: var(--bloqueado); position: relative; flex: none; }
-.sw::after { content: ""; position: absolute; left: 3px; top: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: left .15s; }
-.at-sw.on .sw { background: #16a34a; }
-.at-sw.on .sw::after { left: 19px; }
-.at-sw.mud { color: var(--destaque); }
-/* BOM */
-.cat { font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 5px; white-space: nowrap; }
-.cat.luva { background: rgba(59,130,246,.18); color: #93c5fd; }
-.cat.filtro { background: rgba(20,184,166,.18); color: #5eead4; }
-.cat.emb { background: rgba(240,122,31,.18); color: #fdba74; }
-.cat.out { background: var(--painel-2); color: var(--texto-suave); }
-html.tema-claro .cat.luva { color: #1d4ed8; }
-html.tema-claro .cat.filtro { color: #0f766e; }
-html.tema-claro .cat.emb { color: #9a3412; }
-.pol { font-size: 10px; font-weight: 800; color: var(--destaque); }
-table.tab input.in, table.tab select.in { height: 32px; font-size: 13px; padding: 0 8px; border-radius: 7px; }
-.det table.tab th, .det table.tab td { padding-left: 10px; padding-right: 10px; }
-.det table.tab td:nth-child(2) { max-width: 230px; overflow: hidden; text-overflow: ellipsis; }
-table.tab input.in.q { width: 70px; text-align: right; }
-table.tab select.in { width: 118px; }
-table.tab input.in.mud, table.tab select.in.mud { border-color: var(--destaque); }
-tr.nova td { background: color-mix(in srgb, #16a34a 9%, transparent); }
-tr.removida td { opacity: .5; text-decoration: line-through; }
-tr.removida td:last-child { opacity: 1; text-decoration: none; }
-.ins-inat { font-size: 10px; font-weight: 800; color: var(--erro); display: block; }
-.bom-vazia { padding: 18px 16px; color: var(--texto-suave); font-size: 13px; }
-.add-ins { display: flex; gap: 10px; padding: 12px 16px; border-top: 1px solid var(--linha); align-items: start; position: relative; }
-.add-ins .f-busca { flex: 1; }
-.sug { position: absolute; left: 16px; right: 200px; top: 54px; background: var(--painel); border: 1px solid var(--destaque); border-radius: 10px; box-shadow: var(--sombra); z-index: 4; overflow: hidden; }
-.sug div { display: flex; gap: 10px; align-items: center; padding: 8px 12px; font-size: 12.5px; cursor: pointer; }
-.sug div.on { background: color-mix(in srgb, var(--destaque) 16%, transparent); }
-.sug div b { min-width: 72px; }
-.sug div span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
-.sug .nada { color: var(--texto-suave); cursor: default; }
-.x { width: 28px; height: 28px; border-radius: 7px; border: 1px solid rgba(220,38,38,.4); background: transparent; color: #f87171; cursor: pointer; font-size: 15px; line-height: 1; }
-.x.volta { border-color: var(--borda); color: var(--texto-suave); font-size: 11px; width: auto; padding: 0 8px; }
-/* simulação */
-.sim { padding: 12px 16px; display: grid; grid-template-columns: auto repeat(3, 1fr); gap: 12px; align-items: center; }
-.sim .ent { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--texto-suave); font-weight: 700; flex-wrap: wrap; }
-.sim .ent input { width: 70px; height: 34px; text-align: right; font-weight: 800; padding: 0 8px; }
-.sim .r { background: var(--painel-2); border-radius: 10px; padding: 9px 12px; font-size: 11px; font-weight: 800; color: var(--texto-suave); min-width: 0; }
-.sim .r b { display: block; font-size: 20px; color: var(--texto); }
-.sim .r small { font-weight: 600; }
-.sim .aviso { grid-column: 1 / -1; font-size: 12px; color: var(--alerta); font-weight: 600; }
-.aud { font-size: 11.5px; color: var(--texto-suave); padding: 0 2px; display: flex; gap: 6px; align-items: center; }
-.aud svg { width: 14px; height: 14px; }
-.btn2.salvar { background: #16a34a; border-color: #16a34a; color: #fff; }
-.btn2 .n { background: rgba(255,255,255,.25); border-radius: 999px; padding: 0 7px; font-size: 11px; }
-.det-vazio { background: var(--painel); border: 1px solid var(--linha); border-radius: 12px; padding: 60px 20px; text-align: center; color: var(--texto-suave); font-size: 13px; }
-.voltar-mob { display: none; }
-.hist { display: grid; gap: 8px; font-size: 13px; }
-.hist div { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--linha); padding-bottom: 6px; }
-.hist span { color: var(--texto-suave); }
+/* stepper */
+.stepper { display: flex; padding: 12px 20px; background: var(--bg); }
+.st { flex: 1; display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 700; color: var(--texto-suave); min-width: 0; }
+.st span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.st i { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-style: normal; background: var(--painel-2); font-size: 13px; flex: none; }
+.st::after { content: ""; flex: 1; height: 2px; background: var(--linha); margin: 0 12px; min-width: 12px; }
+.st:last-child::after { display: none; }
+.st.feito i { background: #16a34a; color: #fff; } .st.feito { color: var(--texto); }
+.st.atual i { background: var(--destaque); color: #fff; } .st.atual { color: var(--destaque); }
 
-@media (max-width: 1200px) { .cadg { grid-template-columns: 320px 1fr; } .frm { grid-template-columns: 1fr 1fr; } }
-@media (max-width: 760px) {
-  .cadg { display: block; height: auto; min-height: 0; }
-  .lst { border: 0; background: transparent; }
-  .lst-top { padding: 0 0 10px; border: 0; }
-  .lst-l { overflow: visible; }
-  .pi { background: var(--painel); border: 1px solid var(--linha); border-radius: 10px; margin-bottom: 8px; }
-  .lst-rod { border: 0; padding: 4px 2px; }
-  .det { display: none; overflow: visible; }
-  body.mob-det .det { display: flex; }
-  body.mob-det .lst, body.mob-det .tit-pagina p { display: none; }
-  .frm { grid-template-columns: 1fr 1fr; }
-  .frm .f-desc { grid-column: 1 / -1; order: -1; }
-  .frm .f-cod { order: -2; grid-column: 1 / -1; }
-  .sim { grid-template-columns: 1fr 1fr 1fr; }
-  .sim .ent { grid-column: 1 / -1; }
-  .add-ins { flex-wrap: wrap; }
-  .add-ins .btn2 { width: 100%; justify-content: center; }
-  .sug { left: 16px; right: 16px; }
-  .det table.tab th:nth-child(2), .det table.tab td:nth-child(2), .det table.tab th:nth-child(4), .det table.tab td:nth-child(4) { display: none; }
-  table.tab select.in { width: 92px; }
-  table.tab input.in.q { width: 50px; }
-  .det table.tab td, .det table.tab th { padding: 8px 6px; }
-  .det table.tab td:last-child, .det table.tab th:last-child { padding-right: 10px; }
-  .det table.tab td:first-child, .det table.tab th:first-child { padding-left: 12px; }
-  .bx-cab .s { display: none; }
-  .bx-cab { flex-wrap: wrap; }
-  .bx-cab .dir [data-acao="historico"] { display: none; }
-  .bx-cab .dir { flex-wrap: wrap; justify-content: flex-end; }
-  .bx { overflow: hidden; }
-  .voltar-mob { display: inline-flex; }
-  .aud-hist { display: inline-flex !important; }
+/* área das etapas */
+.corpo { padding: 6px 20px 14px; min-height: 0; display: flex; }
+.etapa { display: none; flex: 1; min-width: 0; min-height: 0; gap: 16px; }
+.etapa.ativa { display: grid; }
+#etapa2 { grid-template-columns: minmax(300px, 400px) 1fr; }
+#etapa3 { grid-template-columns: 1.05fr 1fr; }
+#etapa4 { grid-template-columns: 1fr 340px; }
+#etapa5.ativa { display: grid; place-items: center; }
+#etapa6 { grid-template-columns: 1fr; }
+.cx { background: var(--painel); border: 1px solid var(--linha); border-radius: 14px; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; min-height: 0; min-width: 0; }
+.cx h2 { margin: 0; font-size: 18px; } .cx .sub { margin: -8px 0 0; font-size: 12.5px; color: var(--texto-suave); }
+.cx h2 small { color: var(--texto-suave); font-weight: 600; font-size: 18px; }
+.rot { font-size: 11px; font-weight: 800; color: var(--texto-suave); letter-spacing: .5px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+kbd { font: 700 10px var(--fonte); padding: 1px 5px; border-radius: 4px; border: 1px solid var(--borda); background: var(--painel-2); color: var(--texto-suave); }
+
+/* botões de escolha (tipo, processo, lado) */
+.grade { display: grid; gap: 8px; }
+.op-b { min-width: 0; min-height: 46px; padding: 4px 8px; border-radius: 10px; border: 1px solid var(--borda); background: var(--painel-2); font-weight: 800; font-size: 13.5px; line-height: 1.15; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; text-align: center; }
+.op-b small { font-size: 10px; color: var(--texto-suave); font-weight: 700; }
+.op-b.on { background: color-mix(in srgb, var(--destaque) 20%, var(--painel-2)); border-color: var(--destaque); color: var(--destaque); }
+.op-b.ref.on { background: rgba(220,38,38,.18); border-color: #dc2626; color: #f87171; }
+.op-b.ret.on { background: rgba(59,130,246,.18); border-color: #3b82f6; color: #93c5fd; }
+.op-b.mol.on { background: rgba(168,85,247,.18); border-color: #a855f7; color: #d8b4fe; }
+html.tema-claro .op-b.mol.on { color: #7e22ce; }
+.tt-mob { display: none; }
+.tt.mol { background: rgba(168,85,247,.18); color: #d8b4fe; } html.tema-claro .tt.mol { color: #7e22ce; }
+html.tema-claro .op-b.ref.on { color: #b91c1c; } html.tema-claro .op-b.ret.on { color: #1d4ed8; }
+.op-b:disabled { opacity: .4; cursor: not-allowed; }
+.op-b:focus-visible { outline: 2px solid #3b82f6; outline-offset: 1px; }
+
+/* campos */
+.lin { display: grid; gap: 10px; }
+.cmp { display: grid; gap: 6px; position: relative; align-content: start; min-width: 0; }
+.cmp input { height: 46px; font-size: 16px; font-weight: 700; }
+.cmp input:disabled { opacity: .4; }
+input.valido { border-color: #16a34a; } input.invalido { border-color: #dc2626; }
+.op-grande { height: 60px !important; font-size: 28px !important; font-weight: 800; letter-spacing: 2px; }
+.msg { font-size: 11.5px; font-weight: 700; min-height: 14px; color: var(--texto-suave); }
+.msg.erro { color: #f87171; } .msg.ok { color: #34d399; } .msg.aviso { color: #fbbf24; }
+html.tema-claro .msg.erro { color: #b91c1c; } html.tema-claro .msg.ok { color: #15803d; }
+.inp-mot { position: relative; }
+.sug { position: absolute; top: calc(100% + 4px); left: 0; right: 0; margin: 0; padding: 0; list-style: none; background: var(--painel); border: 1px solid var(--destaque); border-radius: 10px; box-shadow: var(--sombra); z-index: 5; overflow: hidden; }
+.sug li { padding: 11px 12px; font-size: 13px; font-weight: 700; cursor: pointer; border-top: 1px solid var(--linha); }
+.sug li:first-child { border-top: 0; }
+.sug li.on, .sug li:hover { background: color-mix(in srgb, var(--destaque) 18%, transparent); }
+.sug mark { background: none; color: var(--destaque); font-weight: 800; }
+.add { height: 46px; border-radius: 10px; background: #16a34a; border: 0; color: #fff; font-weight: 800; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; width: 100%; }
+.add svg { width: 18px; height: 18px; }
+.add:disabled { opacity: .45; cursor: not-allowed; }
+.bbusca { height: 50px; border-radius: 10px; border: 1px solid var(--borda); background: var(--painel-2); font-weight: 800; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; width: 100%; }
+.bbusca.ok { background: #16a34a; border-color: #16a34a; color: #fff; }
+.aviso { padding: 9px 12px; font-size: 12.5px; font-weight: 700; border-radius: 10px; background: rgba(220,38,38,.12); color: #f87171; border: 1px solid rgba(220,38,38,.35); }
+.aviso.trava { background: rgba(234,179,8,.13); color: #eab308; border-color: rgba(234,179,8,.4); }
+html.tema-claro .aviso { color: #b91c1c; } html.tema-claro .aviso.trava { color: #92400e; }
+.so-ver { font-size: 12.5px; }
+
+/* dados da OP */
+.dados { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.dado { background: var(--painel-2); border-radius: 10px; padding: 10px 12px; min-width: 0; }
+.dado span { display: block; font-size: 10.5px; font-weight: 800; color: var(--texto-suave); letter-spacing: .5px; }
+.dado b { display: block; font-size: 15px; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dado.inteiro { grid-column: 1 / -1; }
+.dado.destaque b { font-size: 24px; color: #34d399; }
+html.tema-claro .dado.destaque b { color: #15803d; }
+.dado b small { font-size: 12px; color: var(--texto-suave); font-weight: 600; }
+.vazio-op { flex: 1; display: grid; place-items: center; color: var(--texto-suave); font-size: 13px; border: 1px dashed var(--borda); border-radius: 10px; min-height: 140px; }
+
+/* tabelas de itens */
+.lista-box { flex: 1; min-height: 0; overflow: auto; }
+table.it { width: 100%; border-collapse: collapse; font-size: 13px; }
+table.it th { text-align: left; font-size: 10.5px; color: var(--texto-suave); letter-spacing: .5px; padding: 7px 8px; border-bottom: 1px solid var(--linha); position: sticky; top: 0; background: var(--painel); }
+table.it td { padding: 9px 8px; border-bottom: 1px solid var(--linha); }
+table.it tr.novo td { background: color-mix(in srgb, #16a34a 10%, transparent); }
+table.it .n { text-align: right; font-variant-numeric: tabular-nums; }
+.tt { font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 5px; white-space: nowrap; } .tt.ref { background: rgba(220,38,38,.18); color: #f87171; } .tt.ret { background: rgba(59,130,246,.18); color: #93c5fd; }
+html.tema-claro .tt.ref { color: #b91c1c; } html.tema-claro .tt.ret { color: #1d4ed8; }
+.tt.est { background: var(--painel-2); color: var(--texto-suave); }
+.x { width: 34px; height: 34px; border: 1px solid var(--borda); background: transparent; border-radius: 8px; color: var(--texto-suave); cursor: pointer; font-size: 16px; }
+.lista-vazia { padding: 22px; text-align: center; font-size: 13px; color: var(--texto-suave); border: 1px dashed var(--borda); border-radius: 10px; }
+.med { margin-top: auto; display: grid; gap: 6px; font-size: 12.5px; color: var(--texto-suave); }
+.med .l { display: flex; justify-content: space-between; gap: 10px; } .med b { color: var(--texto); }
+.bar { height: 12px; border-radius: 999px; background: var(--painel-2); overflow: hidden; } .bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #16a34a, #eab308); transition: width .2s; }
+.bar.cheio i { background: #dc2626; }
+
+/* confirmar */
+.tot { display: grid; gap: 10px; }
+.tot div { background: var(--painel-2); border-radius: 10px; padding: 12px 14px; font-size: 11px; font-weight: 800; color: var(--texto-suave); letter-spacing: .5px; }
+.tot b { display: block; font-size: 24px; color: var(--texto); letter-spacing: 0; margin-top: 3px; } .tot b small { font-size: 12px; color: var(--texto-suave); font-weight: 600; }
+.reg { height: 56px; border-radius: 12px; border: 0; background: #dc2626; color: #fff; font-weight: 800; font-size: 16px; margin-top: auto; cursor: pointer; width: 100%; }
+.reg:disabled { opacity: .55; cursor: wait; }
+
+/* resultado */
+.cartao { width: min(460px, 100%); background: var(--painel); border: 1px solid var(--linha); border-radius: 16px; padding: 26px; display: grid; gap: 12px; text-align: center; box-shadow: var(--sombra); }
+.cartao h2 { margin: 0; font-size: 20px; } .cartao p { margin: 0; color: var(--texto-suave); font-size: 13.5px; }
+.res-ic { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; margin: 0 auto; background: rgba(22,163,74,.16); color: #34d399; }
+.res-ic svg { width: 34px; height: 34px; }
+.res-ic.aviso-ic { background: rgba(234,179,8,.16); color: #eab308; }
+.bgrande { height: 52px; border-radius: 12px; border: 1px solid var(--borda); background: var(--painel-2); font-weight: 800; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; width: 100%; color: var(--texto); }
+.bgrande.verde { background: #16a34a; border-color: #16a34a; color: #fff; }
+
+/* conferência do dia */
+.conf-topo { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+.conf-totais { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.conf-rod { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.contagem { font-size: 13px; color: var(--texto-suave); } .contagem b { font-size: 20px; color: #eab308; display: inline-block; min-width: 26px; text-align: center; }
+.barra-tempo { height: 6px; border-radius: 999px; background: var(--painel-2); overflow: hidden; }
+.barra-tempo i { display: block; height: 100%; width: 100%; background: #eab308; transition: width 1s linear; }
+.conf-rod .bgrande { width: auto; min-width: 230px; padding: 0 20px; }
+
+/* rodapé */
+.rod { display: flex; align-items: center; gap: 14px; padding: 0 20px; background: var(--painel); border-top: 1px solid var(--linha); min-width: 0; }
+.rod .dica { font-size: 12px; color: var(--texto-suave); display: flex; gap: 6px; align-items: center; flex-wrap: wrap; min-width: 0; }
+.rod .dir { margin-left: auto; display: flex; gap: 10px; align-items: center; }
+.rod .trava { font-size: 12px; color: #eab308; font-weight: 700; }
+html.tema-claro .rod .trava { color: #92400e; }
+.bn { height: 42px; padding: 0 18px; border-radius: 10px; border: 1px solid var(--borda); background: var(--painel-2); font-weight: 800; cursor: pointer; color: var(--texto); white-space: nowrap; }
+.bn.pri { background: var(--destaque); border-color: var(--destaque); color: #fff; }
+.bn:disabled { opacity: .45; cursor: not-allowed; }
+
+/* ---------- tela baixa (notebook, navegador com barras) ----------
+   Nada pode passar por baixo da barra de botões do rodapé:
+   1) até 800 px de altura: tudo um pouco mais compacto;
+   2) até 680 px: a página passa a rolar inteira (rodapé vai para o fim,
+      nunca por cima do conteúdo). */
+@media (min-width: 761px) and (max-height: 800px) {
+  .corpo { padding: 4px 20px 10px; }
+  .cx { padding: 12px 14px; gap: 8px; }
+  .cx h2, .cx h3 { margin: 0; }
+  .grade { gap: 6px; }
+  .op-b { min-height: 38px; font-size: 12.5px; }
+  .cmp input { height: 40px; }
+  .add, .bbusca { height: 42px; }
+  .op-grande { height: 52px !important; font-size: 24px !important; }
+  .stepper { padding-top: 6px; padding-bottom: 6px; }
 }
-.aud-hist { display: none !important; }
+@media (min-width: 761px) and (max-height: 680px) {
+  body.kiosque main.conteudo { grid-template-rows: 56px auto auto 58px; height: auto; min-height: 100vh; overflow: visible; }
+  body.kiosque.sem-step main.conteudo { grid-template-rows: 56px auto; }
+  .lista-box { max-height: 320px; }
+}
+
+/* ---------- celular / terminal estreito ---------- */
+@media (max-width: 760px) {
+  body.kiosque main.conteudo { grid-template-rows: 52px auto auto; height: auto; min-height: 100vh; overflow: visible; }
+  body.kiosque.sem-step main.conteudo { grid-template-rows: 52px auto; }
+  .kcab { padding: 0 12px; gap: 10px; }
+  .kcab .m span, .kcab .nome-op, .kcab .u > .quem { display: none; }
+  .kcab .kbt .tx { display: none; } .kcab .kbt { width: 40px; padding: 0; justify-content: center; }
+  .kcab .kbt.sair .tx { display: inline; } .kcab .kbt.sair { width: auto; padding: 0 10px; }
+  .stepper { padding: 8px 12px; } .st span { display: none; } .st::after { margin: 0 6px; }
+  .corpo { padding: 8px 12px 84px; display: block; }
+  .etapa.ativa { display: grid; grid-template-columns: 1fr !important; }
+  #etapa3 .lista-itens { order: 2; }
+  .grade.g4 { grid-template-columns: repeat(2, 1fr) !important; }
+  .lin.ml { grid-template-columns: 1fr !important; }
+  .lin.qp { grid-template-columns: 1fr 1fr !important; } .lin.qp .cmp:last-child { grid-column: 1 / -1; } .lin.qp .cmp:last-child .rot { display: none; }
+  .op-b { min-height: 50px; } kbd, .op-b small, .dica-k { display: none !important; }
+  table.it th.c-lado, table.it td.c-lado { display: none; }
+  #boxConf table.it .c-tipo { display: none; } .tt-mob { display: inline !important; }
+  table.it { font-size: 12px; } table.it td, table.it th { padding: 8px 5px; }
+  .lista-box { overflow: visible; }
+  .conf-totais { grid-template-columns: 1fr 1fr; }
+  .conf-rod .bgrande { width: 100%; }
+  .rod { position: fixed; left: 0; right: 0; bottom: 0; height: 64px; padding: 0 12px; z-index: 20; }
+  .rod .dica, .rod .trava { display: none; } .rod .dir { width: 100%; } .rod .dir .bn { flex: 1; height: 46px; }
+  .dados { grid-template-columns: 1fr 1fr; }
+  .dado.destaque b { font-size: 20px; }
+}
+
+/* ---------- produção ---------- */
+.reg.verde { background: #16a34a; }
+.tt.mol { background: rgba(168,85,247,.18); color: #d8b4fe; }
+.tt.pec { background: rgba(59,130,246,.18); color: #93c5fd; }
+html.tema-claro .tt.pec { color: #1d4ed8; }
+.prod-lista { display: grid; gap: 6px; font-size: 13px; }
+.prod-lista div { display: flex; justify-content: space-between; gap: 10px; padding: 6px 10px; background: var(--painel-2); border-radius: 8px; }
+.prod-lista b { font-variant-numeric: tabular-nums; }
+.prod-lista .acima b { color: #eab308; }
+.bt-est { height: 30px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--borda); background: transparent; color: var(--texto-suave); font-weight: 700; font-size: 11px; cursor: pointer; }
+.bt-est:hover { color: #f87171; border-color: #dc2626; }
+#etapa3 { grid-template-columns: 1.05fr 1fr; }
 </style>
 </head>
 <body>
 
-<!-- Cadastros · Produtos e Estrutura.
-     Esquerda: lista de produtos (busca ignora zeros à esquerda; filtros).
-     Direita: dados do produto + estrutura (BOM) + simulação de consumo.
-     No celular: lista → detalhe. Edita: quem tem EDITAR na página (PCP/Admin). -->
+<!-- Registro de Produção — terminal do operador.
+     Mesmo fluxo do Registro de Refugo (OP → Lançar itens → Confirmar →
+     Resultado 15 s → Conferência do dia 15 s). Login do sistema; o setor
+     vem do cadastro e os processos são os mesmos do refugo. Depois da
+     OP o operador escolhe PEÇA ou MOLDE (molde: tampa + fundo = 1; só
+     Fundição). Um tipo por apontamento, sem misturar.
+     Acima do planejado pode (reposição), com confirmação.
+     Não mexe no processo da OP. -->
 <main class="conteudo">
-  <div class="tit-pagina">
-    <div><h1>Produtos e Estrutura</h1><p>Cadastro do produto e da BOM (luva, filtro, embalagem) · feito uma vez, usado em todas as OPs</p></div>
-    <div class="acoes-pagina so-desk"><button class="btn2 pri" data-acao="novo" data-editar hidden><svg class="i"><use href="#i-mais"/></svg>Novo produto</button></div>
+  <header class="kcab">
+    <div class="m"><b>PROMETALS</b><span>APONTAMENTO DE PRODUÇÃO</span></div>
+    <div class="u">
+      <span class="quem">Operador <b id="nomeOperador">—</b></span>
+      <span class="chip" id="chipSetor">—</span>
+      <span class="nome-op" id="nomeOP"></span>
+      <a class="kbt" id="lnkInicio" href="inicio.html" hidden title="Voltar ao sistema"><svg class="i"><use href="#i-home"/></svg><span class="tx">Início</span></a>
+      <button class="kbt ic" id="btnTema" title="Tema claro/escuro"><svg class="i"><use href="#i-lua"/></svg></button>
+      <button class="kbt sair" id="btnSairTopo" title="Sair"><svg class="i"><use href="#i-sair"/></svg><span class="tx">Sair</span></button>
+    </div>
+  </header>
+
+  <nav class="stepper" id="stepper">
+    <div class="st" data-etapa="2"><i>1</i><span>Ordem de Produção</span></div>
+    <div class="st" data-etapa="3"><i>2</i><span>Lançar produção</span></div>
+    <div class="st" data-etapa="4"><i>3</i><span>Confirmar</span></div>
+  </nav>
+
+  <div class="corpo">
+    <div class="carregando" id="carregandoCfg" style="flex:1">Carregando processos…</div>
+
+    <!-- ETAPA 2 · OP -->
+    <section class="etapa" id="etapa2">
+      <div class="cx">
+        <h2>Qual a OP?</h2><p class="sub">Digite o número e aperte <kbd>Enter</kbd>.</p>
+        <div class="cmp">
+          <span class="rot">NÚMERO DA OP</span>
+          <input id="op" class="op-grande" inputmode="numeric" autocomplete="off" placeholder="00000">
+          <span class="msg" id="msgOP"></span>
+        </div>
+        <button type="button" class="bbusca" id="btnBuscar"><svg class="i"><use href="#i-busca"/></svg><span>BUSCAR OP</span></button>
+        <div class="aviso trava so-ver" id="avisoSoVer" hidden>Seu perfil só pode consultar esta página. Para apontar produção é preciso permissão EDITAR.</div>
+      </div>
+      <div class="cx">
+        <h2>Dados da OP</h2><p class="sub">Confira se é a peça certa antes de continuar.</p>
+        <div class="vazio-op" id="opVazia">Nenhuma OP carregada.</div>
+        <div class="dados" id="opDados" hidden>
+          <div class="dado"><span>CLIENTE</span><b id="dCliente">-</b></div>
+          <div class="dado"><span>PEDIDO</span><b id="dPedido">-</b></div>
+          <div class="dado"><span>CÓDIGO</span><b id="dCodigo">-</b></div>
+          <div class="dado"><span>LIGA</span><b id="dLiga">-</b></div>
+          <div class="dado inteiro"><span>DESCRIÇÃO</span><b id="dDescricao">-</b></div>
+          <div class="dado"><span>QTD ORDEM / QTD MOLDES</span><b id="dQtds">-</b></div>
+          <div class="dado"><span>PESO BRUTO UNITÁRIO</span><b id="dPesoBruto">-</b></div>
+          <div class="dado destaque"><span>QTD TOTAL DA OP</span><b id="dLimite">-</b></div>
+          <div class="dado destaque"><span>JÁ APONTADO</span><b id="dJa">-</b></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ETAPA 3 · LANÇAR -->
+    <section class="etapa" id="etapa3">
+      <div class="cx">
+        <h2>Novo item</h2><p class="sub">Escolha o que vai apontar, o processo e a quantidade.</p>
+        <div id="blocoTipo" hidden>
+          <span class="rot" style="margin-bottom:6px">O QUE VOCÊ VAI APONTAR? <kbd>T</kbd> <span class="dica-k">alterna</span></span>
+          <div class="grade" id="gradeTipos" style="grid-template-columns:1fr 1fr"></div>
+        </div>
+        <span class="rot" id="rotuloProcesso">PROCESSO</span>
+        <div class="grade g4" id="gradeProcessos"></div>
+        <div class="lin qp" style="grid-template-columns:1fr 1.1fr">
+          <div class="cmp"><span class="rot" id="rotuloQtd">QTD</span><input id="qtd" inputmode="numeric" autocomplete="off"><span class="msg" id="msgQtd"></span></div>
+          <div class="cmp"><span class="rot">&nbsp;</span><button type="button" class="add" id="btnAdicionar" disabled><svg class="i"><use href="#i-mais"/></svg>ADICIONAR <span class="dica-k">(Enter)</span></button></div>
+        </div>
+        <div class="aviso trava" id="avisoAcima" hidden></div>
+      </div>
+      <div class="cx lista-itens">
+        <h2>Itens desta OP <small id="contItens"></small></h2><p class="sub">O item mais recente fica destacado.</p>
+        <div class="lista-box" id="boxItens"></div>
+      </div>
+    </section>
+
+    <!-- ETAPA 4 · CONFIRMAR -->
+    <section class="etapa" id="etapa4">
+      <div class="cx">
+        <h2>Confira antes de registrar</h2><p class="sub" id="resumoOP"></p>
+        <div class="lista-box" id="boxResumo"></div>
+        <div class="aviso trava" id="avisoResumoAcima" hidden></div>
+        <div class="aviso" id="avisoRegistro" hidden></div>
+      </div>
+      <div class="cx">
+        <div class="tot">
+          <div><span id="rotTotal">TOTAL</span><b id="totQtd">0</b></div>
+          <div>ITENS<b id="totItens">0</b></div>
+        </div>
+        <button type="button" class="reg verde" id="btnRegistrar">REGISTRAR PRODUÇÃO</button>
+        <span class="msg dica-k" style="text-align:center"><kbd>Ctrl</kbd> + <kbd>Enter</kbd> registrar</span>
+      </div>
+    </section>
+
+    <!-- ETAPA 5 · RESULTADO -->
+    <section class="etapa" id="etapa5">
+      <div class="cartao">
+        <div class="res-ic" id="resIcone"><svg class="i"><use href="#i-check"/></svg></div>
+        <h2 id="resTitulo">Produção registrada!</h2>
+        <p id="resTexto"></p>
+        <button type="button" class="bgrande verde" id="btnNovo"><svg class="i"><use href="#i-mais"/></svg>NOVO APONTAMENTO <span class="dica-k">(Enter)</span></button>
+        <button type="button" class="bgrande" id="btnSair"><svg class="i"><use href="#i-sair"/></svg>SAIR</button>
+        <div class="contagem" style="margin-top:14px">Sem resposta, sai do sistema em <b id="novoSeg">15</b> s</div>
+        <div class="barra-tempo" style="margin-top:6px"><i id="novoBarra"></i></div>
+      </div>
+    </section>
+
+    <!-- ETAPA 6 · CONFERÊNCIA DO DIA (ao sair) -->
+    <section class="etapa" id="etapa6">
+      <div class="cx">
+        <div class="conf-topo">
+          <div><h2 id="confTitulo">Conferência do dia</h2><p class="sub" id="confSub" style="margin-top:4px">Confira se os apontamentos de hoje estão corretos.</p></div>
+          <span class="msg" id="confFonte"></span>
+        </div>
+        <div class="conf-totais" id="confTotais"></div>
+        <div class="lista-box" id="boxConf"></div>
+        <div class="conf-rod">
+          <div class="contagem">Saindo do sistema em <b id="confSeg">15</b> s</div>
+          <button type="button" class="bgrande verde" id="btnConfOk"><svg class="i"><use href="#i-check"/></svg>OK, CONFERI <span class="dica-k">(Enter)</span></button>
+        </div>
+        <div class="barra-tempo"><i id="confBarra"></i></div>
+      </div>
+    </section>
   </div>
 
-  <div class="cadg">
-    <aside class="lst">
-      <div class="lst-top">
-        <div class="f-busca"><svg class="i"><use href="#i-busca"/></svg><input id="busca" autocomplete="off" placeholder="Código ou descrição (ignora zeros à esquerda)…"></div>
-        <div class="chips" id="chips"></div>
-      </div>
-      <div class="lst-l" id="lista"><div class="carregando">Carregando…</div></div>
-      <div class="lst-rod" id="rod"></div>
-    </aside>
-    <section class="det" id="det"><div class="det-vazio">Escolha um produto na lista.</div></section>
-  </div>
+  <footer class="rod">
+    <div class="dica" id="dicaTeclas"></div>
+    <div class="dir">
+      <span class="trava" id="trava"></span>
+      <button type="button" class="bn" id="btnVoltar">◀ VOLTAR</button>
+      <button type="button" class="bn pri" id="btnAvancar">PRÓXIMO ▶</button>
+    </div>
+  </footer>
 </main>
 
 <script src="js/config.js"></script>
@@ -175,545 +372,574 @@ tr.removida td:last-child { opacity: 1; text-decoration: none; }
 <script src="js/sessao.js"></script>
 <script src="js/shell.js"></script>
 <script>
-Sessao.iniciarPagina('produtos').then(function (ctx) {
-  const $ = function (s) { return document.querySelector(s); };
-  const pode = ctx.podeEditar;
-  const CLS_CAT = { LUVA: 'luva', FILTRO: 'filtro', EMBALAGEM: 'emb', OUTROS: 'out' };
-  const MAX_LISTA = 800;     // desenha no máximo 800 itens (a busca afina o resto)
+Sessao.iniciarPagina('producao').then(function (ctx) {
+  document.body.classList.add('kiosque');
+  const $ = function (id) { return document.getElementById(id); };
+  const esc = Ui.esc;
 
-  let produtos = [];         // cadastro completo (inclui inativos), com QTD_INSUMOS
-  let insumos = [];          // insumos ATIVOS (para adicionar à BOM)
-  let filtro = 'TODOS';      // TODOS | COM | SEM | INATIVOS
-  let atual = null;          // produto aberto no detalhe (ver abrir())
-  let sug = [], sugSel = 0;  // sugestões da busca de insumo
-  let salvando = false;
+  const CONFERENCIA_SEGUNDOS = 15;
+  const PERGUNTA_NOVO_SEGUNDOS = 15;   // sem resposta depois de registrar → desloga
+  const NOME_SETOR = { FUNDICAO: 'FUNDIÇÃO', USINAGEM: 'USINAGEM' };
 
-  if (pode) document.querySelectorAll('[data-editar]').forEach(function (b) { b.hidden = false; });
+  /* ---------- ESTADO ---------- */
+  const opVazia = function () { return { valida: false, numero: '', dados: null }; };
+  const estado = {
+    etapa: 2,
+    cfg: { setor: '', processos: [] },
+    op: opVazia(),
+    tipo: '',              // PECA ou MOLDE (um por apontamento)
+    processo: '',
+    itens: [],             // [{processo, unidade, qtd}] — todos do mesmo tipo
+    gravadosSessao: [],
+    enviando: false, buscando: false,
+    idReq: null
+  };
 
-  carregar().then(function () {
-    const pedido = new URLSearchParams(location.search).get('cod');
-    const alvo = pedido ? acharProduto(pedido) : null;
-    if (alvo) abrir(alvo.COD_ITEM);
-    else if (!mobile()) { const p = visiveis()[0]; if (p) abrir(p.COD_ITEM); }
+  /* ---------- UTILITÁRIOS ---------- */
+  function setMsg(id, texto, tipo) { const el = $(id); el.textContent = texto || ''; el.className = 'msg' + (tipo ? ' ' + tipo : ''); }
+  function marcarCampo(id, ok) { $(id).classList.toggle('invalido', ok === false); $(id).classList.toggle('valido', ok === true); }
+  function haModal() { return !!document.querySelector('.modal-fundo'); }
+  function tipos() { return estado.cfg.tipos || ['PECA']; }
+  function temTipo() { return tipos().length > 1; }
+  function unidadeDe() { return estado.tipo || 'PECA'; }
+  function nomeUn(u, n) { return u === 'MOLDE' ? (n === 1 ? 'molde' : 'moldes') : (n === 1 ? 'peça' : 'peças'); }
+  function tagUn(u) { return u === 'MOLDE' ? '<span class="tt mol">MOLDE</span>' : '<span class="tt pec">PEÇA</span>'; }
+  function soma(lista, filtro) { return lista.filter(filtro || function () { return true; }).reduce(function (s, it) { return s + it.qtd; }, 0); }
+  // Planejado da OP para a unidade: molde → moldes planejados; peça → peças da OP
+  function planejado(unidade) {
+    const d = estado.op.dados || {};
+    return unidade === 'MOLDE' ? Number(d.qtdMoldes) || 0 : Number(d.qtdPecas) || 0;
+  }
+  function jaProduzido(processo) { const d = estado.op.dados || {}; return Number((d.produzido || {})[unidadeDe() + '|' + processo]) || 0; }
+  function naLista(processo) { return soma(estado.itens, function (it) { return it.processo === processo; }); }
+  // Processos que, com esta lista, passam do planejado
+  function acimaDoPlanejado(extra) {
+    const proc = {};
+    estado.itens.concat(extra ? [extra] : []).forEach(function (it) { proc[it.processo] = true; });
+    return Object.keys(proc).map(function (p) {
+      const u = unidadeDe(), plan = planejado(u);
+      const total = jaProduzido(p) + naLista(p) + (extra && extra.processo === p ? extra.qtd : 0);
+      return { processo: p, unidade: u, total: total, plan: plan };
+    }).filter(function (x) { return x.plan > 0 && x.total > x.plan; });
+  }
+
+  /* ---------- CABEÇALHO ---------- */
+  $('nomeOperador').textContent = ctx.usuario.nome || ctx.usuario.login;
+  const outras = ctx.paginas.filter(function (p) {
+    return p.id !== 'inicio' && p.id !== 'producao' && p.nivel !== 'NENHUM' && CONFIG.PAGINAS_PRONTAS.indexOf(p.id) !== -1;
   });
-  carregarInsumos();
+  $('lnkInicio').hidden = !outras.length;
+  $('btnTema').addEventListener('click', function () {
+    const b = document.querySelector('.topo [data-acao="tema"]');
+    if (b) b.click();
+  });
+  if (!ctx.podeEditar) $('avisoSoVer').hidden = false;
 
-  // ---------- Dados ----------
-  async function carregar() {
+  /* ---------- CARGA INICIAL ---------- */
+  carregarConfig();
+  async function carregarConfig() {
     try {
-      produtos = await Api.chamar('listarProdutos', { incluirInativos: true }, { rapido: function () { if (!document.querySelector('.modal-fundo')) carregar(); } });
-      produtos.sort(function (a, b) { return String(a.COD_ITEM).localeCompare(String(b.COD_ITEM)); });
-      desenharLista();
+      const r = await Api.chamar('inicioProducao', {}, { rapido: function (n) { estado.cfg = n; } });
+      estado.cfg = r;
+      $('chipSetor').textContent = r.setor ? (NOME_SETOR[r.setor] || r.setor) : 'TODOS OS SETORES';
+      $('carregandoCfg').remove();
+      ligarEventos();
+      montarProcessos();
+      irPara(2);
     } catch (e) {
-      Ui.erro(e);
-      $('#lista').innerHTML = '<div class="vazio">Não foi possível carregar. ' + Ui.esc(e.message) + '</div>';
+      $('carregandoCfg').className = 'vazio';
+      $('carregandoCfg').innerHTML = esc(e.message) + '<br><br><button class="bn pri" id="btnDeNovo">Tentar de novo</button>';
+      $('btnDeNovo').addEventListener('click', function () { $('carregandoCfg').className = 'carregando'; $('carregandoCfg').textContent = 'Carregando…'; carregarConfig(); });
     }
   }
-  async function carregarInsumos() {
-    try { insumos = await Api.chamar('listarInsumos', {}, { rapido: function (n) { insumos = n; } }); } catch (e) { /* sem a lista, só não sugere */ }
+
+  /* ---------- ETAPA 2 · OP ---------- */
+  function onOpDigitada() {
+    $('op').value = $('op').value.replace(/\D/g, '');
+    if (estado.op.valida && $('op').value !== estado.op.numero) {
+      estado.op = opVazia();
+      limparItens();
+    }
+    renderOP();
+    render();
   }
 
-  // ---------- Códigos: toda busca ignora os zeros à esquerda ----------
-  function semZeros(v) { return String(v === null || v === undefined ? '' : v).trim().toUpperCase().replace(/^0+(?=.)/, ''); }
-  function acharProduto(cod) {
-    const k = semZeros(cod);
-    return produtos.find(function (p) { return semZeros(p.COD_ITEM) === k; }) || null;
-  }
-  // Cada palavra digitada precisa aparecer no código (sem zeros) ou na descrição.
-  function bate(busca, codigo, descricao) {
-    const palavras = busca.toUpperCase().split(/\s+/).filter(Boolean);
-    const cod = semZeros(codigo), txt = String(codigo).toUpperCase() + ' ' + String(descricao || '').toUpperCase();
-    return palavras.every(function (w) { return txt.indexOf(w) !== -1 || cod.indexOf(semZeros(w)) !== -1; });
+  function renderOP() {
+    const op = estado.op;
+    $('opVazia').hidden = op.valida;
+    $('opDados').hidden = !op.valida;
+    const b = $('btnBuscar');
+    if (op.valida) {
+      const d = op.dados;
+      $('dCliente').textContent = d.cliente || '-';
+      $('dPedido').textContent = d.pedido || '-';
+      $('dCodigo').textContent = d.codigo || '-';
+      $('dLiga').textContent = d.liga || '-';
+      $('dDescricao').textContent = d.descricao || '-';
+      const lim = Number(d.qtdPrevalece) || 0;
+      $('dQtds').textContent = (Number(d.qtdPecas) || 0) + ' / ' + (Number(d.qtdMoldes) || 0);
+      $('dPesoBruto').textContent = (lim > 0 ? (Number(d.pesoTotalMoldes) || 0) / lim : 0).toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 3 }) + ' kg';
+      $('dLimite').textContent = lim;
+      $('dJa').innerHTML = (temTipo() ? (Number(d.jaMoldes) || 0) + ' <small>' + nomeUn('MOLDE', Number(d.jaMoldes) || 0) + '</small> · ' : '') +
+        (Number(d.jaPecas) || 0) + ' <small>' + nomeUn('PECA', Number(d.jaPecas) || 0) + '</small>';
+      setMsg('msgOP', 'OP encontrada' + (d.status && d.status !== 'ABERTA' && d.status !== 'EM_PRODUCAO' ? ' · situação ' + d.status.replace(/_/g, ' ') : ''), 'ok');
+      marcarCampo('op', true);
+      b.classList.add('ok');
+      b.querySelector('span').textContent = 'OP VALIDADA';
+    } else {
+      marcarCampo('op', null);
+      b.classList.remove('ok');
+      b.querySelector('span').textContent = estado.buscando ? 'BUSCANDO...' : 'BUSCAR OP';
+    }
   }
 
-  // ---------- Lista ----------
-  function visiveis() {
-    const busca = $('#busca').value.trim();
-    return produtos.filter(function (p) {
-      const ativo = p.ATIVO === 'SIM';
-      if (filtro === 'INATIVOS' ? ativo : !ativo) return false;
-      if (filtro === 'COM' && !(p.QTD_INSUMOS > 0)) return false;
-      if (filtro === 'SEM' && p.QTD_INSUMOS > 0) return false;
-      return !busca || bate(busca, p.COD_ITEM, p.DESCRICAO);
-    });
+  async function buscarOP() {
+    const numero = $('op').value.trim();
+    if (!numero) { setMsg('msgOP', 'Digite o número da OP', 'erro'); marcarCampo('op', false); return; }
+    if (estado.buscando) return;
+    estado.buscando = true;
+    $('btnBuscar').disabled = true;
+    $('btnBuscar').querySelector('span').textContent = 'BUSCANDO...';
+    setMsg('msgOP', '');
+    try {
+      const d = await Api.chamar('buscarOPProducao', { op: numero });
+      if ($('op').value.trim() !== numero) return;
+      estado.op = { valida: true, numero: numero, dados: d };
+      limparItens();
+      renderOP();
+      $('btnAvancar').focus();
+    } catch (e) {
+      if ($('op').value.trim() !== numero) return;
+      estado.op = opVazia();
+      renderOP();
+      setMsg('msgOP', e.codigo === 'SEM_CONEXAO' ? 'Erro ao buscar a OP. Verifique a conexão e tente de novo.' : e.message, 'erro');
+      marcarCampo('op', false);
+    } finally {
+      estado.buscando = false;
+      $('btnBuscar').disabled = false;
+      if (!estado.op.valida) $('btnBuscar').querySelector('span').textContent = 'BUSCAR OP';
+      render();
+    }
   }
 
-  function desenharLista() {
-    const ativos = produtos.filter(function (p) { return p.ATIVO === 'SIM'; });
-    const com = ativos.filter(function (p) { return p.QTD_INSUMOS > 0; }).length;
-    const inat = produtos.length - ativos.length;
-    const chips = [['TODOS', 'Todos · ' + ativos.length, ''], ['COM', 'Com BOM · ' + com, ''], ['SEM', 'Sem BOM · ' + (ativos.length - com), 'am'],
-      ['INATIVOS', 'Inativos' + (inat ? ' · ' + inat : ''), '']];
-    $('#chips').innerHTML = chips.map(function (c) {
-      return '<button class="' + c[2] + (filtro === c[0] ? ' on' : '') + '" data-filtro="' + c[0] + '">' + c[1] + '</button>';
+  /* ---------- ETAPA 3 · LANÇAR ---------- */
+  function montarProcessos() {
+    const lista = estado.cfg.processos;
+    const grade = $('gradeProcessos');
+    grade.style.gridTemplateColumns = 'repeat(' + (lista.length > 6 && window.innerWidth >= 1150 ? 4 : lista.length >= 3 ? 3 : Math.max(lista.length, 1)) + ', minmax(0, 1fr))';
+    grade.innerHTML = lista.map(function (p, i) {
+      return '<button type="button" class="op-b" data-processo="' + esc(p.processo) + '">' + (i < 9 ? '<small>' + (i + 1) + '</small>' : '') + esc(p.processo) + '</button>';
     }).join('');
-    const lista = visiveis();
-    const cod = atual && !atual.novo ? atual.orig.cod : null;
-    $('#lista').innerHTML = lista.slice(0, MAX_LISTA).map(function (p) {
-      const b = p.QTD_INSUMOS > 0 ? '<span class="bom ok">BOM · ' + p.QTD_INSUMOS + '</span>' : '<span class="bom sem">sem BOM</span>';
-      return '<div class="pi' + (p.COD_ITEM === cod ? ' sel' : '') + (p.ATIVO !== 'SIM' ? ' inativo' : '') + '" data-cod="' + Ui.esc(p.COD_ITEM) + '">' +
-        '<b>' + Ui.esc(p.COD_ITEM) + '</b>' + b + '<span class="d">' + Ui.esc(p.DESCRICAO) + '</span></div>';
-    }).join('') || '<div class="vazio">Nenhum produto encontrado.</div>';
-    $('#rod').textContent = lista.length > MAX_LISTA
-      ? 'Mostrando ' + MAX_LISTA + ' de ' + lista.length + ' · refine a busca'
-      : lista.length + ' de ' + produtos.length + ' produtos · ' + com + ' com BOM';
+    // PEÇA | MOLDE (molde só para a Fundição). Um tipo só: já vem escolhido.
+    const ts = tipos();
+    $('gradeTipos').innerHTML = ts.map(function (t) {
+      return '<button type="button" class="op-b ' + (t === 'MOLDE' ? 'mol' : 'ret') + '" data-tipo="' + t + '">' + (t === 'MOLDE' ? 'PRODUÇÃO DE MOLDE' : 'PRODUÇÃO DE PEÇA') + '</button>';
+    }).join('');
+    $('blocoTipo').hidden = !temTipo();
+    if (!temTipo()) estado.tipo = ts[0];
+    const setor = estado.cfg.setor ? (NOME_SETOR[estado.cfg.setor] || estado.cfg.setor) : 'TODOS OS SETORES';
+    $('rotuloProcesso').innerHTML = 'PROCESSO · ' + esc(setor) + (lista.length ? ' <kbd>1</kbd>–<kbd>' + Math.min(lista.length, 9) + '</kbd>' : '');
+    // Setor com um processo só: já vem escolhido
+    if (lista.length === 1) estado.processo = lista[0].processo;
   }
 
-  $('#busca').addEventListener('input', desenharLista);
-  $('#chips').addEventListener('click', function (ev) {
-    const b = ev.target.closest('[data-filtro]');
-    if (!b) return;
-    filtro = b.dataset.filtro;
-    desenharLista();
-  });
-  $('#lista').addEventListener('click', async function (ev) {
-    const it = ev.target.closest('.pi[data-cod]');
-    if (!it) return;
-    if (atual && !atual.novo && it.dataset.cod === atual.orig.cod) { document.body.classList.add('mob-det'); return; }
-    if (!(await podeSair())) return;
-    abrir(it.dataset.cod);
-  });
-
-  // ---------- Abrir produto ----------
-  function mobile() { return window.innerWidth <= 760; }
-
-  async function abrir(cod) {
-    document.body.classList.add('mob-det');
-    // Já veio na lista (com a estrutura): abre NA HORA e confere no servidor por trás
-    const daLista = acharProduto(cod);
-    if (daLista && Array.isArray(daLista.ESTRUTURA)) {
-      const prod = Object.assign({}, daLista); delete prod.ESTRUTURA; delete prod.QTD_INSUMOS;
-      montar(prod, daLista.ESTRUTURA);
-      conferirNoServidor(prod.COD_ITEM, JSON.stringify([prod, daLista.ESTRUTURA]));
-      return;
-    }
-    $('#det').innerHTML = '<div class="det-vazio carregando">Carregando…</div>';
-    try {
-      const r = await Api.chamar('buscarProduto', { cod_item: cod });
-      if (!r.encontrado) throw new Api.Erro('NAO_ENCONTRADO', 'Produto ' + cod + ' não encontrado.');
-      montar(r.produto, r.estrutura);
-    } catch (e) {
-      Ui.erro(e);
-      $('#det').innerHTML = '<div class="det-vazio">Não foi possível abrir o produto. ' + Ui.esc(e.message) + '</div>';
-    }
+  function escolherProcesso(nome) {
+    if (!estado.tipo) return;
+    estado.processo = nome;
+    renderForm();
+    $('qtd').focus();
   }
 
-  // Confere se alguém mudou este produto desde a última cópia. Se mudou e a
-  // pessoa ainda não alterou nada na tela, mostra a versão nova sem avisar.
-  async function conferirNoServidor(cod, comoAbriu) {
-    try {
-      const r = await Api.chamar('buscarProduto', { cod_item: cod });
-      if (!r.encontrado || !atual || atual.novo || semZeros(atual.orig.cod) !== semZeros(cod) || temMudanca()) return;
-      const prod = Object.assign({}, r.produto); delete prod.QTD_INSUMOS;
-      if (JSON.stringify([prod, r.estrutura]) !== comoAbriu) montar(r.produto, r.estrutura);
-    } catch (e) { /* segue com o que já está na tela */ }
+  // Troca peça/molde. Com itens na lista, pergunta antes (não mistura os dois).
+  async function escolherTipo(t) {
+    if (estado.tipo === t || tipos().indexOf(t) === -1) return;
+    if (estado.itens.length && !(await Ui.confirmar({ titulo: 'Trocar para ' + (t === 'MOLDE' ? 'molde' : 'peça'),
+      texto: 'Os ' + estado.itens.length + ' item(ns) já lançados de ' + (estado.tipo === 'MOLDE' ? 'molde' : 'peça') + ' saem da lista. Peça e molde são apontados separados.', ok: 'Trocar', perigo: true }))) return;
+    estado.itens = []; estado.idReq = null;
+    estado.tipo = t;
+    renderItens();
+    renderForm();
+    focarProcesso();
   }
 
-  function novoProduto() {
-    document.body.classList.add('mob-det');
-    montar(null, []);
-    setTimeout(function () { const c = $('#det [data-campo="cod"]'); if (c) c.focus(); }, 30);
+  function lerQtd() { const t = $('qtd').value.trim(); return { txt: t, n: Number(t) }; }
+  function erroForm() {
+    const q = lerQtd();
+    if (!estado.tipo) return 'Escolha peça ou molde';
+    if (!estado.processo) return 'Escolha o processo';
+    if (!q.txt) return 'Informe a quantidade';
+    if (!/^\d+$/.test(q.txt) || q.n < 1) return 'Número inteiro, mínimo 1';
+    return '';
+  }
+  function formVazio() { return !$('qtd').value.trim(); }
+
+  function renderForm() {
+    document.querySelectorAll('#gradeTipos .op-b').forEach(function (b) { b.classList.toggle('on', b.dataset.tipo === estado.tipo); });
+    document.querySelectorAll('#gradeProcessos .op-b').forEach(function (b) { b.classList.toggle('on', b.dataset.processo === estado.processo); b.disabled = !estado.tipo; });
+    $('qtd').disabled = !estado.tipo;
+    const u = estado.tipo;
+    $('rotuloQtd').textContent = u === 'MOLDE' ? 'QTD (moldes · tampa + fundo = 1)' : u ? 'QTD (peças)' : 'QTD';
+    const q = lerQtd();
+    const erro = q.txt ? erroForm() : '';
+    if (!estado.tipo) setMsg('msgQtd', 'Escolha primeiro: peça ou molde', 'aviso');
+    else if (erro && erro !== 'Escolha o processo') setMsg('msgQtd', '✖ ' + erro, 'erro');
+    else if (estado.processo) {
+      const plan = planejado(u), feito = jaProduzido(estado.processo) + naLista(estado.processo);
+      setMsg('msgQtd', plan > 0 ? 'planejado ' + plan + ' · já ' + feito + ' ' + nomeUn(u, feito) : '');
+    } else setMsg('msgQtd', '');
+    marcarCampo('qtd', q.txt ? !erro : null);
+    // Aviso (não trava): passa do planejado
+    const acima = !erroForm() ? acimaDoPlanejado({ processo: estado.processo, qtd: q.n }) .filter(function (x) { return x.processo === estado.processo; }) : [];
+    $('avisoAcima').textContent = acima.length
+      ? 'Passa do planejado: ' + acima[0].total + ' de ' + acima[0].plan + ' ' + nomeUn(acima[0].unidade, acima[0].plan) + '. Se for reposição de refugo, pode lançar.'
+      : '';
+    $('avisoAcima').hidden = !acima.length;
+    $('btnAdicionar').disabled = !!erroForm();
+    renderRodape();
   }
 
-  // Estado do produto aberto: orig = como está no servidor; campos/bom = como está na tela.
-  function montar(p, estrutura) {
-    const orig = p ? {
-      cod: String(p.COD_ITEM), descricao: String(p.DESCRICAO || ''), liga: String(p.LIGA_PADRAO || ''),
-      moldes: p.MOLDES_POR_PECA === '' || p.MOLDES_POR_PECA === null ? '' : String(p.MOLDES_POR_PECA),
-      obs: String(p.OBS || ''), ativo: p.ATIVO === 'SIM' ? 'SIM' : 'NAO'
-    } : { cod: '', descricao: '', liga: '', moldes: '', obs: '', ativo: 'SIM' };
-    const bom = estrutura.map(function (e) {
-      return { cod: String(e.COD_INSUMO), descricao: e.DESCRICAO, categoria: e.CATEGORIA, unidade: e.UNIDADE, politica: e.POLITICA,
-        insumoAtivo: e.INSUMO_ATIVO === 'SIM', qtd: String(e.QTD), base: e.BASE_CALCULO, qtdOrig: String(e.QTD), baseOrig: e.BASE_CALCULO,
-        nova: false, removida: false };
-    });
-    atual = { novo: !p, reg: p, orig: orig, campos: Object.assign({}, orig), bom: bom, pecas: '1' };
-    desenharDetalhe();
-    desenharLista();
+  function adicionarItem() {
+    if (erroForm()) { setMsg('msgQtd', '✖ ' + erroForm(), 'erro'); return false; }
+    estado.itens.push({ processo: estado.processo, unidade: unidadeDe(), qtd: lerQtd().n });
+    estado.idReq = null;
+    $('qtd').value = '';
+    if (estado.cfg.processos.length > 1) estado.processo = '';
+    renderItens();
+    renderForm();
+    focarProcesso();
+    return true;
+  }
+  function removerItem(i) {
+    estado.itens.splice(i, 1);
+    estado.idReq = null;
+    renderItens();
+    renderForm();
+  }
+  function limparItens() {
+    estado.itens = [];
+    estado.idReq = null;
+    if (temTipo()) estado.tipo = '';
+    if (estado.cfg.processos.length > 1) estado.processo = '';
+    $('qtd').value = '';
+    renderItens();
+  }
+  function focarProcesso() {
+    if (!estado.tipo) { const t = document.querySelector('#gradeTipos .op-b'); if (t) t.focus(); return; }
+    if (estado.cfg.processos.length === 1) { $('qtd').focus(); return; }
+    const b = document.querySelector('#gradeProcessos .op-b'); if (b) b.focus();
   }
 
-  // ---------- Detalhe ----------
-  function desenharDetalhe() {
-    const a = atual, c = a.campos;
-    const trava = !pode ? ' disabled' : '';
-    const ligas = Array.from(new Set(produtos.map(function (p) { return String(p.LIGA_PADRAO || '').toUpperCase(); }).filter(Boolean))).sort();
-    const sub = a.novo ? 'novo produto · preencha e clique em Salvar'
-      : 'criado' + (a.reg.CRIADO_POR ? ' por ' + nomeUsuario(a.reg.CRIADO_POR) : '') + (a.reg.CRIADO_EM ? ' · ' + Fmt.data(a.reg.CRIADO_EM) : '') +
-        (a.reg.ATUALIZADO_EM ? ' · alterado por ' + a.reg.ATUALIZADO_POR + ' em ' + Fmt.data(a.reg.ATUALIZADO_EM) : '');
-    const inativo = !a.novo && a.orig.ativo !== 'SIM';
-
-    $('#det').innerHTML =
-      '<div class="bx">' +
-        '<div class="bx-cab"><button class="btn2 voltar-mob" data-acao="voltar">‹ Lista</button><h3>' + Ui.esc(a.novo ? 'Novo produto' : a.orig.cod) + '</h3><span class="s">' + Ui.esc(sub) + '</span>' +
-          '<div class="dir">' +
-            '<button type="button" class="at-sw" data-acao="ativo"' + (a.novo || !pode ? ' disabled' : '') + ' title="Produto inativo não aparece para novas OPs; nada é apagado"><span class="sw"></span><span data-ativo-txt></span></button>' +
-            (a.novo ? '' : '<button class="btn2" data-acao="historico">' + Ui.ic('i-hist') + 'Histórico</button>') +
-            (pode ? '<button class="btn2 salvar" data-acao="salvar" id="bt-salvar">' + Ui.ic('i-check') + 'Salvar <span class="n" id="n-salvar">0</span></button>' : '') +
-          '</div></div>' +
-        '<div class="frm">' +
-          '<label class="fc f-cod">CÓDIGO<input data-campo="cod" autocomplete="off" spellcheck="false" value="' + Ui.esc(c.cod) + '"' + (a.novo && pode ? '' : ' disabled') + ' placeholder="como no NW"></label>' +
-          '<label class="fc f-desc">DESCRIÇÃO<input data-campo="descricao" value="' + Ui.esc(c.descricao) + '"' + trava + '></label>' +
-          '<label class="fc">LIGA PADRÃO<input data-campo="liga" list="ligas" autocomplete="off" value="' + Ui.esc(c.liga) + '"' + trava + ' placeholder="—"></label>' +
-          '<datalist id="ligas">' + ligas.map(function (l) { return '<option value="' + Ui.esc(l) + '">'; }).join('') + '</datalist>' +
-          '<label class="fc">MOLDES POR PEÇA<input data-campo="moldes" inputmode="decimal" value="' + Ui.esc(c.moldes) + '"' + trava + ' placeholder="vazio"><small>usado para calcular os moldes da OP</small></label>' +
-          '<label class="fc largo">OBSERVAÇÃO<input data-campo="obs" value="' + Ui.esc(c.obs) + '"' + trava + ' placeholder="Opcional"></label>' +
-        '</div>' +
-      '</div>' +
-
-      '<div class="bx">' +
-        '<div class="bx-cab"><h3>Estrutura (BOM)</h3><span class="s" id="bom-sub"></span></div>' +
-        '<div id="bom-tab"></div>' +
-        (pode && !inativo ?
-          '<div class="add-ins">' +
-            '<div class="f-busca"><svg class="i"><use href="#i-busca"/></svg><input id="busca-ins" autocomplete="off" placeholder="Adicionar insumo: código ou descrição…"></div>' +
-            '<button class="btn2" data-acao="adicionar">' + Ui.ic('i-mais') + 'Adicionar à estrutura</button>' +
-            '<div class="sug" id="sug" hidden></div>' +
-          '</div>' : '') +
-        (inativo ? '<div class="bom-vazia">Produto inativo: reative (chave Ativo) e salve para editar a estrutura.</div>' : '') +
-      '</div>' +
-
-      '<div class="bx">' +
-        '<div class="bx-cab"><h3>Simulação de consumo</h3><span class="s">quanto uma OP deste produto vai pedir</span></div>' +
-        '<div class="sim" id="sim"></div>' +
-      '</div>' +
-      '<div class="aud">' + Ui.ic('i-hist') + '<span>Toda alteração fica registrada (quem, quando, de → para). Insumo removido é inativado, nunca apagado.</span>' +
-        (a.novo ? '' : '<button class="btn2 aud-hist" data-acao="historico">Histórico</button>') + '</div>';
-
-    desenharAtivo();
-    desenharBom();
-    desenharSim();
-    marcarCampos();
-    contar();
-  }
-
-  function desenharAtivo() {
-    const sw = $('#det [data-acao="ativo"]');
-    if (!sw) return;
-    sw.classList.toggle('on', atual.campos.ativo === 'SIM');
-    sw.classList.toggle('mud', !atual.novo && atual.campos.ativo !== atual.orig.ativo);
-    sw.querySelector('[data-ativo-txt]').textContent = atual.campos.ativo === 'SIM' ? 'Ativo' : 'Inativo';
-  }
-
-  function desenharBom() {
-    const linhas = atual.bom;
-    const trava = !pode || (!atual.novo && atual.orig.ativo !== 'SIM');
-    const ativas = linhas.filter(function (l) { return !l.removida; }).length;
-    $('#bom-sub').textContent = ativas + ' insumo' + (ativas === 1 ? '' : 's') + ' · o que a OP consome';
-    if (!linhas.length) {
-      $('#bom-tab').innerHTML = '<div class="bom-vazia">Sem estrutura. ' + (trava ? '' : 'Busque um insumo abaixo para adicionar.') + '</div>';
-      return;
-    }
-    $('#bom-tab').innerHTML = '<table class="tab"><thead><tr><th>Insumo</th><th>Descrição</th><th>Categoria</th><th>Política</th><th class="num">Qtd</th><th>Base de cálculo</th><th></th></tr></thead><tbody>' +
-      linhas.map(function (l, i) {
-        const emb = l.categoria === 'EMBALAGEM';
-        const dis = trava || l.removida ? ' disabled' : '';
-        const pol = l.politica === 'SOB_DEMANDA' ? '<span class="pol">SOB DEMANDA</span>' : '<span class="mut" style="font-size:11px">estocado</span>';
-        const opts = ['POR_MOLDE', 'POR_PECA'].map(function (o) {
-          return '<option value="' + o + '"' + (o === l.base ? ' selected' : '') + (emb && o === 'POR_MOLDE' ? ' disabled' : '') + '>' + (o === 'POR_MOLDE' ? 'Por molde' : 'Por peça') + '</option>';
-        }).join('');
-        const acao = trava ? '' : l.removida
-          ? '<button class="x volta" data-volta="' + i + '" title="Desfazer a remoção">desfazer</button>'
-          : '<button class="x" data-remover="' + i + '" title="Inativar esta linha da estrutura">×</button>';
-        return '<tr class="' + (l.nova ? 'nova' : '') + (l.removida ? ' removida' : '') + '" data-i="' + i + '">' +
-          '<td><b>' + Ui.esc(l.cod) + '</b>' + (l.insumoAtivo ? '' : '<span class="ins-inat">insumo inativo</span>') + '</td>' +
-          '<td title="' + Ui.esc(l.descricao) + '">' + Ui.esc(l.descricao) + '</td>' +
-          '<td><span class="cat ' + (CLS_CAT[l.categoria] || 'out') + '">' + Ui.esc(l.categoria || '—') + '</span></td><td>' + pol + '</td>' +
-          '<td class="num"><input class="in q' + (!l.nova && l.qtd !== l.qtdOrig ? ' mud' : '') + '" data-qtd="' + i + '" inputmode="decimal" value="' + Ui.esc(l.qtd) + '"' + dis + '></td>' +
-          '<td><select class="in' + (!l.nova && l.base !== l.baseOrig ? ' mud' : '') + '" data-base="' + i + '"' + dis + (emb ? ' title="Embalagem é sempre por peça"' : '') + '>' + opts + '</select></td>' +
-          '<td>' + acao + '</td></tr>';
+  function tabelaItens(lista, comRemover) {
+    return '<table class="it"><thead><tr>' + (comRemover ? '' : '<th>#</th>') +
+      '<th>PROCESSO</th><th class="n">' + (unidadeDe() === 'MOLDE' ? 'MOLDES' : 'PEÇAS') + '</th>' + (comRemover ? '<th></th>' : '') + '</tr></thead><tbody>' +
+      lista.map(function (it, i) { return { it: it, i: i }; }).reverse().map(function (o) {
+        const it = o.it;
+        return '<tr class="' + (comRemover && o.i === lista.length - 1 ? 'novo' : '') + '">' + (comRemover ? '' : '<td>' + (o.i + 1) + '</td>') +
+          '<td>' + esc(it.processo) + '</td><td class="n">' + it.qtd + '</td>' +
+          (comRemover ? '<td class="n"><button type="button" class="x" data-remover="' + o.i + '" title="Remover">×</button></td>' : '') + '</tr>';
       }).join('') + '</tbody></table>';
   }
 
-  // Simulação: n peças → moldes → quanto de cada insumo a OP vai pedir.
-  function desenharSim() {
-    const pecas = numero(atual.pecas);
-    const mpp = numero(atual.campos.moldes);
-    const moldes = pecas !== null && mpp !== null ? arred(pecas * mpp) : null;
-    const linhas = atual.bom.filter(function (l) { return !l.removida; });
-    let html = '<label class="ent">Para <input data-pecas inputmode="decimal" value="' + Ui.esc(atual.pecas) + '"> peça(s) = <b style="color:var(--texto)" id="sim-moldes">' +
-      (moldes === null ? '— moldes' : Fmt.num(moldes) + ' molde' + (moldes === 1 ? '' : 's')) + '</b></label>';
-    html += linhas.map(function (l) {
-      const q = numero(l.qtd);
-      const base = l.base === 'POR_MOLDE' ? moldes : pecas;
-      const v = q === null || base === null ? null : arred(q * base);
-      return '<div class="r">' + Ui.esc((l.categoria || 'INSUMO') + ' · ' + l.cod) + '<b>' + (v === null ? '—' : Fmt.num(v)) +
-        ' <small>' + Ui.esc(String(l.unidade || '').toLowerCase()) + (l.politica === 'SOB_DEMANDA' ? ' · sob demanda' : '') + '</small></b></div>';
-    }).join('');
-    if (!linhas.length) html += '<div class="aviso">Sem estrutura: a OP não vai pedir insumos.</div>';
-    else if (mpp === null && linhas.some(function (l) { return l.base === 'POR_MOLDE'; })) {
-      html += '<div class="aviso">Preencha "Moldes por peça" para calcular os insumos por molde.</div>';
-    }
-    // mantém o foco no campo de peças enquanto digita
-    const foco = document.activeElement && document.activeElement.hasAttribute('data-pecas');
-    const pos = foco ? document.activeElement.selectionStart : 0;
-    $('#sim').innerHTML = html;
-    if (foco) { const inp = $('#sim [data-pecas]'); inp.focus(); try { inp.setSelectionRange(pos, pos); } catch (e) { /* ignora */ } }
+  function renderItens() {
+    const lista = estado.itens;
+    $('contItens').textContent = lista.length ? '· ' + lista.length : '';
+    $('boxItens').innerHTML = lista.length ? tabelaItens(lista, true) : '<div class="lista-vazia">Nenhum item lançado ainda.</div>';
   }
 
-  // ---------- Mudanças (contador do Salvar) ----------
-  function camposMudados() {
-    if (!atual) return [];
-    const c = atual.campos, o = atual.orig;
-    return ['descricao', 'liga', 'moldes', 'obs', 'ativo'].filter(function (k) { return norm(k, c[k]) !== norm(k, o[k]); });
+  /* ---------- ETAPA 4 · CONFIRMAR ---------- */
+  function textoAcima() {
+    const a = acimaDoPlanejado();
+    return a.length ? 'Acima do planejado (reposição): ' + a.map(function (x) { return x.processo + ' ' + x.total + ' de ' + x.plan; }).join(' · ') : '';
   }
-  function norm(k, v) {
-    v = String(v === null || v === undefined ? '' : v).trim();
-    if (k === 'liga') return v.toUpperCase();
-    if (k === 'moldes') { const n = numero(v); return n === null ? v : String(n); }
-    return v;
-  }
-  function bomMudancas() {
-    if (!atual) return 0;
-    return atual.bom.filter(function (l) {
-      if (l.nova) return !l.removida;
-      if (l.removida) return true;
-      return numero(l.qtd) !== numero(l.qtdOrig) || l.base !== l.baseOrig;
-    }).length;
-  }
-  function contar() {
-    let n = 0;
-    if (atual && atual.novo) {
-      // produto novo: conta os campos preenchidos
-      n = ['cod', 'descricao', 'liga', 'moldes', 'obs'].filter(function (k) { return String(atual.campos[k]).trim(); }).length;
-    } else if (atual) {
-      n = camposMudados().length;
-    }
-    n += bomMudancas();
-    const el = $('#n-salvar');
-    if (el) el.textContent = n;
-    const bt = $('#bt-salvar');
-    if (bt) bt.disabled = salvando || !n;
-    return n;
-  }
-  function temMudanca() { return !!atual && contar() > 0; }
-  function marcarCampos() {
-    if (!atual || atual.novo) return;
-    const mud = camposMudados();
-    document.querySelectorAll('#det [data-campo]').forEach(function (el) { el.classList.toggle('mud', mud.indexOf(el.dataset.campo) !== -1); });
+  function renderResumo() {
+    const d = estado.op.dados;
+    $('resumoOP').textContent = 'OP ' + estado.op.numero + ' · ' + (d.cliente || '-') + ' · ' + (d.codigo || '-') + ' · ' + (d.descricao || '-');
+    $('boxResumo').innerHTML = tabelaItens(estado.itens, false);
+    $('rotTotal').textContent = unidadeDe() === 'MOLDE' ? 'TOTAL DE MOLDES' : 'TOTAL DE PEÇAS';
+    $('totQtd').textContent = soma(estado.itens);
+    $('totItens').textContent = estado.itens.length;
+    const t = textoAcima();
+    $('avisoResumoAcima').textContent = t;
+    $('avisoResumoAcima').hidden = !t;
+    $('avisoRegistro').hidden = true;
+    $('btnRegistrar').disabled = estado.enviando || !ctx.podeEditar;
+    $('btnRegistrar').textContent = estado.enviando ? 'SALVANDO...' : 'REGISTRAR PRODUÇÃO';
   }
 
-  async function podeSair() {
-    if (!temMudanca()) return true;
-    return Ui.confirmar({ titulo: 'Descartar alterações?', texto: 'Há ' + contar() + ' alteração(ões) não salva(s) neste produto. Se continuar, elas serão perdidas.', ok: 'Descartar', perigo: true });
-  }
-  window.addEventListener('beforeunload', function (ev) { if (temMudanca()) { ev.preventDefault(); ev.returnValue = ''; } });
-
-  // ---------- Eventos do detalhe ----------
-  $('#det').addEventListener('input', function (ev) {
-    const t = ev.target;
-    if (t.dataset.campo) {
-      atual.campos[t.dataset.campo] = t.value;
-      if (t.dataset.campo === 'moldes') desenharSim();
-      marcarCampos();
-      contar();
-    } else if (t.hasAttribute('data-qtd')) {
-      const l = atual.bom[Number(t.dataset.qtd)];
-      l.qtd = t.value;
-      t.classList.toggle('mud', !l.nova && numero(l.qtd) !== numero(l.qtdOrig));
-      desenharSim();
-      contar();
-    } else if (t.hasAttribute('data-pecas')) {
-      atual.pecas = t.value;
-      desenharSim();
-    } else if (t.id === 'busca-ins') {
-      sugerir();
-    }
-  });
-  $('#det').addEventListener('change', function (ev) {
-    const t = ev.target;
-    if (t.hasAttribute('data-base')) {
-      atual.bom[Number(t.dataset.base)].base = t.value;
-      desenharBom();
-      desenharSim();
-      contar();
-    }
-    if (t.dataset.campo === 'liga') { t.value = t.value.trim().toUpperCase(); atual.campos.liga = t.value; marcarCampos(); contar(); }
-    if (t.dataset.campo === 'cod' && atual.novo) avisarCodigoRepetido(t.value);
-  });
-  $('#det').addEventListener('keydown', function (ev) {
-    if (ev.target.id !== 'busca-ins') return;
-    const caixa = $('#sug');
-    if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') {
-      if (!sug.length) return;
-      ev.preventDefault();
-      sugSel = (sugSel + (ev.key === 'ArrowDown' ? 1 : -1) + sug.length) % sug.length;
-      desenharSug();
-    } else if (ev.key === 'Enter') {
-      ev.preventDefault();
-      adicionar();
-    } else if (ev.key === 'Escape' && caixa) {
-      caixa.hidden = true;
-    }
-  });
-  $('#det').addEventListener('click', function (ev) {
-    const s = ev.target.closest('.sug [data-sug]');
-    if (s) { sugSel = Number(s.dataset.sug); adicionar(); return; }
-    const rem = ev.target.closest('[data-remover]');
-    if (rem) {
-      const i = Number(rem.dataset.remover), l = atual.bom[i];
-      if (l.nova) atual.bom.splice(i, 1); else l.removida = true;
-      desenharBom(); desenharSim(); contar();
-      return;
-    }
-    const volta = ev.target.closest('[data-volta]');
-    if (volta) {
-      atual.bom[Number(volta.dataset.volta)].removida = false;
-      desenharBom(); desenharSim(); contar();
-      return;
-    }
-    const bt = ev.target.closest('[data-acao]');
-    if (!bt || bt.disabled) return;
-    const acao = bt.dataset.acao;
-    if (acao === 'voltar') { document.body.classList.remove('mob-det'); window.scrollTo(0, 0); }
-    if (acao === 'ativo') { atual.campos.ativo = atual.campos.ativo === 'SIM' ? 'NAO' : 'SIM'; desenharAtivo(); contar(); }
-    if (acao === 'historico') historico();
-    if (acao === 'salvar') salvar();
-    if (acao === 'adicionar') adicionar();
-  });
-  document.addEventListener('click', function (ev) {
-    const caixa = $('#sug');
-    if (caixa && !ev.target.closest('.add-ins')) caixa.hidden = true;
-    const novo = ev.target.closest('[data-acao="novo"]');
-    if (novo) podeSair().then(function (ok) { if (ok) novoProduto(); });
-  });
-
-  function avisarCodigoRepetido(v) {
-    const p = v.trim() ? acharProduto(v) : null;
-    if (!p) return;
-    Ui.confirmar({ titulo: 'Produto já cadastrado', texto: 'O código ' + v.trim().toUpperCase() + ' já existe como ' + p.COD_ITEM + ' (' + p.DESCRICAO + '). Abrir esse cadastro?', ok: 'Abrir' })
-      .then(function (ok) { if (ok) abrir(p.COD_ITEM); });
-  }
-
-  // ---------- Adicionar insumo por busca ----------
-  function sugerir() {
-    const q = $('#busca-ins').value.trim();
-    const ja = {};
-    atual.bom.forEach(function (l) { ja[l.cod] = true; });
-    sug = !q ? [] : insumos.filter(function (i) { return !ja[i.COD_INSUMO] && bate(q, i.COD_INSUMO, i.DESCRICAO + ' ' + i.CATEGORIA); })
-      .sort(function (a, b) { return ordemCat(a) - ordemCat(b); }).slice(0, 8);
-    sugSel = 0;
-    desenharSug();
-  }
-  function ordemCat(i) { return ['LUVA', 'FILTRO', 'EMBALAGEM'].indexOf(i.CATEGORIA) === -1 ? 9 : ['LUVA', 'FILTRO', 'EMBALAGEM'].indexOf(i.CATEGORIA); }
-  function desenharSug() {
-    const caixa = $('#sug');
-    if (!caixa) return;
-    const q = $('#busca-ins').value.trim();
-    caixa.hidden = !q;
-    caixa.innerHTML = sug.map(function (i, k) {
-      return '<div data-sug="' + k + '" class="' + (k === sugSel ? 'on' : '') + '"><b>' + Ui.esc(i.COD_INSUMO) + '</b><span class="cat ' + (CLS_CAT[i.CATEGORIA] || 'out') + '">' +
-        Ui.esc(i.CATEGORIA) + '</span><span>' + Ui.esc(i.DESCRICAO) + '</span></div>';
-    }).join('') || '<div class="nada">Nenhum insumo ativo encontrado' + (insumos.length ? '' : ' (lista de insumos indisponível)') + '.</div>';
-  }
-  function adicionar() {
-    const inp = $('#busca-ins');
-    if (!inp) return;
-    if (!inp.value.trim()) { inp.focus(); return; }
-    if (!sug.length) sugerir();
-    const i = sug[sugSel];
-    if (!i) { Ui.toast('Nenhum insumo ativo com "' + inp.value.trim() + '".', 'aviso'); return; }
-    const base = i.CATEGORIA === 'LUVA' || i.CATEGORIA === 'FILTRO' ? 'POR_MOLDE' : 'POR_PECA';
-    atual.bom.push({ cod: String(i.COD_INSUMO), descricao: i.DESCRICAO, categoria: i.CATEGORIA, unidade: i.UNIDADE, politica: i.POLITICA,
-      insumoAtivo: true, qtd: '1', base: base, qtdOrig: '', baseOrig: '', nova: true, removida: false });
-    inp.value = '';
-    sug = [];
-    $('#sug').hidden = true;
-    desenharBom(); desenharSim(); contar();
-    inp.focus();
-  }
-
-  // ---------- Salvar ----------
-  async function salvar() {
-    if (salvando || !atual) return;
-    const a = atual, c = a.campos;
-    const cod = c.cod.trim().toUpperCase();
-    // validação na tela (o servidor valida de novo)
-    if (a.novo && !cod) return Ui.toast('Informe o código do produto.', 'erro');
-    if (a.novo && acharProduto(cod)) return Ui.toast('O código ' + cod + ' já está cadastrado.', 'erro');
-    if (!c.descricao.trim()) return Ui.toast('Informe a descrição.', 'erro');
-    const m = numero(c.moldes);
-    if (c.moldes.trim() && !(m > 0)) return Ui.toast('Moldes por peça deve ser um número maior que zero (ou vazio).', 'erro');
-    const linhas = a.bom.filter(function (l) { return !l.removida; });
-    const ruim = linhas.find(function (l) { return !(numero(l.qtd) > 0); });
-    if (ruim) return Ui.toast(ruim.cod + ': a quantidade deve ser maior que zero.', 'erro');
-    const inat = linhas.find(function (l) { return !l.insumoAtivo; });
-    const bomMudou = bomMudancas() > 0;
-    if (bomMudou && inat) return Ui.toast('O insumo ' + inat.cod + ' está inativo: remova-o da estrutura (×) antes de salvar.', 'erro');
-
-    const dadosProd = { cod_item: a.novo ? cod : a.orig.cod };
-    const mud = a.novo ? ['descricao', 'liga', 'moldes', 'obs'] : camposMudados();
-    mud.forEach(function (k) {
-      if (k === 'descricao') dadosProd.descricao = c.descricao.trim();
-      if (k === 'liga') dadosProd.liga_padrao = c.liga.trim().toUpperCase();
-      if (k === 'moldes') dadosProd.moldes_por_peca = c.moldes.trim();
-      if (k === 'obs') dadosProd.obs = c.obs.trim();
-      if (k === 'ativo') dadosProd.ativo = c.ativo;
-    });
-    const prodMudou = a.novo || mud.length > 0;
-    const itens = linhas.map(function (l) { return { cod_insumo: l.cod, qtd: numero(l.qtd), base_calculo: l.base }; });
-
-    salvando = true;
-    contar();
-    const partes = [];
+  async function registrar() {
+    if (estado.enviando || estado.etapa !== 4 || !estado.itens.length || !ctx.podeEditar) return;
+    const acima = acimaDoPlanejado();
+    if (acima.length && !(await Ui.confirmar({
+      titulo: 'Acima do planejado',
+      texto: acima.map(function (x) { return x.processo + ': ' + x.total + ' de ' + x.plan + ' ' + nomeUn(x.unidade, x.plan); }).join(' · ') + '. É reposição de refugo?',
+      ok: 'Sim, registrar'
+    }))) return;
+    estado.enviando = true;
+    if (!estado.idReq) estado.idReq = Api.idReq();
+    renderResumo();
+    renderRodape();
+    const itens = estado.itens.slice();
+    const mol = soma(itens, function (it) { return it.unidade === 'MOLDE'; }), pec = soma(itens, function (it) { return it.unidade !== 'MOLDE'; });
+    const resumo = 'OP ' + estado.op.numero + ' · ' + (mol ? mol + ' ' + nomeUn('MOLDE', mol) : '') + (mol && pec ? ' · ' : '') + (pec ? pec + ' ' + nomeUn('PECA', pec) : '');
     try {
-      // Produto inativo sendo reativado (ou novo): grava o produto antes da BOM.
-      // Nos outros casos, a BOM vai primeiro (o servidor recusa BOM de produto inativo).
-      const produtoPrimeiro = a.novo || (a.orig.ativo !== 'SIM' && c.ativo === 'SIM');
-      if (prodMudou && produtoPrimeiro) { await Api.chamar('salvarProduto', dadosProd); partes.push(a.novo ? 'produto criado' : 'produto'); }
-      if (bomMudou) {
-        const r = await Api.chamar('salvarEstrutura', { cod_item: dadosProd.cod_item, itens: itens });
-        const t = [];
-        if (r.incluidos) t.push(r.incluidos + ' incluído(s)');
-        if (r.alterados) t.push(r.alterados + ' alterado(s)');
-        if (r.reativados) t.push(r.reativados + ' reativado(s)');
-        if (r.removidos) t.push(r.removidos + ' inativado(s)');
-        partes.push('estrutura: ' + (t.join(', ') || 'sem mudança'));
-      }
-      if (prodMudou && !produtoPrimeiro) { await Api.chamar('salvarProduto', dadosProd); partes.push('produto'); }
-      Ui.toast(dadosProd.cod_item + ' salvo · ' + partes.join(' · '));
-      salvando = false;
-      atual = null;
-      await carregar();
-      await abrir(dadosProd.cod_item);
+      const r = await Api.chamar('registrarProducao', {
+        idReq: estado.idReq, op: estado.op.numero,
+        itens: itens.map(function (it) { return { processo: it.processo, tipo: it.unidade, qtd: it.qtd }; })
+      });
+      estado.idReq = null;
+      const agora = new Date();
+      itens.forEach(function (it, i) {
+        estado.gravadosSessao.push(Object.assign({}, it, { id: r.ids ? r.ids[i] : '', op: estado.op.numero, cliente: estado.op.dados.cliente || '', hora: agora }));
+      });
+      estado.enviando = false;
+      $('resTexto').textContent = resumo + (r.ids && r.ids.length ? ' · ' + r.ids[0] + (r.ids.length > 1 ? ' a ' + r.ids[r.ids.length - 1] : '') : '');
+      irPara(5);
     } catch (e) {
-      salvando = false;
-      Ui.erro(e);
-      // parte já gravada: recarrega para a tela mostrar o que ficou no servidor
-      if (partes.length) { atual = null; await carregar(); await abrir(dadosProd.cod_item); }
-      else contar();
+      estado.enviando = false;
+      if (e.codigo !== 'SEM_CONEXAO') estado.idReq = null;
+      renderResumo();
+      $('avisoRegistro').textContent = e.codigo === 'SEM_CONEXAO'
+        ? '⚠ Sem confirmação do servidor. Toque em REGISTRAR de novo: o mesmo envio não grava em dobro.'
+        : '✖ NÃO gravado: ' + e.message;
+      $('avisoRegistro').hidden = false;
+      renderRodape();
     }
   }
 
-  // ---------- Histórico ----------
-  // Não há rota que leia MOV_AUDITORIA: mostra o que o cadastro devolve
-  // (criado/alterado por e quando). O detalhe campo a campo fica na planilha.
-  function historico() {
-    const r = atual.reg;
-    const linha = function (rot, v) { return '<div><span>' + rot + '</span><b>' + Ui.esc(v || '—') + '</b></div>'; };
-    Ui.janela({
-      titulo: 'Histórico · ' + atual.orig.cod,
-      subtitulo: atual.orig.descricao,
-      corpo: '<div class="hist">' +
-        linha('Criado em', r.CRIADO_EM ? Fmt.dataHora(r.CRIADO_EM) : '') +
-        linha('Criado por', nomeUsuario(r.CRIADO_POR)) +
-        linha('Última alteração', r.ATUALIZADO_EM ? Fmt.dataHora(r.ATUALIZADO_EM) : 'nunca alterado') +
-        linha('Alterado por', r.ATUALIZADO_POR) +
-        linha('Situação', r.ATIVO === 'SIM' ? 'Ativo' : 'Inativo') +
-        linha('Estrutura (BOM)', atual.bom.filter(function (l) { return !l.nova; }).length + ' insumo(s) ativo(s)') +
-        '</div><p class="mut" style="font-size:12px;margin:14px 0 0">Cada alteração (campo, de → para, quem e quando) fica gravada na aba MOV_AUDITORIA da planilha. ' +
-        'A consulta dessa lista aqui na tela ainda não está disponível.</p>',
-      botoes: [{ texto: 'Fechar', classe: 'pri', valor: null }]
+  /* ---------- NAVEGAÇÃO ---------- */
+  function trava(etapa) {
+    if (etapa === 2) {
+      if (!estado.op.valida) return 'Busque e valide a OP';
+      if (!ctx.podeEditar) return 'Seu perfil só pode consultar';
+    }
+    if (etapa === 3) {
+      if (estado.itens.length === 0 && erroForm()) return 'Adicione pelo menos 1 item';
+      if (!formVazio() && erroForm() && estado.itens.length) return 'Termine ou limpe o item em edição';
+    }
+    return '';
+  }
+  function avancar() {
+    if (estado.etapa === 3 && !formVazio()) {
+      if (!erroForm()) adicionarItem(); else { setMsg('msgQtd', '✖ ' + erroForm(), 'erro'); return; }
+    }
+    if (trava(estado.etapa)) return;
+    if (estado.etapa === 2 || estado.etapa === 3) irPara(estado.etapa + 1);
+  }
+  function voltar() {
+    if (estado.enviando) return;
+    if (estado.etapa >= 3 && estado.etapa <= 4) irPara(estado.etapa - 1);
+  }
+  function novoApontamento() {
+    estado.op = opVazia();
+    $('op').value = '';
+    setMsg('msgOP', '');
+    renderOP();
+    limparItens();
+    irPara(2);
+  }
+
+  /* ---------- RESULTADO / CONFERÊNCIA ---------- */
+  let confTimer = null, novoTimer = null;
+  function contagem(segundos, idSeg, idBarra, aoAcabar) {
+    let restante = segundos;
+    const barra = $(idBarra);
+    barra.style.transition = 'none'; barra.style.width = '100%'; void barra.offsetWidth; barra.style.transition = '';
+    $(idSeg).textContent = restante;
+    return setInterval(function () {
+      restante--;
+      $(idSeg).textContent = Math.max(restante, 0);
+      barra.style.width = (Math.max(restante, 0) / segundos * 100) + '%';
+      if (restante <= 0) aoAcabar();
+    }, 1000);
+  }
+  function iniciarContagemNovo() {
+    pararContagemNovo();
+    novoTimer = contagem(PERGUNTA_NOVO_SEGUNDOS, 'novoSeg', 'novoBarra', function () { pararContagemNovo(); if (estado.etapa === 5) Sessao.sair(); });
+  }
+  function pararContagemNovo() { clearInterval(novoTimer); novoTimer = null; }
+  function iniciarContagem() {
+    clearInterval(confTimer);
+    confTimer = contagem(CONFERENCIA_SEGUNDOS, 'confSeg', 'confBarra', finalizarSaida);
+  }
+
+  async function sair() {
+    if (estado.etapa === 6) return finalizarSaida();
+    if (estado.enviando) return;
+    if (estado.itens.length && estado.etapa !== 5) {
+      const ok = await Ui.confirmar({ titulo: 'Sair', texto: 'Existem itens lançados que ainda não foram registrados. Sair mesmo assim?', ok: 'Sair mesmo assim', perigo: true });
+      if (!ok) return;
+    }
+    abrirConferencia();
+  }
+
+  function abrirConferencia() {
+    const nome = ctx.usuario.nome || ctx.usuario.login;
+    $('confTitulo').textContent = 'Conferência do dia · ' + nome;
+    $('confSub').textContent = 'Produção apontada hoje (' + new Date().toLocaleDateString('pt-BR') + '). Confira se está tudo certo.';
+    const pad = function (n) { return String(n).padStart(2, '0'); };
+    const daSessao = estado.gravadosSessao.map(function (x) {
+      return Object.assign({}, x, { horaTxt: pad(x.hora.getHours()) + ':' + pad(x.hora.getMinutes()), estornado: false, daSessao: true });
+    });
+    renderConferencia(daSessao, 'carregando');
+    irPara(6);
+    iniciarContagem();
+    carregarConferencia(daSessao);
+  }
+  function carregarConferencia(reserva) {
+    Api.chamar('conferenciaProducao', {}).then(function (r) {
+      if (estado.etapa !== 6) return;
+      const lista = (r.itens || []).map(function (x) {
+        return { id: x.id, horaTxt: String(x.dataHora || '').slice(11, 16), op: x.op, cliente: x.cliente, processo: x.processo,
+                 unidade: x.unidade, qtd: Number(x.qtd) || 0, estornado: !!x.estornado };
+      }).sort(function (a, b) { return a.horaTxt.localeCompare(b.horaTxt); });
+      renderConferencia(lista, 'servidor');
+    }).catch(function () {
+      if (estado.etapa === 6) renderConferencia(reserva || [], 'falhou');
     });
   }
 
-  // ---------- Apoio ----------
-  function numero(v) {
-    const s = String(v === null || v === undefined ? '' : v).trim().replace(',', '.');
-    if (!s || isNaN(Number(s))) return null;
-    return Number(s);
+  function renderConferencia(lista, fonte) {
+    const validos = lista.filter(function (x) { return !x.estornado; });
+    const mol = soma(validos, function (x) { return x.unidade === 'MOLDE'; }), pec = soma(validos, function (x) { return x.unidade !== 'MOLDE'; });
+    $('confTotais').innerHTML =
+      '<div class="dado"><span>APONTAMENTOS</span><b>' + validos.length + '</b></div>' +
+      (mol || temTipo() && !pec ? '<div class="dado"><span>MOLDES</span><b>' + mol + '</b></div>' : '') +
+      (pec || !mol ? '<div class="dado"><span>PEÇAS</span><b>' + pec + '</b></div>' : '') +
+      '<div class="dado"><span>OPs</span><b>' + new Set(validos.map(function (x) { return String(x.op); })).size + '</b></div>';
+    setMsg('confFonte',
+      fonte === 'carregando' ? 'buscando o dia completo no servidor…'
+        : fonte === 'falhou' ? '⚠ servidor indisponível: mostrando só o que foi apontado neste terminal'
+          : '✓ dia completo, conferido no servidor',
+      fonte === 'servidor' ? 'ok' : fonte === 'falhou' ? 'erro' : '');
+    if (!lista.length) {
+      $('boxConf').innerHTML = '<div class="lista-vazia">' + (fonte === 'carregando' ? 'Buscando…' : 'Nenhum apontamento hoje.') + '</div>';
+      return;
+    }
+    const podeEstornar = fonte === 'servidor' && ctx.podeEditar;
+    $('boxConf').innerHTML = '<table class="it"><thead><tr><th>HORA</th><th>OP</th><th class="c-lado">CLIENTE</th><th>PROCESSO</th><th>TIPO</th><th class="n">QTD</th>' +
+      (podeEstornar ? '<th></th>' : '') + '</tr></thead><tbody>' +
+      lista.map(function (x) {
+        return '<tr' + (x.estornado ? ' style="opacity:.5"' : '') + '><td>' + esc(x.horaTxt) + '</td><td><b>' + esc(x.op) + '</b></td><td class="c-lado">' + esc(x.cliente) + '</td>' +
+          '<td>' + esc(x.processo) + '</td><td>' + tagUn(x.unidade) + (x.estornado ? ' <span class="tt est">estornado</span>' : '') + '</td><td class="n">' + x.qtd + '</td>' +
+          (podeEstornar ? '<td class="n">' + (x.estornado || !x.id ? '' : '<button type="button" class="bt-est" data-estornar="' + esc(x.id) + '" title="Estornar: lançado errado">ESTORNAR</button>') + '</td>' : '') + '</tr>';
+      }).join('') + '</tbody></table>';
   }
-  function arred(n) { return Math.round(n * 1000) / 1000; }
-  function nomeUsuario(login) { return login === 'importacao_nw' ? 'importação NW' : (login || ''); }
+
+  async function estornar(id) {
+    clearInterval(confTimer);   // pausa a saída enquanto decide
+    const ok = await Ui.confirmar({ titulo: 'Estornar apontamento', texto: 'Este apontamento foi lançado errado? Ele fica registrado como estornado (nada é apagado).', ok: 'Estornar', perigo: true });
+    if (ok) {
+      try {
+        await Api.chamar('estornarProducao', { idReq: Api.idReq(), id: id, motivo: 'Lançado errado' });
+        Ui.toast('Apontamento estornado.');
+      } catch (e) { Ui.erro(e); }
+    }
+    if (estado.etapa !== 6) return;
+    iniciarContagem();
+    carregarConferencia();
+  }
+
+  function finalizarSaida() {
+    clearInterval(confTimer);
+    confTimer = null;
+    $('btnConfOk').disabled = true;
+    location.href = 'inicio.html';
+  }
+
+  function irPara(n) {
+    estado.etapa = n;
+    document.querySelectorAll('.etapa').forEach(function (s) { s.classList.toggle('ativa', s.id === 'etapa' + n); });
+    if (n === 3) { renderItens(); renderForm(); }
+    if (n === 4) renderResumo();
+    render();
+    if (n === 2) (estado.op.valida ? $('btnAvancar') : $('op')).focus();
+    if (n === 3) focarProcesso();
+    if (n === 4) $('btnRegistrar').focus();
+    if (n === 5) { $('btnNovo').focus(); iniciarContagemNovo(); } else pararContagemNovo();
+    if (n === 6) $('btnConfOk').focus();
+    if (window.innerWidth <= 760) window.scrollTo(0, 0);
+  }
+
+  const DICAS = {
+    2: '<kbd>Enter</kbd> buscar / avançar',
+    3: function () { return (temTipo() ? '<kbd>T</kbd> peça/molde · ' : '') + '<kbd>1</kbd>–<kbd>' + Math.min(estado.cfg.processos.length, 9) + '</kbd> processo · <kbd>Enter</kbd> adicionar · <kbd>Ctrl</kbd>+<kbd>Enter</kbd> revisar · <kbd>Esc</kbd> voltar'; },
+    4: '<kbd>Ctrl</kbd>+<kbd>Enter</kbd> registrar · <kbd>Esc</kbd> voltar e editar itens'
+  };
+  function renderRodape() {
+    const e = estado.etapa;
+    const d = DICAS[e];
+    $('dicaTeclas').innerHTML = typeof d === 'function' ? d() : (d || '');
+    $('btnVoltar').disabled = estado.enviando;
+    $('btnVoltar').hidden = e === 2;
+    $('btnAvancar').hidden = e === 4;
+    $('btnAvancar').textContent = e === 3 ? 'REVISAR ▶' : 'PRÓXIMO ▶';
+    const t = trava(e);
+    $('btnAvancar').disabled = !!t;
+    $('trava').textContent = t && e !== 4 ? t : '';
+  }
+  function render() {
+    const e = estado.etapa;
+    document.body.classList.toggle('sem-step', e === 5 || e === 6);
+    document.querySelectorAll('.st').forEach(function (st) {
+      const n = Number(st.dataset.etapa);
+      st.classList.toggle('feito', n < e);
+      st.classList.toggle('atual', n === e);
+      st.querySelector('i').textContent = n < e ? '✓' : n - 1;
+    });
+    document.querySelector('.st[data-etapa="2"] span').textContent = e > 2 && estado.op.valida ? 'OP ' + estado.op.numero : 'Ordem de Produção';
+    document.querySelector('.st[data-etapa="3"] span').textContent = e > 3 ? estado.itens.length + ' ' + (estado.itens.length === 1 ? 'item' : 'itens') : 'Lançar produção';
+    const d = estado.op.dados;
+    $('nomeOP').innerHTML = estado.op.valida && e >= 3 && e <= 4 ? 'OP <b>' + esc(estado.op.numero) + '</b> · ' + esc(d.cliente || '') + ' · ' + esc(d.codigo || '') : '';
+    renderRodape();
+  }
+
+  /* ---------- TECLADO ---------- */
+  function emCampoDeTexto(el) { return el && (el.tagName === 'INPUT' || el.tagName === 'SELECT' || el.tagName === 'TEXTAREA'); }
+  function onTeclaGlobal(e) {
+    if (haModal()) return;
+    const alvo = e.target, etapa = estado.etapa;
+    if (e.key === 'Enter' && e.ctrlKey) { e.preventDefault(); if (etapa === 3) avancar(); else if (etapa === 4) registrar(); return; }
+    if (e.key === 'Escape') { if (etapa >= 3 && etapa <= 4) { e.preventDefault(); voltar(); } return; }
+    if (etapa === 6 && e.key === 'Enter' && alvo.tagName !== 'BUTTON') { e.preventDefault(); finalizarSaida(); return; }
+    if (etapa === 5 && e.key === 'Enter' && alvo.tagName !== 'BUTTON') { e.preventDefault(); novoApontamento(); return; }
+    if (etapa === 2 && e.key === 'Enter' && alvo.tagName !== 'BUTTON') {
+      e.preventDefault();
+      if (estado.op.valida && $('op').value === estado.op.numero) avancar(); else buscarOP();
+      return;
+    }
+    if (etapa !== 3 || e.ctrlKey || e.altKey || e.metaKey) return;
+    if (e.key === 'Enter') {
+      if (alvo.id === 'qtd' || (alvo.tagName !== 'BUTTON' && !emCampoDeTexto(alvo))) { e.preventDefault(); adicionarItem(); }
+      return;
+    }
+    if (emCampoDeTexto(alvo)) return;
+    if (e.key.toLowerCase() === 't' && temTipo()) { e.preventDefault(); const ts = tipos(); escolherTipo(ts[(ts.indexOf(estado.tipo) + 1) % ts.length]); return; }
+    const lista = estado.cfg.processos, num = Number(e.key);
+    if (num >= 1 && num <= Math.min(lista.length, 9)) { e.preventDefault(); escolherProcesso(lista[num - 1].processo); }
+  }
+
+  /* ---------- EVENTOS ---------- */
+  function ligarEventos() {
+    $('op').addEventListener('input', onOpDigitada);
+    $('btnBuscar').addEventListener('click', buscarOP);
+    $('gradeTipos').addEventListener('click', function (e) { const b = e.target.closest('[data-tipo]'); if (b) escolherTipo(b.dataset.tipo); });
+    $('gradeProcessos').addEventListener('click', function (e) { const b = e.target.closest('[data-processo]'); if (b) escolherProcesso(b.dataset.processo); });
+    $('qtd').addEventListener('input', function () { $('qtd').value = $('qtd').value.replace(/\D/g, ''); renderForm(); });
+    $('btnAdicionar').addEventListener('click', adicionarItem);
+    $('boxItens').addEventListener('click', function (e) { const b = e.target.closest('[data-remover]'); if (b) removerItem(Number(b.dataset.remover)); });
+    $('boxConf').addEventListener('click', function (e) { const b = e.target.closest('[data-estornar]'); if (b) estornar(b.dataset.estornar); });
+    $('btnRegistrar').addEventListener('click', registrar);
+    $('btnNovo').addEventListener('click', novoApontamento);
+    $('btnSair').addEventListener('click', sair);
+    $('btnSairTopo').addEventListener('click', sair);
+    $('btnConfOk').addEventListener('click', finalizarSaida);
+    $('btnVoltar').addEventListener('click', voltar);
+    $('btnAvancar').addEventListener('click', avancar);
+    document.addEventListener('keydown', onTeclaGlobal);
+    window.addEventListener('beforeunload', function (ev) {
+      if (estado.itens.length && estado.etapa >= 3 && estado.etapa <= 4 && !estado.enviando) { ev.preventDefault(); ev.returnValue = ''; }
+    });
+  }
 });
 </script>
 </body>
