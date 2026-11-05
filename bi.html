@@ -545,7 +545,7 @@ Sessao.iniciarPagina('bi').then(function (ctx) {
     d.vencidas.forEach(function (c) { const k = c.cliente || '—'; por[k] = (por[k] || 0) + 1; });
     const rank = Object.keys(por).map(function (k) { return { nome: k, n: por[k] }; })
       .sort(function (a, b) { return b.n - a.n; }).slice(0, 7);
-    $('bCli').innerHTML = rank.length ? barras(rank, 0, 'var(--c-verm)').replace(/grid-template-columns/g, 'x') : '<div class="info" style="text-align:center">Nenhum cliente com prazo vencido.</div>';
+    $('bCli').innerHTML = rank.length ? barras(rank, 0, 'var(--c-verm)') : '<div class="info" style="text-align:center">Nenhum cliente com prazo vencido.</div>';
   }
 
   // TELA 5 — gargalos (OPs por processo + OPs paradas)
