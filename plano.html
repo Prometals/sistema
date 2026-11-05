@@ -24,7 +24,7 @@
 .filtros .f-busca input { width: 100%; padding-left: 34px; }
 .filtros .f-busca svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--texto-suave); }
 .in-meta { display: inline-flex; align-items: center; height: 36px; width: 170px; border: 1px solid var(--borda); border-radius: 8px; background: var(--painel); overflow: hidden; }
-.in-meta span { padding: 0 6px 0 10px; font-size: 12px; color: var(--texto-suave); font-weight: 600; }
+.in-meta span { padding: 0 6px 0 10px; font-size: 12px; color: var(--texto-suave); font-weight: 600; white-space: nowrap; }
 .in-meta input { border: 0 !important; height: 100%; width: 100%; background: transparent; padding: 0 8px 0 0 !important; text-align: right; font-weight: 700; }
 .in-meta.mudou { border-color: var(--destaque); }
 .chip { height: 36px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--borda); background: var(--painel); font-size: 12px; font-weight: 700; color: var(--texto-suave); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-family: inherit; }
@@ -40,7 +40,7 @@ html.tema-claro .tab-wrap table.tab thead th { background: #f1f5f9; }
 .chk { width: 16px; height: 16px; accent-color: #3b82f6; cursor: pointer; }
 .chk:disabled { cursor: not-allowed; }
 table.tab td.desc { max-width: 260px; overflow: hidden; text-overflow: ellipsis; }
-table.tab td.num, table.tab th.num { text-align: right; }
+table.tab td.num, table.tab th.num { text-align: right; white-space: nowrap; }
 tr.no-plano td { background: color-mix(in srgb, #3b82f6 8%, transparent); }
 tr.no-plano td:first-child { box-shadow: inset 3px 0 0 #3b82f6; }
 tr.mudou td:first-child { box-shadow: inset 3px 0 0 var(--destaque); }
