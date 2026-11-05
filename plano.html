@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plano do Mês · Prometals</title>
+<link rel="stylesheet" href="css/tema.css">
+<link rel="stylesheet" href="css/sistema.css">
+<style>
+/* ---------- específico desta página ---------- */
+.placar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 10px; }
+.pc { display: flex; align-items: center; gap: 12px; background: var(--painel); border: 1px solid var(--linha); border-left: 4px solid var(--c); border-radius: 12px; padding: 12px 16px; min-width: 0; }
+.pc b { font-size: 20px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pc span { font-size: 11px; font-weight: 800; letter-spacing: .6px; color: var(--texto-suave); text-transform: uppercase; flex: 1; min-width: 0; }
+.pc small { display: block; font-size: 11px; font-weight: 600; letter-spacing: 0; text-transform: none; margin-top: 2px; }
+.pc svg { color: var(--c); flex: none; }
+.barra-meta { height: 10px; border-radius: 999px; background: var(--painel-2); overflow: hidden; margin-bottom: 14px; }
+.barra-meta i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #d97706, #16a34a); transition: width .3s; }
+.barra-meta.ok i { background: #16a34a; }
+
+.filtros { display: flex; gap: 10px; align-items: center; background: var(--painel); border: 1px solid var(--linha); border-radius: 12px; padding: 10px 12px; margin-bottom: 14px; flex-wrap: wrap; }
+.filtros select, .filtros input { height: 36px; font-size: 13px; padding: 0 10px; width: auto; }
+.filtros .f-busca { flex: 1; min-width: 220px; position: relative; }
+.filtros .f-busca input { width: 100%; padding-left: 34px; }
+.filtros .f-busca svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--texto-suave); }
+.in-meta { display: inline-flex; align-items: center; height: 36px; width: 170px; border: 1px solid var(--borda); border-radius: 8px; background: var(--painel); overflow: hidden; }
+.in-meta span { padding: 0 6px 0 10px; font-size: 12px; color: var(--texto-suave); font-weight: 600; }
+.in-meta input { border: 0 !important; height: 100%; width: 100%; background: transparent; padding: 0 8px 0 0 !important; text-align: right; font-weight: 700; }
+.in-meta.mudou { border-color: var(--destaque); }
+.chip { height: 36px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--borda); background: var(--painel); font-size: 12px; font-weight: 700; color: var(--texto-suave); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-family: inherit; }
+.chip.on { border-color: #3b82f6; color: #3b82f6; background: color-mix(in srgb, #3b82f6 10%, var(--painel)); }
+.btn2.travar { background: #9a3412; border-color: #9a3412; color: #fff; }
+.btn2.salvar { background: #16a34a; border-color: #16a34a; color: #fff; }
+
+.tab-wrap { overflow: auto; max-height: calc(100vh - 360px); min-height: 260px; }
+.tab-wrap table.tab thead th { position: sticky; top: 0; z-index: 2; background: var(--bg); }
+html.tema-claro .tab-wrap table.tab thead th { background: #f1f5f9; }
+.ord-col { cursor: pointer; user-select: none; }
+.ord-col i { font-style: normal; margin-left: 4px; color: var(--destaque); }
+.chk { width: 16px; height: 16px; accent-color: #3b82f6; cursor: pointer; }
+.chk:disabled { cursor: not-allowed; }
+table.tab td.desc { max-width: 260px; overflow: hidden; text-overflow: ellipsis; }
+table.tab td.num, table.tab th.num { text-align: right; }
+tr.no-plano td { background: color-mix(in srgb, #3b82f6 8%, transparent); }
+tr.no-plano td:first-child { box-shadow: inset 3px 0 0 #3b82f6; }
+tr.mudou td:first-child { box-shadow: inset 3px 0 0 var(--destaque); }
+.mut { color: var(--texto-suave); }
+.falta { color: #f87171; font-size: 12px; }
+html.tema-claro .falta { color: #b91c1c; }
+.outro { font-size: 11px; color: var(--texto-suave); }
+.rod-tab { display: flex; gap: 16px; flex-wrap: wrap; padding: 10px 14px; font-size: 11.5px; color: var(--texto-suave); border-top: 1px solid var(--linha); }
+.rod-tab i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+
+@media (max-width: 900px) { .placar { grid-template-columns: 1fr; } }
+@media (max-width: 760px) { .tab-wrap { max-height: none; } .filtros .f-busca { min-width: 100%; } }
+</style>
+</head>
+<body>
+
+<!-- Plano do Mês — PCP e Financeiro montam, um ou dois dias antes de
+     virar o mês, a lista de OPs que vai bater a meta de faturamento.
+     Placar Meta / Planejado / Falta. Entra OP durante o mês também.
+     Uma OP fica no plano de um mês só. O gerente vê o plano no card
+     "Plano do mês" do Controle Gerencial. -->
+<main class="conteudo">
+  <div class="tit-pagina">
+    <div><h1>Plano do Mês</h1><p>OPs que vão bater a meta de faturamento do mês</p></div>
+  </div>
+
+  <div class="placar" id="placar"></div>
+  <div class="barra-meta" id="barra"><i></i></div>
+
+  <div class="filtros">
+    <select id="fMes" title="Mês do plano"></select>
+    <label class="in-meta" id="boxMeta" title="Meta de faturamento do mês"><span>Meta R$</span><input id="meta" inputmode="decimal" autocomplete="off" disabled></label>
+    <div class="f-busca"><svg class="i"><use href="#i-busca"/></svg><input id="busca" placeholder="Buscar OP, pedido, cliente, código ou descrição…" autocomplete="off"></div>
+    <button class="chip" id="chipPlano" title="Mostrar só as OPs do plano"><svg class="i"><use href="#i-check"/></svg><span>Só o plano</span></button>
+    <button class="btn2" id="bt-cancelar" data-editar disabled title="Descartar alterações"><svg class="i"><use href="#i-x"/></svg>Descartar</button>
+    <button class="btn2" id="bt-editar" data-editar title="Editar o plano"><svg class="i"><use href="#i-lapis"/></svg><span>Editar</span></button>
+    <button class="btn2 salvar" id="bt-salvar" data-editar disabled><svg class="i"><use href="#i-check"/></svg><span class="rot">Salvar</span> <span class="n" id="n-salvar">0</span></button>
+  </div>
+
+  <div class="bloco" style="padding:0">
+    <div class="tab-wrap" data-encher>
+      <table class="tab">
+        <thead><tr>
+          <th><input type="checkbox" class="chk" id="chk-todos" title="Marcar as OPs visíveis" disabled></th>
+          <th class="ord-col" data-ord="op">OP</th><th>Pedido</th><th class="ord-col" data-ord="cliente">Cliente</th><th>Código</th><th>Descrição</th>
+          <th class="ord-col" data-ord="prazo">Prazo</th><th class="ord-col" data-ord="processo">Processo</th>
+          <th class="num ord-col" data-ord="valor">A faturar</th><th>Plano</th>
+        </tr></thead>
+        <tbody id="linhas"><tr><td colspan="10"><div class="carregando">Carregando a carteira…</div></td></tr></tbody>
+      </table>
+    </div>
+    <div class="rod-tab">
+      <span><i style="background:#3b82f6"></i>No plano deste mês</span>
+      <span><i style="background:var(--destaque)"></i>Alterada, ainda não salva</span>
+      <span>"A faturar" = valor da OP menos o que já teve NF</span>
+    </div>
+  </div>
+</main>
+
+<script src="js/config.js"></script>
+<script src="js/icones.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/api.js"></script>
+<script src="js/sessao.js"></script>
+<script src="js/shell.js"></script>
+<script>
+Sessao.iniciarPagina('plano').then(function (ctx) {
+  const $ = function (s) { return document.querySelector(s); };
+  const NOMES_MES = ['', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+  const CURTO = ['', 'jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+
+  let dados = { mes: '', meta: 0, planejado: 0, faturado: 0, itens: [] };
+  let editando = false, salvando = false, soPlano = false;
+  let ordem = { col: '', asc: true };
+  const marcadas = {};    // id_item → true (entrar) / false (sair): só o que mudou
+  let metaDigitada = null;
+
+  if (!ctx.podeEditar) document.querySelectorAll('[data-editar]').forEach(function (b) { b.hidden = true; });
+
+  // Meses: 2 para trás e 3 para frente. Abre no mês seguinte se faltar ≤ 5 dias
+  // para virar (é quando o plano é montado); senão, no mês atual.
+  (function montarMeses() {
+    const h = new Date();
+    const fimMes = new Date(h.getFullYear(), h.getMonth() + 1, 0).getDate();
+    const padrao = new Date(h.getFullYear(), h.getMonth() + (fimMes - h.getDate() <= 5 ? 1 : 0), 1);
+    let html = '';
+    for (let i = -2; i <= 3; i++) {
+      const d = new Date(h.getFullYear(), h.getMonth() + i, 1);
+      const v = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+      const sel = d.getFullYear() === padrao.getFullYear() && d.getMonth() === padrao.getMonth();
+      html += '<option value="' + v + '"' + (sel ? ' selected' : '') + '>' + NOMES_MES[d.getMonth() + 1] + '/' + d.getFullYear() + '</option>';
+    }
+    $('#fMes').innerHTML = html;
+  })();
+
+  carregar();
+
+  async function carregar() {
+    try {
+      const mes = $('#fMes').value;
+      const r = await Api.chamar('planoMes', { mes: mes });
+      if (r.mes !== $('#fMes').value) return;
+      dados = r;
+      if (metaDigitada === null) $('#meta').value = fmtNum(r.meta || 0);
+      desenhar();
+    } catch (e) { Ui.erro(e); }
+  }
+
+  // ---------- Apoio ----------
+  function moeda(n) { return 'R$ ' + Number(n || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  function fmtNum(n) { return Number(n || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  function lerValor(t) {
+    t = String(t || '').replace(/R\$|\s/g, '');
+    if (!t) return 0;
+    if (t.indexOf(',') !== -1) t = t.replace(/\./g, '').replace(',', '.');
+    else if (/^\d{1,3}(\.\d{3})+$/.test(t)) t = t.replace(/\./g, '');
+    const n = Number(t);
+    return isNaN(n) || n < 0 ? null : n;
+  }
+  function mesCurto(m) { const p = String(m).split('-'); return p.length === 2 ? CURTO[Number(p[1])] + '/' + p[0].slice(2) : m; }
+  function dt(v) { if (!v) return new Date(2099, 11, 31); const p = String(v).split('/'); return new Date(+p[2], p[1] - 1, +p[0]); }
+  // Está no plano deste mês, contando o que foi marcado e ainda não salvo
+  function noPlano(x) { return x.id_item in marcadas ? marcadas[x.id_item] : x.mesPlano === dados.mes; }
+  function nAlteracoes() { return Object.keys(marcadas).length + (metaAlterada() ? 1 : 0); }
+  function metaAtual() { const v = lerValor($('#meta').value); return v === null ? dados.meta : v; }
+  function metaAlterada() { return metaDigitada !== null && lerValor(metaDigitada) !== null && lerValor(metaDigitada) !== Number(dados.meta || 0); }
+
+  // Planejado na tela = o do servidor + o efeito do que foi marcado/desmarcado
+  function planejadoTela() {
+    let p = Number(dados.planejado) || 0;
+    dados.itens.forEach(function (x) {
+      if (!(x.id_item in marcadas)) return;
+      const valor = (Number(x.valorAFaturar) || 0) + (Number(x.faturadoNoMes) || 0);
+      if (marcadas[x.id_item] && x.mesPlano !== dados.mes) p += valor;
+      if (!marcadas[x.id_item] && x.mesPlano === dados.mes) p -= valor;
+    });
+    return Math.max(p, 0);
+  }
+
+  // ---------- Desenho ----------
+  function desenhar() { desenharPlacar(); desenharLista(); atualizarBarra(); }
+
+  function desenharPlacar() {
+    const meta = metaAtual(), plan = planejadoTela(), falta = Math.max(meta - plan, 0);
+    const pct = meta > 0 ? Math.round(plan / meta * 100) : 0;
+    const nomeMes = $('#fMes').selectedOptions[0] ? $('#fMes').selectedOptions[0].textContent : '';
+    const nPlano = dados.itens.filter(noPlano).length;
+    $('#placar').innerHTML =
+      '<div class="pc" style="--c:#3b82f6"><b>' + moeda(meta) + '</b><span>Meta · ' + Ui.esc(nomeMes) + '</span>' + Ui.ic('i-graf') + '</div>' +
+      '<div class="pc" style="--c:#16a34a"><b>' + moeda(plan) + '</b><span>Planejado<small>' + pct + '% da meta · ' + nPlano + ' OP' + (nPlano === 1 ? '' : 's') + '</small></span>' + Ui.ic('i-check') + '</div>' +
+      '<div class="pc" style="--c:' + (falta > 0 ? '#dc2626' : '#16a34a') + '"><b>' + moeda(falta) + '</b><span>' + (falta > 0 ? 'Falta para a meta' : 'Meta coberta') + '</span>' + Ui.ic(falta > 0 ? 'i-alerta' : 'i-check') + '</div>';
+    $('#barra i').style.width = Math.min(pct, 100) + '%';
+    $('#barra').classList.toggle('ok', pct >= 100);
+  }
+
+  function visiveis() {
+    const b = $('#busca').value.toUpperCase().trim();
+    const lista = dados.itens.filter(function (x) {
+      if (soPlano && !noPlano(x)) return false;
+      if (b && (x.op + ' ' + x.pedido + ' ' + x.cliente + ' ' + x.codigo + ' ' + x.descricao).toUpperCase().indexOf(b) === -1) return false;
+      return true;
+    });
+    const c = ordem.col, s = ordem.asc ? 1 : -1;
+    return lista.sort(function (a, b2) {
+      if (!c) return (noPlano(b2) ? 1 : 0) - (noPlano(a) ? 1 : 0) || dt(a.prazo) - dt(b2.prazo);
+      if (c === 'valor') return s * ((Number(a.valorAFaturar) || 0) - (Number(b2.valorAFaturar) || 0));
+      if (c === 'prazo') return s * (dt(a.prazo) - dt(b2.prazo));
+      if (c === 'op') return s * ((Number(a.op) || 0) - (Number(b2.op) || 0));
+      return s * String(a[c] || '').localeCompare(String(b2[c] || ''));
+    });
+  }
+
+  function desenharLista() {
+    const lista = visiveis();
+    const dis = editando ? '' : ' disabled';
+    $('#linhas').innerHTML = lista.map(function (x) {
+      const np = noPlano(x), mudou = x.id_item in marcadas;
+      const outro = x.mesPlano && x.mesPlano !== dados.mes;
+      const plano = np ? '<span>' + mesCurto(dados.mes) + '</span>' : (outro ? '<span class="outro" title="Está no plano de outro mês. Marcar aqui tira de lá.">em ' + mesCurto(x.mesPlano) + '</span>' : '<span class="mut">—</span>');
+      const valor = Number(x.valorop) > 0 ? moeda(x.valorAFaturar) : '<span class="falta">Sem valor</span>';
+      return '<tr data-id="' + Ui.esc(x.id_item) + '" class="' + (np ? 'no-plano ' : '') + (mudou ? 'mudou' : '') + '">' +
+        '<td><input type="checkbox" class="chk" data-plano' + (np ? ' checked' : '') + dis + '></td>' +
+        '<td><b>' + Ui.esc(x.op || '—') + '</b></td><td>' + Ui.esc(x.pedido) + '</td><td>' + Ui.esc(x.cliente) + '</td>' +
+        '<td class="mut">' + Ui.esc(x.codigo) + '</td><td class="desc" title="' + Ui.esc(x.descricao) + '">' + Ui.esc(x.descricao) + '</td>' +
+        '<td>' + Ui.esc(x.prazo ? x.prazo.slice(0, 5) : '—') + '</td><td>' + Ui.esc(x.status === 'FINALIZADA' ? 'FATURADA' : x.processo) + '</td>' +
+        '<td class="num">' + valor + '</td><td>' + plano + '</td></tr>';
+    }).join('') || '<tr><td colspan="10"><div class="vazio">Nenhuma OP encontrada.</div></td></tr>';
+    const vis = lista.length > 0 && lista.every(noPlano);
+    $('#chk-todos').checked = vis;
+    $('#chk-todos').disabled = !editando;
+    document.querySelectorAll('.ord-col').forEach(function (th) {
+      const i = th.querySelector('i'); if (i) i.remove();
+      if (th.dataset.ord === ordem.col) th.insertAdjacentHTML('beforeend', '<i>' + (ordem.asc ? '↑' : '↓') + '</i>');
+    });
+    $('#chipPlano').classList.toggle('on', soPlano);
+  }
+
+  function atualizarBarra() {
+    const n = nAlteracoes();
+    $('#bt-editar').classList.toggle('travar', editando);
+    $('#bt-editar span').textContent = editando ? 'Travar' : 'Editar';
+    $('#bt-editar').querySelector('use').setAttribute('href', editando ? '#i-cadeado' : '#i-lapis');
+    $('#bt-cancelar').disabled = !editando;
+    $('#bt-salvar').disabled = !editando || !n || salvando;
+    $('#n-salvar').textContent = n;
+    $('#meta').disabled = !editando;
+    $('#boxMeta').classList.toggle('mudou', metaAlterada());
+  }
+
+  // ---------- Eventos ----------
+  $('#fMes').addEventListener('change', async function () {
+    if (nAlteracoes() && !(await Ui.confirmar({ titulo: 'Trocar de mês', texto: 'As alterações não salvas serão perdidas.', ok: 'Trocar', perigo: true }))) {
+      $('#fMes').value = dados.mes; return;
+    }
+    limparEdicao();
+    $('#linhas').innerHTML = '<tr><td colspan="10"><div class="carregando">Carregando…</div></td></tr>';
+    carregar();
+  });
+  $('#busca').addEventListener('input', desenharLista);
+  $('#chipPlano').addEventListener('click', function () { soPlano = !soPlano; desenharLista(); });
+  $('#meta').addEventListener('input', function () { metaDigitada = $('#meta').value; desenharPlacar(); atualizarBarra(); });
+  $('#meta').addEventListener('change', function () { const v = lerValor($('#meta').value); if (v !== null) $('#meta').value = fmtNum(v); });
+  document.querySelector('thead').addEventListener('click', function (ev) {
+    const th = ev.target.closest('.ord-col'); if (!th) return;
+    ordem = ordem.col === th.dataset.ord ? { col: th.dataset.ord, asc: !ordem.asc } : { col: th.dataset.ord, asc: true };
+    desenharLista();
+  });
+  function marcar(x, sim) {
+    const original = x.mesPlano === dados.mes;
+    if (sim === original) delete marcadas[x.id_item]; else marcadas[x.id_item] = sim;
+  }
+  $('#linhas').addEventListener('change', function (ev) {
+    const el = ev.target; if (!el.matches('[data-plano]')) return;
+    const id = el.closest('tr').dataset.id;
+    const x = dados.itens.find(function (d) { return d.id_item === id; });
+    marcar(x, el.checked);
+    desenhar();
+  });
+  $('#chk-todos').addEventListener('change', function () {
+    const sim = $('#chk-todos').checked;
+    visiveis().forEach(function (x) { marcar(x, sim); });
+    desenhar();
+  });
+  $('#bt-editar').addEventListener('click', function () {
+    if (editando && nAlteracoes()) { Ui.toast('Há alterações não salvas. Salve ou descarte antes de travar.', 'aviso'); return; }
+    editando = !editando;
+    desenhar();
+  });
+  $('#bt-cancelar').addEventListener('click', async function () {
+    if (nAlteracoes() && !(await Ui.confirmar({ titulo: 'Descartar alterações', texto: 'As ' + nAlteracoes() + ' alteração(ões) não salvas serão perdidas.', ok: 'Descartar', perigo: true }))) return;
+    limparEdicao();
+    $('#meta').value = fmtNum(dados.meta || 0);
+    desenhar();
+  });
+  function limparEdicao() { Object.keys(marcadas).forEach(function (k) { delete marcadas[k]; }); metaDigitada = null; editando = false; }
+
+  $('#bt-salvar').addEventListener('click', async function () {
+    if (salvando || !nAlteracoes()) return;
+    const v = lerValor($('#meta').value);
+    if (v === null) { Ui.toast('Meta inválida. Use, por exemplo, 500.000,00.', 'aviso'); return; }
+    const entrar = Object.keys(marcadas).filter(function (id) { return marcadas[id]; });
+    const sair = Object.keys(marcadas).filter(function (id) { return !marcadas[id]; });
+    const outros = dados.itens.filter(function (x) { return marcadas[x.id_item] && x.mesPlano && x.mesPlano !== dados.mes; });
+    if (outros.length && !(await Ui.confirmar({ titulo: 'OPs de outro mês',
+      texto: outros.length + ' OP(s) estão no plano de outro mês (' + outros.map(function (x) { return x.op + ' em ' + mesCurto(x.mesPlano); }).join(', ') + '). Elas saem de lá e entram em ' + mesCurto(dados.mes) + '.', ok: 'Mover para ' + mesCurto(dados.mes) }))) return;
+    salvando = true; atualizarBarra();
+    $('#bt-salvar .rot').textContent = 'Salvando…';
+    try {
+      const corpo = { idReq: Api.idReq(), mes: dados.mes, entrar: entrar, sair: sair };
+      if (metaAlterada()) corpo.meta = v;
+      const r = await Api.chamar('salvarPlano', corpo);
+      const partes = [];
+      if (r.entraram) partes.push(r.entraram + ' entrou(aram)');
+      if (sair.length) partes.push(sair.length + ' saiu(íram)');
+      if (r.meta !== null && r.meta !== undefined) partes.push('meta ' + moeda(r.meta));
+      Ui.toast(partes.join(' · ') || 'Nada mudou.', 'ok', 'Plano salvo');
+      limparEdicao();
+      await carregar();
+    } catch (e) { Ui.erro(e); }
+    finally { salvando = false; $('#bt-salvar .rot').textContent = 'Salvar'; atualizarBarra(); }
+  });
+  window.addEventListener('beforeunload', function (ev) { if (nAlteracoes()) { ev.preventDefault(); ev.returnValue = ''; } });
+});
+</script>
+</body>
+</html>

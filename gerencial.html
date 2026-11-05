@@ -99,6 +99,7 @@ html.tema-claro .fcr-t { color: #c2410c; }
     <button class="btn2" id="btLimpar" title="Limpar filtros e seleção"><svg class="i"><use href="#i-volta"/></svg>Limpar</button>
     <span class="info" id="info" hidden></span>
     <button class="btn2 imp" data-imprimir><svg class="i"><use href="#i-imp"/></svg>Imprimir <span class="n" data-qtd-imp>—</span></button>
+    <button class="btn2" data-prioridade data-editar title="Publicar prioridade"><svg class="i"><use href="#i-lista"/></svg>Publicar prioridade</button>
     <span id="modo" hidden></span>
     <button class="btn2" id="bt-cancelar" data-editar disabled title="Descartar alterações"><svg class="i"><use href="#i-x"/></svg>Descartar</button>
     <button class="btn2" id="bt-editar" data-editar title="Editar processo e previsão"><svg class="i"><use href="#i-lapis"/></svg><span>Editar</span></button>
@@ -132,6 +133,7 @@ html.tema-claro .fcr-t { color: #c2410c; }
   <div class="lista-mob so-mob" id="cartoes"></div>
   <div class="barra-mob so-mob">
     <button class="ic" data-imprimir title="Imprimir"><svg class="i"><use href="#i-imp"/></svg></button>
+    <button class="ic" data-prioridade data-editar title="Publicar prioridade"><svg class="i"><use href="#i-lista"/></svg></button>
     <button class="ic" id="bt-editar-mob" data-editar title="Editar"><svg class="i"><use href="#i-lapis"/></svg></button>
     <button class="pri" id="bt-salvar-mob" data-editar disabled><svg class="i"><use href="#i-check"/></svg><span class="rot">Salvar</span></button>
   </div>
@@ -152,7 +154,7 @@ Sessao.iniciarPagina('gerencial').then(function (ctx) {
   const PROCESSOS = ['VALIDAÇÃO TÉCNICA', 'ENGENHARIA', 'PLANEJAMENTO', 'FILA DE PRODUÇÃO', 'MODELAÇÃO',
     'MOLDAGEM', 'PINTURA', 'FUSÃO', 'REBARBAÇÃO', 'TRATAMENTO TÉRMICO', 'JATEAMENTO',
     'USINAGEM', 'BALANCEAMENTO EXTERNO', 'INSPEÇÃO FINAL', 'EXPEDIÇÃO'];
-  const ROTULO = { TODOS: 'Carteira total', PRODUCAO: 'Em produção', SEM_PREVISAO: 'Sem previsão', VENCIDO: 'Prazo vencido', FORA_CRONO: 'Fora do crono.', ENGENHARIA: 'Engenharia' };
+  const ROTULO = { TODOS: 'Carteira total', PLANO: 'Plano do mês', SEM_PREVISAO: 'Sem previsão', VENCIDO: 'Prazo vencido', FORA_CRONO: 'Fora do crono.', ENGENHARIA: 'Engenharia' };
 
   let base = [];
   let modo = 'TODOS';
@@ -160,6 +162,8 @@ Sessao.iniciarPagina('gerencial').then(function (ctx) {
   let editando = false;          // a tabela abre travada; o lápis libera a edição
   const edicoes = {};            // id_item → { processo?, previsao? (aaaa-mm-dd) } — só o que mudou
   const selecionadas = new Set();  // id_item
+  let planoIds = new Set();        // OPs do Plano do Mês (mês atual)
+  let prioridadeCarregada = false; // a prioridade publicada marca as caixinhas uma vez, ao abrir
 
   if (!ctx.podeEditar) document.querySelectorAll('[data-editar]').forEach(function (b) { b.hidden = true; });
 
@@ -184,9 +188,46 @@ Sessao.iniciarPagina('gerencial').then(function (ctx) {
       const ids = new Set(base.map(function (x) { return x.id_item; }));
       selecionadas.forEach(function (id) { if (!ids.has(id)) selecionadas.delete(id); });
       desenhar();
+      carregarPlano(ids);
     } catch (e) {
       if (!silencioso) Ui.erro(e);
     }
+  }
+
+  // Plano do Mês (card) e prioridade publicada (caixinhas já marcadas na ordem)
+  async function carregarPlano(ids) {
+    try {
+      const r = await Api.chamar('resumoPlano', {});
+      planoIds = new Set(r.ids || []);
+    } catch (e) { /* sem o plano, o card fica zerado */ }
+    if (!prioridadeCarregada) {
+      try {
+        const p = await Api.chamar('prioridadeAtual', {});
+        prioridadeCarregada = true;
+        if (!selecionadas.size) (p.itens || []).forEach(function (it) { if (ids.has(it.id_item)) selecionadas.add(it.id_item); });
+      } catch (e) { /* segue sem a prioridade */ }
+    }
+    desenhar();
+  }
+
+  // Publica a ordem das caixinhas marcadas como a prioridade da fábrica
+  async function publicarPrioridade() {
+    const porId = {}; base.forEach(function (x) { porId[x.id_item] = x; });
+    const lista = Array.from(selecionadas).map(function (id) { return porId[id]; }).filter(Boolean);
+    const fora = lista.filter(function (x) { return !planoIds.has(x.id_item); }).length;
+    const ok = await Ui.confirmar({
+      titulo: 'Publicar prioridade',
+      texto: lista.length
+        ? lista.length + ' OP(s) na ordem marcada: ' + lista.slice(0, 8).map(function (x, i) { return (i + 1) + 'º ' + (x.op || x.pedido); }).join(', ') + (lista.length > 8 ? '…' : '') +
+          (fora ? '. ' + fora + ' fora do plano do mês.' : '.') + ' Substitui a prioridade anterior.'
+        : 'Nenhuma OP marcada: a prioridade da fábrica fica vazia.',
+      ok: 'Publicar'
+    });
+    if (!ok) return;
+    try {
+      const r = await Api.chamar('publicarPrioridade', { idReq: Api.idReq(), ids: lista.map(function (x) { return x.id_item; }) });
+      Ui.toast(r.ops + ' OP(s) na prioridade.', 'ok', 'Prioridade publicada');
+    } catch (e) { Ui.erro(e); }
   }
 
   // ---------- Valores na tela (o que o gerente está vendo, com as edições) ----------
@@ -208,7 +249,7 @@ Sessao.iniciarPagina('gerencial').then(function (ctx) {
       if (modo === 'ENGENHARIA') ok = x.ehEng;
       if (modo === 'SEM_PREVISAO') ok = !x.ehEng && !x.previsao;
       if (modo === 'VENCIDO' || modo === 'FORA_CRONO') ok = x.cat === modo;
-      if (modo === 'PRODUCAO') ok = x.situacao === 'EM PRODUÇÃO';
+      if (modo === 'PLANO') ok = planoIds.has(x.id_item);
       if (depto) ok = ok && x.processo === depto;
       if (ini || fim) { const p = Cronograma.parseBR(x.prazo); ok = ok && !!p && (!ini || p >= ini) && (!fim || p <= fim); }
       if (busca) ok = ok && (String(x.op) + String(x.pedido) + String(x.cliente) + String(x.codigo) + String(x.descricao) + String(x.processo || '')).toUpperCase().indexOf(busca) !== -1;
@@ -235,7 +276,7 @@ Sessao.iniciarPagina('gerencial').then(function (ctx) {
     const semPrev = base.filter(function (x) { return !x.ehEng && !x.previsao; }).length;
     const k = [
       { m: 'TODOS', c: '#3b82f6', ic: 'i-tabela', n: base.length, d: 'OPs + itens em engenharia', mob: 'Carteira' },
-      { m: 'PRODUCAO', c: '#22c55e', ic: 'i-fogo', n: base.filter(function (x) { return x.situacao === 'EM PRODUÇÃO'; }).length, d: 'com processo iniciado', mob: 'Produção' },
+      { m: 'PLANO', c: '#22c55e', ic: 'i-check', n: base.filter(function (x) { return planoIds.has(x.id_item); }).length, d: 'OPs no Plano do Mês', mob: 'Plano do mês' },
       { m: 'SEM_PREVISAO', c: '#eab308', ic: 'i-relogio', n: semPrev, d: 'OPs sem data de previsão', mob: 'Sem previsão', pisca: semPrev > 0 },
       { m: 'VENCIDO', c: Cronograma.COR.VENCIDO, ic: 'i-alerta', n: conta('VENCIDO'), d: 'passou o prazo do cliente', mob: 'Vencidas' },
       { m: 'FORA_CRONO', c: Cronograma.COR.FORA_CRONO, ic: 'i-cal', n: conta('FORA_CRONO'), d: 'departamento atrasado', mob: 'Fora crono.' },
@@ -424,6 +465,7 @@ Sessao.iniciarPagina('gerencial').then(function (ctx) {
     const m = ev.target.closest('[data-modo]');
     if (m) { modo = m.dataset.modo === modo ? 'TODOS' : m.dataset.modo; desenhar(); return; }
     if (ev.target.closest('[data-imprimir]')) { imprimirPrioridades(); return; }
+    if (ev.target.closest('[data-prioridade]')) { publicarPrioridade(); return; }
     if (ev.target.closest('#bt-salvar, #bt-salvar-mob')) { salvarTodos(); return; }
     if (ev.target.closest('#bt-editar, #bt-editar-mob')) { alternarEdicao(); return; }
     if (ev.target.closest('#bt-cancelar')) cancelarEdicao();

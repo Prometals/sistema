@@ -18,6 +18,7 @@
 .cf.sel { outline: 2px solid var(--c); outline-offset: -1px; }
 .cf.alerta { background: color-mix(in srgb, var(--c) 10%, var(--painel)); }
 .cf.alerta b { color: var(--c); }
+.cf span small { display: block; font-size: 10.5px; font-weight: 700; letter-spacing: 0; text-transform: none; margin-top: 2px; color: var(--texto-suave); }
 /* cabeçalho da tabela fixo ao rolar */
 .tab-wrap table.tab thead th { position: sticky; top: 0; z-index: 2; background: var(--bg); }
 html.tema-claro .tab-wrap table.tab thead th { background: #f1f5f9; }
@@ -121,7 +122,7 @@ html.tema-claro .resumo-op { background: #f8fafc; }
      NF emitida exige valor (o servidor também bloqueia: SEM_VALOR). -->
 <main class="conteudo">
   <div class="tit-pagina">
-    <div><h1>Financeiro</h1><p>Carteira liberada, previsão de faturamento e OPs na expedição</p></div>
+    <div><h1>Financeiro</h1><p>Faturamento, meta do mês e OPs na expedição</p></div>
   </div>
 
   <div class="cards-fat so-desk" id="cards"></div>
@@ -201,6 +202,8 @@ Sessao.iniciarPagina('comercial').then(function (ctx) {
   let salvando = false;
   const valores = {};               // id_item → valor digitado (ainda não salvo)
   const selecionadas = new Set();   // id_item marcados para impressão
+  let plano = { meta: 0, planejado: 0, faturado: 0, ids: [], mes: '' };   // Plano do Mês (mês atual)
+  let planoIds = new Set();
 
   carregar();
   // Igual ao antigo: recarrega a cada 1 min (menos com janela aberta ou valor sendo digitado)
@@ -223,9 +226,19 @@ Sessao.iniciarPagina('comercial').then(function (ctx) {
       selecionadas.forEach(function (id) { if (!ids.has(id)) selecionadas.delete(id); });
       montarMeses();
       desenhar();
+      carregarPlano();
     } catch (e) {
       if (!silencioso) Ui.erro(e);
     }
+  }
+
+  // Plano do Mês (mês atual): meta, planejado, faturado e as OPs do plano
+  async function carregarPlano() {
+    try {
+      plano = await Api.chamar('resumoPlano', {});
+      planoIds = new Set(plano.ids || []);
+      desenharCards();
+    } catch (e) { /* sem o plano, os cards ficam zerados */ }
   }
 
   // ---------- Apoio (mesmas contas do painel antigo) ----------
@@ -305,6 +318,7 @@ Sessao.iniciarPagina('comercial').then(function (ctx) {
       if (modo === 'AGUARDANDO') ok = ok && aguardando(x);
       if (modo === 'ATRASADAS') ok = ok && atrasado(x);
       if (modo === 'ENGENHARIA') ok = ok && ehEng(x);
+      if (modo === 'PLANO') ok = ok && planoIds.has(x.id_item);
       if (modo === 'FAT_MES') ok = ok && !!x.previsao && ehCarteira(x);
       if (modo === 'FAT_SEMANA') ok = ok && naSemana(x);
       if (modo === 'FAT_DIA') ok = ok && noDia(x);
@@ -350,20 +364,22 @@ Sessao.iniciarPagina('comercial').then(function (ctx) {
       { m: 'PRONTO', c: '#16a34a', ic: 'i-pacote', rot: 'Pronto p/ faturar · ' + plural(l.pronto.length, 'OP', 'OPs'), val: moeda(somaPronto(l.pronto)), qtd: 'peças que chegaram da expedição', alerta: l.pronto.length > 0, mob: curto(somaPronto(l.pronto)), mobRot: 'Pronto p/ faturar' },
       { m: 'AGUARDANDO', c: '#d97706', ic: 'i-relogio', rot: 'Aguardando cliente · ' + plural(l.aguard.length, 'OP', 'OPs'), val: moeda(somaPronto(l.aguard)), qtd: 'prontas, cliente não liberou', alerta: l.aguard.length > 0, pisca: l.aguard.length > 0, mob: curto(somaPronto(l.aguard)), mobRot: 'Aguardando' },
       { m: 'ATRASADAS', c: '#dc2626', ic: 'i-alerta', rot: 'Prazo vencido · ' + plural(l.atras.length, 'OP', 'OPs'), val: moeda(soma(l.atras)), qtd: 'prazo do cliente vencido', mob: curto(soma(l.atras)), mobRot: 'Prazo vencido' },
-      { m: 'TODOS', c: '#3b82f6', ic: 'i-tabela', rot: 'Carteira liberada', val: moeda(soma(base)), qtd: plural(base.filter(temPedido).length, 'OP com pedido', 'OPs com pedido'), mob: curto(soma(base)), mobRot: 'Carteira' },
-      { m: 'FAT_MES', c: '#16a34a', ic: 'i-cal', rot: tituloMes, val: moeda(soma(l.mes)), qtd: plural(l.mes.length, 'OP', 'OPs') + ' · ' + detMes, mob: curto(soma(l.mes)), mobRot: 'Mês' },
-      { m: 'FAT_SEMANA', c: '#16a34a', ic: 'i-cal', rot: 'Faturáveis na semana', val: moeda(soma(l.semana)), qtd: plural(l.semana.length, 'OP', 'OPs') + ' · ' + dm(ini) + ' a ' + dm(fim), pisca: soma(l.semana) > 0, mob: curto(soma(l.semana)), mobRot: 'Semana' },
-      { m: 'FAT_DIA', c: '#16a34a', ic: 'i-cal', rot: 'Faturáveis no dia', val: moeda(soma(l.dia)), qtd: plural(l.dia.length, 'OP', 'OPs') + ' · hoje', pisca: soma(l.dia) > 0, mob: curto(soma(l.dia)), mobRot: 'Dia' },
-      { m: 'ENGENHARIA', c: '#9333ea', ic: 'i-clip', rot: 'Faturamento engenharia', val: moeda(soma(l.eng)), qtd: plural(l.eng.length, 'item sem OP', 'itens sem OP'), mob: curto(soma(l.eng)), mobRot: 'Engenharia' }
+      { m: 'ENGENHARIA', c: '#9333ea', ic: 'i-clip', rot: 'Faturamento engenharia', val: moeda(soma(l.eng)), qtd: plural(l.eng.length, 'item sem OP', 'itens sem OP'), mob: curto(soma(l.eng)), mobRot: 'Engenharia' },
+      { m: 'META', c: '#3b82f6', ic: 'i-graf', rot: 'Meta · ' + nomeMesPlano(), val: moeda(plano.meta), qtd: 'meta de faturamento do mês (Plano do Mês)', mob: curto(plano.meta || 0), mobRot: 'Meta' },
+      { m: 'PLANO', c: '#16a34a', ic: 'i-check', rot: 'Planejado', sub: pctMeta(plano.planejado) + ' da meta · ' + plural(planoIds.size, 'OP', 'OPs'), val: moeda(plano.planejado), qtd: 'OPs do Plano do Mês (clique para filtrar)', mob: curto(plano.planejado || 0), mobRot: 'Planejado' },
+      { m: 'FATURADO', c: '#16a34a', ic: 'i-moeda', rot: 'Faturado no mês', sub: pctMeta(plano.faturado) + ' · faltam ' + moeda(Math.max((plano.meta || 0) - (plano.faturado || 0), 0)), val: moeda(plano.faturado), qtd: 'NFs emitidas no mês', mob: curto(plano.faturado || 0), mobRot: 'Faturado' },
+      { m: 'TODOS', c: '#64748b', ic: 'i-tabela', rot: 'Carteira total', val: moeda(soma(base)), qtd: plural(base.filter(temPedido).length, 'OP com pedido', 'OPs com pedido') + ' · tudo que falta faturar', mob: curto(soma(base)), mobRot: 'Carteira' }
     ];
   }
-  const ROTULO = { TODOS: 'Carteira liberada', PRONTO: 'Pronto p/ faturar', AGUARDANDO: 'Aguardando cliente', ATRASADAS: 'Prazo vencido', FAT_MES: 'Faturáveis no mês', FAT_SEMANA: 'Faturáveis na semana', FAT_DIA: 'Faturáveis no dia', ENGENHARIA: 'Faturamento engenharia' };
+  function pctMeta(v) { return plano.meta > 0 ? Math.round((v || 0) / plano.meta * 100) + '%' : '—'; }
+  function nomeMesPlano() { const p = String(plano.mes || '').split('-'); return p.length === 2 ? ['', 'jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'][Number(p[1])] + '/' + p[0].slice(2) : 'mês'; }
+  const ROTULO = { TODOS: 'Carteira total', PLANO: 'Plano do mês', META: 'Carteira total', FATURADO: 'Carteira total', PRONTO: 'Pronto p/ faturar', AGUARDANDO: 'Aguardando cliente', ATRASADAS: 'Prazo vencido', FAT_MES: 'Faturáveis no mês', FAT_SEMANA: 'Faturáveis na semana', FAT_DIA: 'Faturáveis no dia', ENGENHARIA: 'Faturamento engenharia' };
 
   function desenharCards() {
     const k = calcularCards();
     $('#cards').innerHTML = k.map(function (x) {
       return '<button class="cf' + (modo === x.m ? ' sel' : '') + (x.alerta ? ' alerta' : '') + (x.pisca ? ' piscando' : '') + '" data-modo="' + x.m + '" style="--c:' + x.c + '" title="' + Ui.esc(x.rot + ': ' + x.val + ' · ' + x.qtd) + '">' +
-        '<b>' + Ui.esc(x.val) + '</b><span>' + Ui.esc(x.rot) + '</span>' + Ui.ic(x.ic) + '</button>';
+        '<b>' + Ui.esc(x.val) + '</b><span>' + Ui.esc(x.rot) + (x.sub ? '<small>' + Ui.esc(x.sub) + '</small>' : '') + '</span>' + Ui.ic(x.ic) + '</button>';
     }).join('');
     $('#cards-mob').innerHTML = k.map(function (x) {
       return '<button class="km' + (modo === x.m ? ' sel' : '') + (x.pisca ? ' piscando' : '') + '" data-modo="' + x.m + '" style="--c:' + x.c + '"><b>' + Ui.esc(x.mob) + '</b>' + Ui.esc(x.mobRot) + '</button>';
