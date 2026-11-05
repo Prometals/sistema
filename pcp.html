@@ -770,7 +770,20 @@ Sessao.iniciarPagina('pcp').then(function (ctx) {
   }
 
   // ---------- Etiquetas 100 × 50 mm (layout IDÊNTICO ao painel antigo) ----------
+  // Regra do LADO (automática, sem cadastro):
+  //   liga SFK → peça com lado (LD + LE), exceto os códigos de SEM_LADO_CODIGOS (Ingredion);
+  //   CRK e todas as outras ligas (terceiros) → N/A.
+  // Para acrescentar um código sem lado, basta pôr na lista abaixo.
+  const LIGAS_COM_LADO = ['SFK'];
+  const SEM_LADO_CODIGOS = ['SD3611022', '8025', '8073', '8026'];
+  function itemTemLado(x) {
+    const liga = String(x.liga || '').trim().toUpperCase();
+    if (!LIGAS_COM_LADO.some(function (l) { return liga.indexOf(l) === 0; })) return false;
+    return SEM_LADO_CODIGOS.map(normCod).indexOf(normCod(x.codigo)) === -1;
+  }
+
   function abrirEtiqueta(x) {
+    const temLado = itemTemLado(x);
     const moldes = Number(x.qtdmoldesPlanejados) || 0;   // etiqueta = total planejado (não desconta a fusão)
     const dadosEt = { op: semZeros(x.op), pedido: semZeros(x.pedido), codigo: x.codigo, lote: semZeros(x.op), liga: x.liga, prazo: x.prazo };
     const corpo =
@@ -782,7 +795,10 @@ Sessao.iniciarPagina('pcp').then(function (ctx) {
       '<div class="info-mold full">Moldes planejados: <b>' + (moldes > 0 ? moldes + ' moldes' : 'não informado') + '</b>' +
         (x.qtdmoldes !== '' && moldes > 0 ? ' · falta fundir ' + x.qtdmoldes : '') + '</div>' +
       '<label>Quantidade de etiquetas<input name="qtd" type="number" min="1" value="' + (moldes > 0 ? moldes : 1) + '"></label>' +
-      '<label>Lado<select name="lado"><option value="N/A">N/A</option><option value="LD">LD</option><option value="LE">LE</option></select></label>' +
+      '<label>Lado<select name="lado"' + (temLado ? '' : ' disabled') + '>' + (temLado
+          ? '<option value="LD+LE">LD + LE</option><option value="LD">LD</option><option value="LE">LE</option>'
+          : '<option value="N/A">N/A</option>') + '</select>' +
+        '<small data-div style="display:block;margin-top:4px;font-size:12px;color:var(--texto-suave)"></small></label>' +
       '</div><div class="previa">PRÉVIA<div class="cx"><div data-previa></div></div>1 etiqueta por página · impressora térmica</div></div>';
     Ui.janela({
       titulo: 'Gerar etiquetas', subtitulo: 'Etiqueta 100 × 50 mm · mesmo layout de hoje', largura: 700,
@@ -790,7 +806,9 @@ Sessao.iniciarPagina('pcp').then(function (ctx) {
       botoes: [{ texto: 'Cancelar', valor: null }, { texto: 'Imprimir', classe: 'pri', valor: 'ok' }],
       antesDeFechar: function (v, caixa) {
         const qtd = parseInt(caixa.querySelector('[name="qtd"]').value, 10) || 1;
-        imprimirEtiquetas(dadosEt, qtd, caixa.querySelector('[name="lado"]').value);
+        const lado = caixa.querySelector('[name="lado"]').value;
+        if (lado === 'LD+LE' && qtd % 2) return false;   // meio a meio só com quantidade par
+        imprimirEtiquetas(dadosEt, qtd, lado);
         return true;
       }
     });
@@ -798,9 +816,20 @@ Sessao.iniciarPagina('pcp').then(function (ctx) {
     const btImp = caixa.querySelector('.rodape .pri');
     const previa = function () {
       const qtd = parseInt(caixa.querySelector('[name="qtd"]').value, 10) || 1;
+      // LD + LE = meio a meio; com quantidade ímpar a opção fica bloqueada (o usuário imprime LD e LE separado)
+      const sel = caixa.querySelector('[name="lado"]');
+      const par = sel.querySelector('[value="LD+LE"]');
+      if (par) {
+        par.disabled = qtd % 2 !== 0;
+        if (par.disabled && sel.value === 'LD+LE') sel.value = 'LD';
+      }
+      caixa.querySelector('[data-div]').textContent = !temLado ? 'Item sem lado'
+        : sel.value === 'LD+LE' ? (qtd / 2) + ' LD + ' + (qtd / 2) + ' LE'
+        : (par.disabled ? 'LD + LE só com quantidade par' : '');
       // na prévia, o código usa o tamanho que sai na impressão (30px): o
       // clamp(…5vw…) do layout original é calculado na janela de 100 mm
-      caixa.querySelector('[data-previa]').innerHTML = htmlEtiqueta(dadosEt, 1, qtd, caixa.querySelector('[name="lado"]').value)
+      const e1 = etiquetas(qtd, sel.value)[0];
+      caixa.querySelector('[data-previa]').innerHTML = htmlEtiqueta(dadosEt, e1.n, e1.de, e1.lado)
         .replace('clamp(30px,5vw,40px)', '30px');
       btImp.textContent = 'Imprimir ' + qtd + ' etiqueta' + (qtd === 1 ? '' : 's');
     };
@@ -814,7 +843,8 @@ Sessao.iniciarPagina('pcp').then(function (ctx) {
   }
 
   // Uma etiqueta — HTML copiado do painel antigo, sem mudanças de layout.
-  function htmlEtiqueta(d, i, qtd, lado, emissao) {
+  // quebra = pula página depois desta (padrão: todas menos a última da numeração)
+  function htmlEtiqueta(d, i, qtd, lado, emissao, quebra) {
     emissao = emissao || emissaoAgora();
     const e = Ui.esc;
     return `
@@ -826,7 +856,7 @@ Sessao.iniciarPagina('pcp').then(function (ctx) {
       color:#000;background:#fff;
       display:grid;
       grid-template-rows:9mm 26mm 17mm;
-      page-break-after:${i < qtd ? 'always' : 'avoid'};
+      page-break-after:${(quebra === undefined ? i < qtd : quebra) ? 'always' : 'avoid'};
       overflow:hidden;
     ">
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1.2fr;border-bottom:1.5px solid #000">
@@ -872,10 +902,25 @@ Sessao.iniciarPagina('pcp').then(function (ctx) {
     </div>`;
   }
 
+  // Lista das etiquetas: { n, de, lado }.
+  // LD + LE: primeiro as LD (1/8 … 8/8), depois as LE (1/8 … 8/8). Senão: 1/qtd … qtd/qtd.
+  function etiquetas(qtd, lado) {
+    const l = [];
+    if (lado === 'LD+LE') {
+      const m = qtd / 2;
+      for (let i = 1; i <= m; i++) l.push({ n: i, de: m, lado: 'LD' });
+      for (let i = 1; i <= m; i++) l.push({ n: i, de: m, lado: 'LE' });
+    } else {
+      for (let i = 1; i <= qtd; i++) l.push({ n: i, de: qtd, lado: lado });
+    }
+    return l;
+  }
+
   function imprimirEtiquetas(d, qtd, lado) {
     const emissao = emissaoAgora();
-    let etiquetas = '';
-    for (let i = 1; i <= qtd; i++) etiquetas += htmlEtiqueta(d, i, qtd, lado, emissao);
+    const lista = etiquetas(qtd, lado);
+    let html = '';
+    lista.forEach(function (t, k) { html += htmlEtiqueta(d, t.n, t.de, t.lado, emissao, k < lista.length - 1); });
     const w = window.open('', '_blank');
     if (!w) { Ui.toast('O navegador bloqueou a janela de impressão. Libere pop-ups para este site.', 'erro'); return; }
     w.document.write(`<!DOCTYPE html><html><head><title>Etiquetas OP ${Ui.esc(d.op)}</title>
@@ -884,7 +929,7 @@ Sessao.iniciarPagina('pcp').then(function (ctx) {
     html,body{margin:0;padding:0;width:100mm}
     *{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important}
   </style>
-  </head><body>${etiquetas}
+  </head><body>${html}
   <script>window.onload=function(){window.print();};<\/script>
   </body></html>`);
     w.document.close();
