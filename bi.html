@@ -50,12 +50,18 @@ html.tema-claro { --c-ok: #15803d; --c-pronta: #22c55e; --c-verm: #dc2626; --c-l
 
 .rola { overflow: hidden; min-height: 0; flex: 1; }
 table.tv-t { width: 100%; border-collapse: collapse; table-layout: fixed; }
-table.tv-t th { text-align: left; font-size: 14px; letter-spacing: 1px; color: var(--texto-suave); padding: 8px 14px; border-bottom: 1px solid var(--linha); position: sticky; top: 0; background: var(--painel); }
-table.tv-t td { padding: 13px 14px; border-bottom: 1px solid var(--linha); font-size: 22px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* O sistema.css (telas ≥ 761px) força título de coluna 10,5px e quebra de linha nas células:
+   na TV o título fica legível e cada linha ocupa UMA linha só (texto longo termina em "…"). */
+main.conteudo table.tv-t th { text-align: left; font-size: 16px !important; font-weight: 800; letter-spacing: 1px !important; line-height: 1.2;
+  color: var(--texto-suave); padding: 12px 14px !important; border-bottom: 2px solid var(--linha); background: var(--painel); white-space: nowrap !important; overflow: hidden; text-overflow: ellipsis; }
+main.conteudo table.tv-t td { padding: 13px 14px !important; border-bottom: 1px solid var(--linha); font-size: 22px; white-space: nowrap !important; overflow: hidden; text-overflow: ellipsis; overflow-wrap: normal; }
+/* Título da tabela fica PARADO; só as linhas rolam (o título é uma tabela à parte, com as mesmas colunas) */
+table.tv-t.cab-fixo { flex: none; margin-bottom: -12px; }
+main.conteudo table.tv-t th.num { text-align: right; }
 table.tv-t .num { text-align: right; }
 .pos { font-size: 30px !important; font-weight: 900; color: var(--c-destaque); text-align: center; }
 .mut { color: var(--texto-suave); }
-.sem { text-align: center; color: var(--texto-suave); padding: 30px 0 !important; font-size: 20px !important; white-space: normal !important; }
+main.conteudo table.tv-t td.sem { text-align: center; color: var(--texto-suave); padding: 30px 0 !important; font-size: 20px !important; white-space: normal !important; }
 .st { display: inline-block; padding: 4px 12px; border-radius: 6px; font-size: 17px; font-weight: 800; }
 .st.ok { background: color-mix(in srgb, var(--c-ok) 18%, transparent); color: var(--c-ok); }
 .st.vc { background: color-mix(in srgb, var(--c-verm) 20%, transparent); color: var(--c-verm); }
@@ -165,7 +171,7 @@ table.tv-t .num { text-align: right; }
       <div class="bx tab">
         <h4 id="plFaltaTit">FALTAM SAIR</h4>
         <div class="rola"><table class="tv-t">
-          <colgroup><col style="width:120px"><col style="width:260px"><col><col style="width:150px"></colgroup>
+          <colgroup><col style="width:120px"><col><col style="width:400px"><col style="width:130px"></colgroup>
           <thead><tr><th>OP</th><th>CLIENTE</th><th>ONDE ESTÁ</th><th>PRAZO</th></tr></thead>
           <tbody id="tbPlano"></tbody></table></div>
       </div>
@@ -187,7 +193,7 @@ table.tv-t .num { text-align: right; }
         <div class="bx tab">
           <h4>OPs ATRASADAS · PRAZO VENCIDO <span style="color:var(--c-verm)">●</span> E FORA DO CRONO. <span style="color:var(--c-lar)">●</span></h4>
           <div class="rola"><table class="tv-t">
-            <colgroup><col style="width:120px"><col style="width:250px"><col><col style="width:220px"></colgroup>
+            <colgroup><col style="width:120px"><col><col style="width:280px"><col style="width:200px"></colgroup>
             <thead><tr><th>OP</th><th>CLIENTE</th><th>ONDE ESTÁ</th><th class="num">ATRASO</th></tr></thead>
             <tbody id="tbPrazo"></tbody></table></div>
         </div>
@@ -201,7 +207,7 @@ table.tv-t .num { text-align: right; }
       <div class="bx tab">
         <h4>OPs PARADAS · SEM MOVIMENTO HÁ 4 DIAS OU MAIS</h4>
         <div class="rola"><table class="tv-t">
-          <colgroup><col style="width:120px"><col style="width:230px"><col><col style="width:150px"></colgroup>
+          <colgroup><col style="width:120px"><col><col style="width:280px"><col style="width:140px"></colgroup>
           <thead><tr><th>OP</th><th>CLIENTE</th><th>PROCESSO</th><th class="num">PARADA</th></tr></thead>
           <tbody id="tbParadas"></tbody></table></div>
       </div>
@@ -276,6 +282,17 @@ Sessao.iniciarPagina('bi').then(function (ctx) {
     if (!pausado) proxTroca = Date.now() + DURACAO_TELA;
     rodape();
   }
+
+  // ---------- Título das tabelas parado ----------
+  // Cada tabela que rola vira duas: o título (fora da rolagem) e as linhas (dentro).
+  // As duas têm as mesmas larguras de coluna (colgroup), então ficam alinhadas.
+  document.querySelectorAll('.rola > table.tv-t').forEach(function (t) {
+    const cab = document.createElement('table');
+    cab.className = 'tv-t cab-fixo';
+    cab.appendChild(t.querySelector('colgroup').cloneNode(true));
+    cab.appendChild(t.querySelector('thead'));
+    t.parentNode.parentNode.insertBefore(cab, t.parentNode);
+  });
 
   // ---------- Rotação das telas ----------
   $('dots').innerHTML = NOMES.map(function (n, i) { return '<i data-i="' + i + '" title="' + e(n) + '"></i>'; }).join('');
