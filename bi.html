@@ -124,14 +124,14 @@ table.tv-t .num { text-align: right; }
           <button id="btPausa" title="Pausar rotação (espaço)"><svg class="i"><use href="#i-relogio"/></svg></button>
           <button id="btTema" title="Tema claro/escuro"><svg class="i"><use href="#i-lua"/></svg></button>
         </div>
-        <div class="tela-n"><b id="telaNome">PRIORIDADES DA FÁBRICA</b><div class="dots" id="dots"></div></div>
+        <div class="tela-n"><b id="telaNome">CARREGANDO…</b><div class="dots" id="dots"></div></div>
         <div class="rel"><b id="relHora">00:00</b><span id="relData">—</span></div>
       </div>
     </header>
     <div class="prog"><i id="progFill"></i></div>
 
     <!-- TELA 1 — PRIORIDADES DA FÁBRICA -->
-    <section class="ws t-pri ativa" data-tela="0">
+    <section class="ws t-pri" data-tela="0">
       <div class="info" id="priInfo">—</div>
       <div class="bx tab">
         <div class="rola"><table class="tv-t">
@@ -306,7 +306,7 @@ Sessao.iniciarPagina('bi').then(function (ctx) {
   // Um único relógio anima a barra de progresso, troca a tela e rola as tabelas
   setInterval(function () {
     const agora = Date.now();
-    if (!pausado) {
+    if (!pausado && dados) {
       const falta = Math.max(0, proxTroca - agora);
       $('progFill').style.width = (100 - falta / DURACAO_TELA * 100) + '%';
       if (falta <= 0) proxima();
@@ -335,13 +335,16 @@ Sessao.iniciarPagina('bi').then(function (ctx) {
       // Cópia guardada antiga/incompleta: busca de novo no servidor
       if (!r || !Array.isArray(r.carteira) || !r.tv) r = await Api.chamar('resumoBI', { tv: true }, { forcar: true, rapido: function () { carregar(); } });
       if (!r || !Array.isArray(r.carteira) || !r.tv) throw new Error('o servidor respondeu sem os dados da TV (confira se o 13_BI.gs está na versão nova).');
+      const primeira = !dados;
       dados = preparar(r);
       desenhar();
-      if (!temDados(tela)) proxima();
+      // Tela sem dados some do rodízio (e a bolinha dela também)
+      document.querySelectorAll('#dots i').forEach(function (d, k) { d.style.display = temDados(k) ? '' : 'none'; });
+      if (primeira || !temDados(tela)) { tela = N - 1; proxima(); }
       $('stAtu').textContent = 'Dados de ' + Fmt.hora();
     } catch (err) {
       $('stAtu').textContent = 'Erro ao buscar dados: ' + err.message;
-      if (!dados) $('tbPri').innerHTML = semLinhas(7, 'Não foi possível carregar os dados.');
+      if (!dados) { irPara(0); $('telaNome').textContent = 'ERRO AO CARREGAR'; $('tbPri').innerHTML = semLinhas(7, 'Não foi possível carregar os dados.'); }
     }
   }
   window.addEventListener('api:status', function (ev) {
@@ -558,7 +561,6 @@ Sessao.iniciarPagina('bi').then(function (ctx) {
     }).join('') || semLinhas(4, 'Nenhuma OP parada.');
   }
 
-  irPara(0);
 });
 </script>
 </body>
