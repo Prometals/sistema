@@ -217,7 +217,8 @@ Sessao.iniciarPagina('comercial').then(function (ctx) {
         const foco = document.activeElement;
         if (!ocupado && !salvando && !Object.keys(valores).length && !document.querySelector('.modal-fundo') && !(foco && foco.matches && foco.matches('[data-valor]'))) carregar(true);
       } });
-      base = r.itens;
+      // OP sem pedido é estoque: não gera receita, não aparece no Financeiro
+      base = r.itens.filter(function (x) { return !!(x.pedido && x.pedido !== '-'); });
       const ids = new Set(base.map(function (x) { return x.id_item; }));
       selecionadas.forEach(function (id) { if (!ids.has(id)) selecionadas.delete(id); });
       montarMeses();
@@ -239,8 +240,15 @@ Sessao.iniciarPagina('comercial').then(function (ctx) {
   const temPedido = function (x) { return !!(x.pedido && x.pedido !== '-'); };
   const ehEng = function (x) { return !temOP(x) && temPedido(x); };
   const ehCarteira = function (x) { return temOP(x) && temPedido(x); };
-  const pronto = function (x) { return x.status === 'EXPEDICAO'; };
-  const aguardando = function (x) { return x.status === 'AGUARDANDO_FATURAMENTO'; };
+  // Parcial: pronto p/ faturar = peças expedidas e ainda não faturadas (qtdpronta)
+  const temParcial = function (x) { return x.qtdpronta !== undefined; };
+  const pronto = function (x) { return temParcial(x) ? x.qtdpronta > 0 && !x.aguardandofat : x.status === 'EXPEDICAO'; };
+  const aguardando = function (x) { return temParcial(x) ? x.qtdpronta > 0 && !!x.aguardandofat : x.status === 'AGUARDANDO_FATURAMENTO'; };
+  const parcial = function (x) { return temParcial(x) && Number(x.qtdpronta) < Number(x.qtdordem); };
+  // Valor das peças prontas (cards Pronto / Aguardando)
+  const valorPronto = function (x) { return x.valorpronto !== undefined ? valorNum(x.valorpronto) : valorDe(x); };
+  const somaPronto = function (lista) { return lista.reduce(function (s, x) { return s + valorPronto(x); }, 0); };
+  const txtPronto = function (x) { return parcial(x) ? x.qtdpronta + ' de ' + x.qtdordem + ' pç' : ''; };
   function hojeZero() { const h = new Date(); h.setHours(0, 0, 0, 0); return h; }
   function hojeBR() { const h = new Date(); return String(h.getDate()).padStart(2, '0') + '/' + String(h.getMonth() + 1).padStart(2, '0') + '/' + h.getFullYear(); }
   // Semana fixa de SEGUNDA a SEXTA (a fábrica não trabalha sábado/domingo).
@@ -339,9 +347,9 @@ Sessao.iniciarPagina('comercial').then(function (ctx) {
     const ini = inicioSemana(), fim = sextaSemana();
     const dm = function (d) { return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0'); };
     return [
-      { m: 'PRONTO', c: '#16a34a', ic: 'i-pacote', rot: 'Pronto p/ faturar', val: plural(l.pronto.length, 'OP', 'OPs'), qtd: moeda(soma(l.pronto)) + ' · chegou da expedição', alerta: l.pronto.length > 0, mob: l.pronto.length, mobRot: 'Pronto p/ faturar' },
-      { m: 'AGUARDANDO', c: '#d97706', ic: 'i-relogio', rot: 'Aguardando faturamento', val: plural(l.aguard.length, 'OP', 'OPs'), qtd: moeda(soma(l.aguard)) + ' · cliente não liberou', alerta: l.aguard.length > 0, pisca: l.aguard.length > 0, mob: l.aguard.length, mobRot: 'Aguardando fat.' },
-      { m: 'ATRASADAS', c: '#dc2626', ic: 'i-alerta', rot: 'Faturamento atrasado', val: moeda(soma(l.atras)), qtd: plural(l.atras.length, 'OP com prazo vencido', 'OPs com prazo vencido'), mob: curto(soma(l.atras)), mobRot: 'Atrasado' },
+      { m: 'PRONTO', c: '#16a34a', ic: 'i-pacote', rot: 'Pronto p/ faturar · ' + plural(l.pronto.length, 'OP', 'OPs'), val: moeda(somaPronto(l.pronto)), qtd: 'peças que chegaram da expedição', alerta: l.pronto.length > 0, mob: curto(somaPronto(l.pronto)), mobRot: 'Pronto p/ faturar' },
+      { m: 'AGUARDANDO', c: '#d97706', ic: 'i-relogio', rot: 'Aguardando cliente · ' + plural(l.aguard.length, 'OP', 'OPs'), val: moeda(somaPronto(l.aguard)), qtd: 'prontas, cliente não liberou', alerta: l.aguard.length > 0, pisca: l.aguard.length > 0, mob: curto(somaPronto(l.aguard)), mobRot: 'Aguardando' },
+      { m: 'ATRASADAS', c: '#dc2626', ic: 'i-alerta', rot: 'Prazo vencido · ' + plural(l.atras.length, 'OP', 'OPs'), val: moeda(soma(l.atras)), qtd: 'prazo do cliente vencido', mob: curto(soma(l.atras)), mobRot: 'Prazo vencido' },
       { m: 'TODOS', c: '#3b82f6', ic: 'i-tabela', rot: 'Carteira liberada', val: moeda(soma(base)), qtd: plural(base.filter(temPedido).length, 'OP com pedido', 'OPs com pedido'), mob: curto(soma(base)), mobRot: 'Carteira' },
       { m: 'FAT_MES', c: '#16a34a', ic: 'i-cal', rot: tituloMes, val: moeda(soma(l.mes)), qtd: plural(l.mes.length, 'OP', 'OPs') + ' · ' + detMes, mob: curto(soma(l.mes)), mobRot: 'Mês' },
       { m: 'FAT_SEMANA', c: '#16a34a', ic: 'i-cal', rot: 'Faturáveis na semana', val: moeda(soma(l.semana)), qtd: plural(l.semana.length, 'OP', 'OPs') + ' · ' + dm(ini) + ' a ' + dm(fim), pisca: soma(l.semana) > 0, mob: curto(soma(l.semana)), mobRot: 'Semana' },
@@ -349,7 +357,7 @@ Sessao.iniciarPagina('comercial').then(function (ctx) {
       { m: 'ENGENHARIA', c: '#9333ea', ic: 'i-clip', rot: 'Faturamento engenharia', val: moeda(soma(l.eng)), qtd: plural(l.eng.length, 'item sem OP', 'itens sem OP'), mob: curto(soma(l.eng)), mobRot: 'Engenharia' }
     ];
   }
-  const ROTULO = { TODOS: 'Carteira liberada', PRONTO: 'Pronto p/ faturar', AGUARDANDO: 'Aguardando faturamento', ATRASADAS: 'Faturamento atrasado', FAT_MES: 'Faturáveis no mês', FAT_SEMANA: 'Faturáveis na semana', FAT_DIA: 'Faturáveis no dia', ENGENHARIA: 'Faturamento engenharia' };
+  const ROTULO = { TODOS: 'Carteira liberada', PRONTO: 'Pronto p/ faturar', AGUARDANDO: 'Aguardando cliente', ATRASADAS: 'Prazo vencido', FAT_MES: 'Faturáveis no mês', FAT_SEMANA: 'Faturáveis na semana', FAT_DIA: 'Faturáveis no dia', ENGENHARIA: 'Faturamento engenharia' };
 
   function desenharCards() {
     const k = calcularCards();
@@ -369,12 +377,13 @@ Sessao.iniciarPagina('comercial').then(function (ctx) {
 
   // ---------- Célula de ação e campo de valor ----------
   function htmlAcao(x, mob) {
+    const pc = txtPronto(x) ? '<span class="mut" style="font-size:11px;margin-right:6px" title="Peças prontas para faturar de ' + Ui.esc(x.qtdordem) + '">' + Ui.esc(txtPronto(x)) + '</span>' : '';
     if (pronto(x)) {
-      if (!ctx.podeEditar) return '<span class="tag t-verde">Pronto p/ faturar</span>';
-      return '<button class="bt-nf" data-nf>' + Ui.ic('i-check') + 'NF emitida</button><button class="bt-nao" data-nao>Não faturado</button>';
+      if (!ctx.podeEditar) return pc + '<span class="tag t-verde">Pronto p/ faturar</span>';
+      return pc + '<button class="bt-nf" data-nf>' + Ui.ic('i-check') + 'NF emitida</button><button class="bt-nao" data-nao>Não faturado</button>';
     }
     if (aguardando(x)) {
-      const tag = '<span class="tag t-amar">Cliente não liberou</span>';
+      const tag = pc + '<span class="tag t-amar">Cliente não liberou</span>';
       if (!ctx.podeEditar) return tag;
       return tag + ' <button class="bt-nf" data-nf' + (mob ? '' : ' style="margin-left:6px"') + '>' + Ui.ic('i-check') + 'NF emitida</button>';
     }
@@ -671,9 +680,11 @@ Sessao.iniciarPagina('comercial').then(function (ctx) {
     const idReq = Api.idReq();   // um por clique: se repetir, o servidor não grava em dobro
     const confirmado = await Ui.janela({
       titulo: 'Confirmar NF emitida',
-      subtitulo: 'A OP sai do painel Comercial/Financeiro e vai para o histórico.',
+      subtitulo: parcial(x) ? 'Fatura as ' + x.qtdpronta + ' peças prontas. O restante continua na produção.' : 'A OP sai do painel Comercial/Financeiro e vai para o histórico.',
       corpo: '<div class="msg-erro"></div><div class="resumo-op"><span>OP</span><b>' + Ui.esc(x.op) + '</b><span>Cliente</span><b>' + Ui.esc(x.cliente) + '</b>' +
-        '<span>Item</span><b>' + Ui.esc(x.codigo) + ' · ' + Ui.esc(x.descricao) + '</b><span>Valor</span><b>' + moeda(x.valorop) + '</b></div>',
+        '<span>Item</span><b>' + Ui.esc(x.codigo) + ' · ' + Ui.esc(x.descricao) + '</b>' +
+        (parcial(x) ? '<span>Peças</span><b>' + x.qtdpronta + ' de ' + Ui.esc(x.qtdordem) + '</b>' : '') +
+        '<span>Valor</span><b>' + moeda(temValor(x) ? (x.valorpronto !== undefined && valorNum(x.valorpronto) > 0 ? x.valorpronto : x.valorop) : 0) + '</b></div>',
       botoes: [{ texto: 'Cancelar', valor: null }, { texto: 'Confirmar NF emitida', classe: 'pri verde', valor: 'ok' }],
       antesDeFechar: async function (v, cx) {
         try {
@@ -685,7 +696,7 @@ Sessao.iniciarPagina('comercial').then(function (ctx) {
       }
     });
     if (confirmado !== 'ok') return;
-    Ui.toast('OP ' + x.op + ' finalizada e enviada ao histórico.', 'ok', 'NF emitida');
+    Ui.toast(parcial(x) ? 'OP ' + x.op + ': ' + x.qtdpronta + ' peça(s) faturada(s).' : 'OP ' + x.op + ' finalizada e enviada ao histórico.', 'ok', 'NF emitida');
     selecionadas.delete(x.id_item);
     await carregar(true);
   }
@@ -694,7 +705,7 @@ Sessao.iniciarPagina('comercial').then(function (ctx) {
     if (ocupado) return;
     const ok = await Ui.confirmar({
       titulo: 'Não faturado',
-      texto: 'O cliente não liberou a OP ' + x.op + ' (' + x.cliente + ')? Ela vai para "Aguardando faturamento" e fica piscando até a NF ser emitida.',
+      texto: 'O cliente não liberou a OP ' + x.op + ' (' + x.cliente + ')' + (parcial(x) ? ' — ' + x.qtdpronta + ' peça(s) prontas' : '') + '? Fica em "Aguardando cliente" até a NF ser emitida' + (parcial(x) ? ' ou até chegarem as outras peças da expedição.' : '.'),
       ok: 'Marcar como não faturado'
     });
     if (!ok) return;

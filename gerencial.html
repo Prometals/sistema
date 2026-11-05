@@ -301,7 +301,7 @@ Sessao.iniciarPagina('gerencial').then(function (ctx) {
         '<td><input type="checkbox" class="chk" data-sel' + (selecionadas.has(x.id_item) ? ' checked' : '') + '><span class="ord" data-ord></span></td>' +
         '<td><b>' + Ui.esc(x.op || '—') + '</b></td><td>' + Ui.esc(x.pedido || '—') + '</td><td>' + Ui.esc(x.cliente || '—') + '</td>' +
         '<td class="mut">' + Ui.esc(x.codigo || '—') + '</td><td class="desc" title="' + Ui.esc(x.descricao) + '">' + Ui.esc(x.descricao || '—') + '</td>' +
-        '<td class="num">' + Ui.esc(x.qtdordem === '' || x.qtdordem === null || x.qtdordem === undefined ? '—' : x.qtdordem) + '</td>' +
+        '<td class="num">' + qtdTela(x) + '</td>' +
         (dis ? '<td>' + Ui.esc(procAtual(x) || '—') + '</td>'
              : '<td><select class="in' + ('processo' in ed ? ' mudou' : '') + '" data-campo="processo">' + opcoesProcesso(procAtual(x)) + '</select></td>') +
         '<td class="num' + corPrazo(x) + '" title="' + Ui.esc(x.st.label) + '">' + Ui.esc(x.prazo ? x.prazo.slice(0, 5) : '—') + '</td>' +
@@ -316,7 +316,7 @@ Sessao.iniciarPagina('gerencial').then(function (ctx) {
       return '<div class="cm' + (alterada ? ' alterada' : '') + (selecionadas.has(x.id_item) ? ' sel' : '') + '" data-id="' + Ui.esc(x.id_item) + '">' +
         '<div class="cm-top"><input type="checkbox" class="chk" data-sel' + (selecionadas.has(x.id_item) ? ' checked' : '') + '><span class="ord" data-ord></span><span class="op">' + Ui.esc(x.op || '—') + '</span>' +
         '<span class="cli">' + Ui.esc(x.cliente) + ' · ped. ' + Ui.esc(x.pedido || '—') + '</span><span class="prazo' + corPrazo(x) + '">' + Ui.esc(x.prazo ? x.prazo.slice(0, 5) : '—') + '</span></div>' +
-        '<div class="cm-desc">' + Ui.esc(x.descricao) + '<small>' + Ui.esc(x.codigo) + ' · ' + Ui.esc(x.liga || '—') + (x.qtdordem ? ' · ' + Ui.esc(x.qtdordem) + ' pç' : '') + '</small></div>' +
+        '<div class="cm-desc">' + Ui.esc(x.descricao) + '<small>' + Ui.esc(x.codigo) + ' · ' + Ui.esc(x.liga || '—') + (x.qtdordem ? ' · ' + qtdTela(x) + ' pç' : '') + '</small></div>' +
         '<div class="cm-campos"><label>Processo<select class="in' + ('processo' in ed ? ' mudou' : '') + '" data-campo="processo"' + dis + '>' + opcoesProcesso(procAtual(x)) + '</select></label>' +
         '<label>Previsão<input type="date" class="in' + ('previsao' in ed ? ' mudou' : '') + (!x.ehEng && !prev ? ' vazio' : '') + '" data-campo="previsao" value="' + Ui.esc(prev) + '"' + dis + '></label></div></div>';
     }).join('') || '<div class="vazio">Nenhuma OP encontrada.</div>';
@@ -456,14 +456,55 @@ Sessao.iniciarPagina('gerencial').then(function (ctx) {
     desenharLista();
   }
 
+  // Quantidade: OP com expedição parcial mostra "saldo de total" (ex.: 5 de 10)
+  function qtdTela(x) {
+    if (x.qtdordem === '' || x.qtdordem === null || x.qtdordem === undefined) return '—';
+    const s = Number(x.saldoproducao);
+    return x.saldoproducao !== undefined && s < Number(x.qtdordem) ? Ui.esc(s) + ' de ' + Ui.esc(x.qtdordem) : Ui.esc(x.qtdordem);
+  }
+
+  // EXPEDIÇÃO: pergunta quantas peças saíram (já vem com o saldo = expedição total).
+  // Devolve { id_item: qtd } ou null se cancelar.
+  async function perguntarExpedicao(ids) {
+    const porId = {}; base.forEach(function (x) { porId[x.id_item] = x; });
+    const lista = ids.map(function (id) { return porId[id]; }).filter(Boolean);
+    if (!lista.length) return {};
+    const saldo = function (x) { const s = Number(x.saldoproducao); return x.saldoproducao !== undefined && !isNaN(s) ? s : Number(x.qtdordem) || 0; };
+    const corpo = '<div class="msg-erro"></div><p style="margin:0 0 10px;font-size:13px">Quantas peças saíram? Se sair menos que o saldo, o restante volta para <b>PLANEJAMENTO</b> e fica sem previsão.</p>' +
+      '<table class="tab"><thead><tr><th>OP</th><th>Cliente</th><th class="num">Saldo</th><th class="num">Saíram</th></tr></thead><tbody>' +
+      lista.map(function (x) {
+        return '<tr><td><b>' + Ui.esc(x.op) + '</b></td><td>' + Ui.esc(x.cliente) + '</td><td class="num">' + saldo(x) + '</td>' +
+          '<td class="num"><input class="in" style="width:80px;text-align:right" inputmode="numeric" data-exp="' + Ui.esc(x.id_item) + '" value="' + saldo(x) + '"></td></tr>';
+      }).join('') + '</tbody></table>';
+    let resp = null;
+    const v = await Ui.janela({
+      titulo: 'Expedição', subtitulo: lista.length + ' OP' + (lista.length > 1 ? 's' : '') + ' indo para a expedição', largura: 560, corpo: corpo,
+      botoes: [{ texto: 'Voltar', valor: null }, { texto: 'Confirmar', classe: 'pri', valor: 'ok' }],
+      antesDeFechar: function (val, caixa) {
+        const r = {};
+        for (const x of lista) {
+          const t = caixa.querySelector('[data-exp="' + x.id_item + '"]').value.trim();
+          const n = Number(t);
+          if (!/^\d+$/.test(t) || n < 1 || n > saldo(x)) { Ui.msgErro(caixa.querySelector('.msg-erro'), 'OP ' + x.op + ': informe de 1 a ' + saldo(x) + ' peça(s).'); return false; }
+          r[x.id_item] = n;
+        }
+        resp = r; return true;
+      }
+    });
+    return v === 'ok' ? resp : null;
+  }
+
   // ---------- Salvar (só previsão + processo, só o que mudou) ----------
   async function salvarTodos() {
     const ids = Object.keys(edicoes);
     if (!ids.length) { Ui.toast('Nenhuma alteração encontrada.', 'aviso'); return; }
+    const exp = await perguntarExpedicao(ids.filter(function (id) { return edicoes[id].processo === 'EXPEDIÇÃO'; }));
+    if (!exp) return;
     const linhas = ids.map(function (id) {
       const l = { id_item: id };
       if ('processo' in edicoes[id]) l.processo = edicoes[id].processo;
       if ('previsao' in edicoes[id]) l.previsao = edicoes[id].previsao;
+      if (exp[id]) l.qtd_expedida = exp[id];
       return l;
     });
     salvando = true;

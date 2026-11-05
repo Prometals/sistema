@@ -285,7 +285,7 @@ Sessao.iniciarPagina('pcp').then(function (ctx) {
     return '<tr class="' + classeLinha(x) + (selecionadas.has(x.id_item) ? ' sel' : '') + '">' + tdSel(x) +
       '<td><b>' + Ui.esc(x.op ? semZeros(x.op) : '—') + '</b></td><td>' + Ui.esc(semZeros(x.pedido)) + '</td><td>' + Ui.esc(x.cliente) + '</td>' +
       '<td class="cod">' + Ui.esc(x.codigo) + selo(x.codigo) + '</td><td class="desc" title="' + Ui.esc(x.descricao) + '">' + Ui.esc(x.descricao) + '</td>' +
-      '<td class="num">' + Ui.esc(x.qtdordem) + '</td><td>' + Ui.esc(x.liga) + '</td>' +
+      '<td class="num">' + qtdTela(x) + '</td><td>' + Ui.esc(x.liga) + '</td>' +
       '<td class="prz' + (x.cat === 'VENCIDO' ? ' atr' : '') + '" title="' + Ui.esc(x.st.label) + '">' + Ui.esc(prazoCurto(x.prazo)) + '</td>' +
       '<td class="num mold">' + fmtN(x.qtdmoldes) + ' de ' + fmtN(x.qtdmoldesPlanejados) + '</td>' +
       '<td class="num">' + fmtPeso(x.pesomoldes) + '</td>' +
@@ -371,7 +371,7 @@ Sessao.iniciarPagina('pcp').then(function (ctx) {
       return '<div class="cm"' + (cls ? ' style="border-left:3px solid ' + corProcesso(x) + '"' : '') + '>' +
         '<div class="cm-top">' + chkSel(x) + '<span class="op">' + Ui.esc(x.op ? semZeros(x.op) : '—') + '</span><span class="cli">' + Ui.esc(x.cliente) + ' · ped. ' + Ui.esc(semZeros(x.pedido)) + '</span>' +
         '<span class="prazo' + (x.cat === 'VENCIDO' ? ' atraso' : '') + '">' + Ui.esc(prazoCurto(x.prazo)) + '</span></div>' +
-        '<div class="cm-desc">' + Ui.esc(x.descricao) + '<small>' + Ui.esc(x.codigo) + ' · ' + Ui.esc(x.liga) + ' · ' + Ui.esc(x.qtdordem) + ' pç · moldes ' + fmtN(x.qtdmoldes) + ' de ' + fmtN(x.qtdmoldesPlanejados) + '</small></div>' +
+        '<div class="cm-desc">' + Ui.esc(x.descricao) + '<small>' + Ui.esc(x.codigo) + ' · ' + Ui.esc(x.liga) + ' · ' + qtdTela(x) + ' pç · moldes ' + fmtN(x.qtdmoldes) + ' de ' + fmtN(x.qtdmoldesPlanejados) + '</small></div>' +
         '<div class="cm-rod"><span class="proc" style="--c:' + corProcesso(x) + '">' + Ui.esc(x.processo) + '</span><div class="acs">' + acoes + '</div></div></div>';
     }).join('') || '<div class="vazio">Nenhuma OP encontrada.</div>';
   }
@@ -590,6 +590,9 @@ Sessao.iniciarPagina('pcp').then(function (ctx) {
     if (salvando || !contarAlteracoes()) return;
     let linhas;
     try { linhas = montarEnvio(); } catch (e) { Ui.erro(e); return; }
+    const exp = await perguntarExpedicao(linhas.filter(function (l) { return l.id_item && l.processo === 'EXPEDIÇÃO'; }).map(function (l) { return l.id_item; }));
+    if (!exp) return;
+    linhas.forEach(function (l) { if (l.id_item && exp[l.id_item]) l.qtd_expedida = exp[l.id_item]; });
     salvando = true;
     atualizarBarra();
     $('#bt-salvar .rot').textContent = 'Salvando…';
@@ -733,6 +736,11 @@ Sessao.iniciarPagina('pcp').then(function (ctx) {
           if (Object.keys(linha).length === 1) return true;
         }
         try {
+          if (linha.id_item && linha.processo === 'EXPEDIÇÃO') {
+            const exp = await perguntarExpedicao([linha.id_item]);
+            if (!exp) return false;
+            linha.qtd_expedida = exp[linha.id_item];
+          }
           const r = await Api.chamar('salvarLinhasPCP', { idReq: idReq, linhas: [linha] });
           Ui.toast(novo ? 'OP criada.' : 'Alterações salvas.');
           (r.avisos || []).forEach(function (a) { Ui.toast(a, 'aviso', 'Atenção'); });
@@ -880,6 +888,42 @@ Sessao.iniciarPagina('pcp').then(function (ctx) {
   <script>window.onload=function(){window.print();};<\/script>
   </body></html>`);
     w.document.close();
+  }
+
+  // Quantidade: OP com expedição parcial mostra "saldo de total" (ex.: 5 de 10)
+  function qtdTela(x) {
+    const s = Number(x.saldoproducao);
+    return x.saldoproducao !== undefined && x.qtdordem !== '' && s < Number(x.qtdordem) ? Ui.esc(s) + ' de ' + Ui.esc(x.qtdordem) : Ui.esc(x.qtdordem);
+  }
+
+  // EXPEDIÇÃO: pergunta quantas peças saíram (já vem com o saldo = expedição total).
+  // Devolve { id_item: qtd } ou null se cancelar.
+  async function perguntarExpedicao(ids) {
+    const lista = ids.map(function (id) { return dados.find(function (d) { return d.id_item === id; }); }).filter(Boolean);
+    if (!lista.length) return {};
+    const saldo = function (x) { const s = Number(x.saldoproducao); return x.saldoproducao !== undefined && !isNaN(s) ? s : Number(x.qtdordem) || 0; };
+    const corpo = '<div class="msg-erro"></div><p style="margin:0 0 10px;font-size:13px">Quantas peças saíram? Se sair menos que o saldo, o restante volta para <b>PLANEJAMENTO</b> e fica sem previsão.</p>' +
+      '<table class="tab"><thead><tr><th>OP</th><th>Cliente</th><th class="num">Saldo</th><th class="num">Saíram</th></tr></thead><tbody>' +
+      lista.map(function (x) {
+        return '<tr><td><b>' + Ui.esc(semZeros(x.op)) + '</b></td><td>' + Ui.esc(x.cliente) + '</td><td class="num">' + saldo(x) + '</td>' +
+          '<td class="num"><input style="width:80px;height:34px;text-align:right" inputmode="numeric" data-exp="' + Ui.esc(x.id_item) + '" value="' + saldo(x) + '"></td></tr>';
+      }).join('') + '</tbody></table>';
+    let resp = null;
+    const v = await Ui.janela({
+      titulo: 'Expedição', subtitulo: lista.length + ' OP' + (lista.length > 1 ? 's' : '') + ' indo para a expedição', largura: 560, corpo: corpo,
+      botoes: [{ texto: 'Voltar', valor: null }, { texto: 'Confirmar', classe: 'pri', valor: 'ok' }],
+      antesDeFechar: function (val, caixa) {
+        const r = {};
+        for (const x of lista) {
+          const t = caixa.querySelector('[data-exp="' + x.id_item + '"]').value.trim();
+          const n = Number(t);
+          if (!/^\d+$/.test(t) || n < 1 || n > saldo(x)) { Ui.msgErro(caixa.querySelector('.msg-erro'), 'OP ' + semZeros(x.op) + ': informe de 1 a ' + saldo(x) + ' peça(s).'); return false; }
+          r[x.id_item] = n;
+        }
+        resp = r; return true;
+      }
+    });
+    return v === 'ok' ? resp : null;
   }
 
   // ---------- Apoio ----------
