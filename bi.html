@@ -102,9 +102,11 @@ table.tv-t .num { text-align: right; }
 
 <!-- Dashboard BI — TV da fábrica (1920×1080, usuário da TV).
      Sem valores em R$ (a TV fica numa sala aberta a todos).
-     5 telas em rotação: Prioridades, Plano do mês, Produção × Refugo,
-     Prazo e Gargalos. Cabeçalho fixo: % do plano, prazo vencido,
-     peças hoje e refugo hoje.
+     5 telas em rotação: Prioridades, Plano do mês, Refugo, Prazo e
+     Gargalos. Cabeçalho fixo: % do plano, prazo vencido, fora do crono.
+     e refugo hoje (peças). O produzido e o índice de refugo ficam
+     ocultos até o Registro de Produção entrar em uso (o servidor já
+     manda: tv.producao.hoje/semana.pecas e processos[].produzido).
      Prazo vencido / fora do crono. = js/cronograma.js (mesmos números do PCP,
      Consulta, Gerencial e Visão geral). Tempo de cada tela: ?seg=20 na URL. -->
 <main class="conteudo">
@@ -114,7 +116,7 @@ table.tv-t .num { text-align: right; }
       <div class="hk">
         <div><b id="hPlano" style="color:var(--c-destaque)">—</b><span>PLANO DO MÊS</span></div>
         <div><b id="hAtr" style="color:var(--c-verm)">—</b><span>PRAZO VENCIDO</span></div>
-        <div><b id="hPecas" style="color:var(--c-ok)">—</b><span>PEÇAS HOJE</span></div>
+        <div><b id="hFcr" style="color:var(--c-lar)">—</b><span>FORA DO CRONO.</span></div>
         <div><b id="hRef" style="color:var(--c-amar)">—</b><span>REFUGO HOJE</span></div>
       </div>
       <div class="dir">
@@ -169,13 +171,12 @@ table.tv-t .num { text-align: right; }
       </div>
     </section>
 
-    <!-- TELA 3 — PRODUÇÃO × REFUGO -->
+    <!-- TELA 3 — REFUGO (o produzido entra quando o Registro de Produção estiver em uso) -->
     <section class="ws t-prod" data-tela="2">
-      <div class="k" style="grid-template-columns:repeat(4,1fr)" id="kProd"></div>
-      <div class="bx">
-        <div style="display:flex;justify-content:space-between;align-items:center"><h4 id="prodTit">SEMANA POR PROCESSO · PEÇAS</h4>
-          <div class="leg"><span><i style="background:var(--c-ok)"></i>Produzido</span><span><i style="background:var(--c-verm)"></i>Refugado</span><span>% = índice de refugo</span></div></div>
-        <div class="barras" id="bProd"></div>
+      <div class="k" style="grid-template-columns:repeat(5,1fr)" id="kProd"></div>
+      <div class="g2" style="grid-template-columns:1fr 1fr">
+        <div class="bx"><h4 id="prodTit">REFUGO POR PROCESSO NA SEMANA · PEÇAS</h4><div class="barras" id="bProd"></div></div>
+        <div class="bx"><h4>PRINCIPAIS MOTIVOS DA SEMANA · PEÇAS</h4><div class="barras" id="bMot"></div></div>
       </div>
     </section>
 
@@ -221,7 +222,7 @@ table.tv-t .num { text-align: right; }
 Sessao.iniciarPagina('bi').then(function (ctx) {
   const $ = function (id) { return document.getElementById(id); };
   const e = Ui.esc;
-  const NOMES = ['PRIORIDADES DA FÁBRICA', 'PLANO DO MÊS', 'PRODUÇÃO × REFUGO', 'PRAZO', 'GARGALOS'];
+  const NOMES = ['PRIORIDADES DA FÁBRICA', 'PLANO DO MÊS', 'REFUGO', 'PRAZO', 'GARGALOS'];
   const N = NOMES.length;
   const MESES = ['JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 'MAIO', 'JUNHO', 'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'];
   const SAIU = ['EXPEDICAO', 'AGUARDANDO_FATURAMENTO', 'FINALIZADA'];
@@ -293,7 +294,7 @@ Sessao.iniciarPagina('bi').then(function (ctx) {
     if (!dados) return true;
     if (i === 0) return dados.prioridade.length > 0;
     if (i === 1) return dados.plano.length > 0;
-    if (i === 2) { const s = dados.prod.semana; return s.pecas + s.moldes + s.refugo + s.refugoMolde > 0; }
+    if (i === 2) { const s = dados.prod.semana; return s.refugo + s.moldes + s.refugoMolde + (s.retrabalho || 0) > 0; }
     if (i === 4) return dados.processos.length > 0;
     return true;
   }
@@ -404,7 +405,8 @@ Sessao.iniciarPagina('bi').then(function (ctx) {
   const semLinhas = function (col, txt) { return '<tr><td colspan="' + col + '" class="sem">' + e(txt) + '</td></tr>'; };
   const curtoData = function (v) { return v && v !== '-' ? String(v).slice(0, 5) : '—'; };
   const pct = function (a, b) { return b > 0 ? Math.round(a / b * 100) : 0; };
-  const indice = function (ref, prod) { return ref + prod > 0 ? ref / (ref + prod) * 100 : null; };
+  // Índice = refugado ÷ (feito + refugado). Só com produção apontada; sem ela mostra '—' (nunca 100% falso).
+  const indice = function (ref, prod) { return prod > 0 ? ref / (ref + prod) * 100 : null; };
   const pctTxt = function (v) { return v === null ? '—' : v.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%'; };
   const num = function (n) { return Number(n || 0).toLocaleString('pt-BR'); };
   const plural = function (n, s, p) { return n === 1 ? s : p; };
@@ -414,8 +416,8 @@ Sessao.iniciarPagina('bi').then(function (ctx) {
     const saiu = d.plano.filter(function (c) { return c._saida === 'SAIU'; }).length;
     $('hPlano').textContent = d.plano.length ? pct(saiu, d.plano.length) + '%' : '—';
     $('hAtr').textContent = d.vencidas.length;
-    $('hPecas').textContent = num(h.pecas);
-    $('hRef').textContent = pctTxt(indice(h.refugo, h.pecas));
+    $('hFcr').textContent = d.foraCrono.length;
+    $('hRef').textContent = num(h.refugo);
     telaPrioridade(d); telaPlano(d, saiu); telaProducao(d); telaPrazo(d); telaGargalos(d);
   }
 
@@ -498,27 +500,21 @@ Sessao.iniciarPagina('bi').then(function (ctx) {
     }).join('') || semLinhas(4, 'Todas as OPs do plano já saíram.');
   }
 
-  // TELA 3 — produção × refugo (só peças no índice; molde separado)
+  // TELA 3 — refugo (o produzido e o índice voltam quando o Registro de Produção estiver em uso)
   function telaProducao(d) {
     const p = d.prod, h = p.hoje, s = p.semana;
-    const idxH = indice(h.refugo, h.pecas), idxS = indice(s.refugo, s.pecas);
     $('kProd').innerHTML =
-      '<div class="kc" style="--c:var(--c-ok)"><div class="l">PEÇAS PRODUZIDAS HOJE</div><b>' + num(h.pecas) + '</b><div class="f">semana: ' + num(s.pecas) + ' · soma dos processos</div></div>' +
-      '<div class="kc" style="--c:var(--c-azul)"><div class="l">MOLDES FEITOS HOJE</div><b>' + num(h.moldes) + '</b><div class="f">semana: ' + num(s.moldes) + ' · refugo de molde hoje: ' + num(h.refugoMolde) + '</div></div>' +
-      '<div class="kc" style="--c:var(--c-verm)"><div class="l">REFUGO HOJE</div><b style="color:var(--c-verm)">' + num(h.refugo) + '</b><div class="f">peças · semana: ' + num(s.refugo) + '</div></div>' +
-      '<div class="kc" style="--c:var(--c-amar)"><div class="l">ÍNDICE DE REFUGO</div><b style="color:var(--c-amar)">' + pctTxt(idxH) + '</b><div class="f">hoje · semana: ' + pctTxt(idxS) + '</div></div>';
-    $('prodTit').textContent = 'SEMANA POR PROCESSO · PEÇAS · desde ' + curtoData(p.semanaDesde);
-    const lista = p.processos.slice(0, 8);
-    const mx = Math.max.apply(null, lista.map(function (x) { return x.produzido + x.refugo; }).concat([1]));
-    $('bProd').innerHTML = lista.map(function (x) {
-      const idx = indice(x.refugo, x.produzido);
-      const acima = idx !== null && idxS !== null && idx > idxS;   // acima do índice da semana = amarelo
-      return '<div class="br" style="grid-template-columns:260px 1fr 120px" title="' + e(x.nome) + ': ' + num(x.produzido) + ' produzidas, ' + num(x.refugo) + ' refugadas">' +
-        '<span class="n">' + e(x.nome) + '</span><div class="bt">' +
-        '<i style="width:' + (x.produzido / mx * 100) + '%;background:var(--c-ok)"></i>' +
-        '<i style="width:' + (x.refugo / mx * 100) + '%;background:var(--c-verm)"></i></div>' +
-        '<b' + (acima ? ' style="color:var(--c-amar)"' : '') + '>' + pctTxt(idx) + '</b></div>';
-    }).join('') || '<div class="info" style="text-align:center">Nenhuma peça apontada nesta semana.</div>';
+      '<div class="kc" style="--c:var(--c-verm)"><div class="l">PEÇAS REFUGADAS HOJE</div><b style="color:var(--c-verm)">' + num(h.refugo) + '</b><div class="f">peças jogadas fora hoje</div></div>' +
+      '<div class="kc" style="--c:var(--c-verm)"><div class="l">PEÇAS REFUGADAS NA SEMANA</div><b>' + num(s.refugo) + '</b><div class="f">desde segunda, ' + e(curtoData(p.semanaDesde)) + '</div></div>' +
+      '<div class="kc" style="--c:var(--c-azul)"><div class="l">MOLDES FEITOS HOJE</div><b>' + num(h.moldes) + '</b><div class="f">semana: ' + num(s.moldes) + '</div></div>' +
+      '<div class="kc" style="--c:var(--c-azul)"><div class="l">REFUGO DE MOLDE HOJE</div><b style="color:var(--c-amar)">' + pctTxt(indice(h.refugoMolde, h.moldes)) + '</b><div class="f">' + num(h.refugoMolde) + ' refugado(s) · semana: ' + pctTxt(indice(s.refugoMolde, s.moldes)) + '</div></div>' +
+      '<div class="kc" style="--c:var(--c-amar)"><div class="l">RETRABALHO NA SEMANA</div><b>' + num(s.retrabalho || 0) + '</b><div class="f">peças recuperadas · hoje: ' + num(h.retrabalho || 0) + '</div></div>';
+    const procs = p.processos.filter(function (x) { return x.refugo > 0; })
+      .sort(function (a, b) { return b.refugo - a.refugo; }).slice(0, 7)
+      .map(function (x) { return { nome: x.nome, n: x.refugo }; });
+    $('bProd').innerHTML = procs.length ? barras(procs, 0, 'var(--c-verm)') : '<div class="info" style="text-align:center">Nenhuma peça refugada nesta semana.</div>';
+    const mot = (p.motivos || []).map(function (x) { return { nome: x.nome, n: x.qtd }; });
+    $('bMot').innerHTML = mot.length ? barras(mot, 0, 'var(--c-amar)') : '<div class="info" style="text-align:center">Sem motivos nesta semana.</div>';
   }
 
   // Barras simples (os N primeiros em laranja)
