@@ -41,6 +41,8 @@ html.tema-claro .tab-wrap table.tab thead th { background: #f1f5f9; }
 .chk:disabled { cursor: not-allowed; }
 table.tab td.desc { max-width: 260px; overflow: hidden; text-overflow: ellipsis; }
 table.tab td.num, table.tab th.num { text-align: right; white-space: nowrap; }
+/* o sistema deixa as células quebrarem linha; o valor fica sempre inteiro (R$ + número) */
+.vl { white-space: nowrap; }
 tr.no-plano td { background: color-mix(in srgb, #3b82f6 8%, transparent); }
 tr.no-plano td:first-child { box-shadow: inset 3px 0 0 #3b82f6; }
 tr.mudou td:first-child { box-shadow: inset 3px 0 0 var(--destaque); }
@@ -75,6 +77,7 @@ html.tema-claro .falta { color: #b91c1c; }
     <label class="in-meta" id="boxMeta" title="Meta de faturamento do mês"><span>Meta R$</span><input id="meta" inputmode="decimal" autocomplete="off" disabled></label>
     <div class="f-busca"><svg class="i"><use href="#i-busca"/></svg><input id="busca" placeholder="Buscar OP, pedido, cliente, código ou descrição…" autocomplete="off"></div>
     <button class="chip" id="chipPlano" title="Mostrar só as OPs do plano"><svg class="i"><use href="#i-check"/></svg><span>Só o plano</span></button>
+    <button class="btn2" id="bt-imp" title="Imprimir"><svg class="i"><use href="#i-imp"/></svg>Imprimir</button>
     <button class="btn2" id="bt-cancelar" data-editar disabled title="Descartar alterações"><svg class="i"><use href="#i-x"/></svg>Descartar</button>
     <button class="btn2" id="bt-editar" data-editar title="Editar o plano"><svg class="i"><use href="#i-lapis"/></svg><span>Editar</span></button>
     <button class="btn2 salvar" id="bt-salvar" data-editar disabled><svg class="i"><use href="#i-check"/></svg><span class="rot">Salvar</span> <span class="n" id="n-salvar">0</span></button>
@@ -220,7 +223,7 @@ Sessao.iniciarPagina('plano').then(function (ctx) {
       const np = noPlano(x), mudou = x.id_item in marcadas;
       const outro = x.mesPlano && x.mesPlano !== dados.mes;
       const plano = np ? '<span>' + mesCurto(dados.mes) + '</span>' : (outro ? '<span class="outro" title="Está no plano de outro mês. Marcar aqui tira de lá.">em ' + mesCurto(x.mesPlano) + '</span>' : '<span class="mut">—</span>');
-      const valor = Number(x.valorop) > 0 ? moeda(x.valorAFaturar) : '<span class="falta">Sem valor</span>';
+      const valor = Number(x.valorop) > 0 ? '<span class="vl">' + moeda(x.valorAFaturar) + '</span>' : '<span class="falta vl">Sem valor</span>';
       return '<tr data-id="' + Ui.esc(x.id_item) + '" class="' + (np ? 'no-plano ' : '') + (mudou ? 'mudou' : '') + '">' +
         '<td><input type="checkbox" class="chk" data-plano' + (np ? ' checked' : '') + dis + '></td>' +
         '<td><b>' + Ui.esc(x.op || '—') + '</b></td><td>' + Ui.esc(x.pedido) + '</td><td>' + Ui.esc(x.cliente) + '</td>' +
@@ -322,6 +325,44 @@ Sessao.iniciarPagina('plano').then(function (ctx) {
     } catch (e) { Ui.erro(e); }
     finally { salvando = false; $('#bt-salvar .rot').textContent = 'Salvar'; atualizarBarra(); }
   });
+  // ---------- Impressão: o que está na tela (busca / "Só o plano"), na ordem da tela ----------
+  $('#bt-imp').addEventListener('click', function () {
+    const lista = visiveis();
+    if (!lista.length) { Ui.toast('Nenhuma OP para imprimir.', 'aviso'); return; }
+    const e = Ui.esc;
+    const meta = metaAtual(), plan = planejadoTela(), falta = Math.max(meta - plan, 0);
+    const pct = meta > 0 ? Math.round(plan / meta * 100) : 0;
+    const nomeMes = $('#fMes').selectedOptions[0] ? $('#fMes').selectedOptions[0].textContent : '';
+    let total = 0;
+    const linhas = lista.map(function (x, i) {
+      total += Number(x.valorAFaturar) || 0;
+      const plano = noPlano(x) ? mesCurto(dados.mes) : (x.mesPlano ? mesCurto(x.mesPlano) : '-');
+      return '<tr><td style="text-align:center">' + (i + 1) + '</td><td>' + e(x.op || '-') + '</td><td>' + e(x.pedido || '-') + '</td><td>' + e(x.cliente || '-') + '</td>' +
+        '<td>' + e(x.codigo || '-') + '</td><td>' + e(x.descricao || '-') + '</td><td>' + e(x.prazo || '-') + '</td>' +
+        '<td>' + e(x.status === 'FINALIZADA' ? 'FATURADA' : (x.processo || '-')) + '</td>' +
+        '<td style="text-align:right;white-space:nowrap">' + (Number(x.valorop) > 0 ? moeda(x.valorAFaturar) : 'Sem valor') + '</td><td>' + e(plano) + '</td></tr>';
+    }).join('');
+    const w = window.open('', '_blank');
+    if (!w) { Ui.toast('O navegador bloqueou a janela de impressão. Libere pop-ups para este site.', 'erro'); return; }
+    w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>PLANO DO MÊS</title>
+  <style>
+    body{font-family:Arial;padding:20px;color:#000;background:#fff}
+    h2{font-size:16px;margin:0 0 4px}
+    .sub{font-size:10px;margin-bottom:12px;font-weight:normal;line-height:1.5}
+    table{width:100%;border-collapse:collapse}
+    th,td{border:1px solid #000;padding:4px 5px;font-size:10px;text-align:left;font-weight:normal}
+    th{font-weight:bold}
+  </style></head>
+  <body><h2>PLANO DO MÊS — ${e(nomeMes.toUpperCase())}</h2>
+  <div class="sub">Meta: ${moeda(meta)} &nbsp;|&nbsp; Planejado: ${moeda(plan)} (${pct}% da meta) &nbsp;|&nbsp; Falta para a meta: ${moeda(falta)}<br>
+  Emitido em: ${new Date().toLocaleString('pt-BR')} &nbsp;|&nbsp; ${lista.length} OP${lista.length === 1 ? '' : 's'}${soPlano ? ' (só o plano)' : ''} &nbsp;|&nbsp; Total a faturar: ${moeda(total)}</div>
+  <table><thead><tr><th style="text-align:center">#</th><th>OP</th><th>PEDIDO</th><th>CLIENTE</th><th>CÓDIGO</th><th>DESCRIÇÃO</th><th>PRAZO</th><th>PROCESSO</th>
+  <th style="text-align:right">A FATURAR</th><th>PLANO</th></tr></thead>
+  <tbody>${linhas}</tbody></table>
+  <script>window.onload=function(){window.print();};<\/script></body></html>`);
+    w.document.close();
+  });
+
   window.addEventListener('beforeunload', function (ev) { if (nAlteracoes()) { ev.preventDefault(); ev.returnValue = ''; } });
 });
 </script>
