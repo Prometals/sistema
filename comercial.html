@@ -18,7 +18,10 @@
 .cf.sel { outline: 2px solid var(--c); outline-offset: -1px; }
 .cf.alerta { background: color-mix(in srgb, var(--c) 10%, var(--painel)); }
 .cf.alerta b { color: var(--c); }
-.cf span small { display: block; font-size: 10.5px; font-weight: 700; letter-spacing: 0; text-transform: none; margin-top: 2px; color: var(--texto-suave); }
+.cf .tx { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0; }
+.cf .tx span { flex: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cf .tx small { font-size: 11px; font-weight: 600; color: var(--texto-suave); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cf { align-items: center; }
 /* cabeçalho da tabela fixo ao rolar */
 .tab-wrap table.tab thead th { position: sticky; top: 0; z-index: 2; background: var(--bg); }
 html.tema-claro .tab-wrap table.tab thead th { background: #f1f5f9; }
@@ -361,14 +364,14 @@ Sessao.iniciarPagina('comercial').then(function (ctx) {
     const ini = inicioSemana(), fim = sextaSemana();
     const dm = function (d) { return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0'); };
     return [
-      { m: 'PRONTO', c: '#16a34a', ic: 'i-pacote', rot: 'Pronto p/ faturar · ' + plural(l.pronto.length, 'OP', 'OPs'), val: moeda(somaPronto(l.pronto)), qtd: 'peças que chegaram da expedição', alerta: l.pronto.length > 0, mob: curto(somaPronto(l.pronto)), mobRot: 'Pronto p/ faturar' },
-      { m: 'AGUARDANDO', c: '#d97706', ic: 'i-relogio', rot: 'Aguardando cliente · ' + plural(l.aguard.length, 'OP', 'OPs'), val: moeda(somaPronto(l.aguard)), qtd: 'prontas, cliente não liberou', alerta: l.aguard.length > 0, pisca: l.aguard.length > 0, mob: curto(somaPronto(l.aguard)), mobRot: 'Aguardando' },
-      { m: 'ATRASADAS', c: '#dc2626', ic: 'i-alerta', rot: 'Prazo vencido · ' + plural(l.atras.length, 'OP', 'OPs'), val: moeda(soma(l.atras)), qtd: 'prazo do cliente vencido', mob: curto(soma(l.atras)), mobRot: 'Prazo vencido' },
-      { m: 'ENGENHARIA', c: '#9333ea', ic: 'i-clip', rot: 'Faturamento engenharia', val: moeda(soma(l.eng)), qtd: plural(l.eng.length, 'item sem OP', 'itens sem OP'), mob: curto(soma(l.eng)), mobRot: 'Engenharia' },
-      { m: 'META', c: '#3b82f6', ic: 'i-graf', rot: 'Meta · ' + nomeMesPlano(), val: moeda(plano.meta), qtd: 'meta de faturamento do mês (Plano do Mês)', mob: curto(plano.meta || 0), mobRot: 'Meta' },
+      { m: 'PRONTO', c: '#16a34a', ic: 'i-pacote', rot: 'Pronto p/ faturar', sub: plural(l.pronto.length, 'OP', 'OPs'), val: moeda(somaPronto(l.pronto)), qtd: 'peças que chegaram da expedição', alerta: l.pronto.length > 0, mob: curto(somaPronto(l.pronto)), mobRot: 'Pronto p/ faturar' },
+      { m: 'AGUARDANDO', c: '#d97706', ic: 'i-relogio', rot: 'Aguardando cliente', sub: plural(l.aguard.length, 'OP', 'OPs'), val: moeda(somaPronto(l.aguard)), qtd: 'prontas, cliente não liberou', alerta: l.aguard.length > 0, pisca: l.aguard.length > 0, mob: curto(somaPronto(l.aguard)), mobRot: 'Aguardando' },
+      { m: 'ATRASADAS', c: '#dc2626', ic: 'i-alerta', rot: 'Prazo vencido', sub: plural(l.atras.length, 'OP', 'OPs'), val: moeda(soma(l.atras)), qtd: 'prazo do cliente vencido', mob: curto(soma(l.atras)), mobRot: 'Prazo vencido' },
+      { m: 'ENGENHARIA', c: '#9333ea', ic: 'i-clip', rot: 'Faturamento engenharia', sub: plural(l.eng.length, 'item sem OP', 'itens sem OP'), val: moeda(soma(l.eng)), qtd: plural(l.eng.length, 'item sem OP', 'itens sem OP'), mob: curto(soma(l.eng)), mobRot: 'Engenharia' },
+      { m: 'META', c: '#3b82f6', ic: 'i-graf', rot: 'Meta', sub: nomeMesPlano(), val: moeda(plano.meta), qtd: 'meta de faturamento do mês (Plano do Mês)', mob: curto(plano.meta || 0), mobRot: 'Meta' },
       { m: 'PLANO', c: '#16a34a', ic: 'i-check', rot: 'Planejado', sub: pctMeta(plano.planejado) + ' da meta · ' + plural(planoIds.size, 'OP', 'OPs'), val: moeda(plano.planejado), qtd: 'OPs do Plano do Mês (clique para filtrar)', mob: curto(plano.planejado || 0), mobRot: 'Planejado' },
       { m: 'FATURADO', c: '#16a34a', ic: 'i-moeda', rot: 'Faturado no mês', sub: pctMeta(plano.faturado) + ' · faltam ' + moeda(Math.max((plano.meta || 0) - (plano.faturado || 0), 0)), val: moeda(plano.faturado), qtd: 'NFs emitidas no mês', mob: curto(plano.faturado || 0), mobRot: 'Faturado' },
-      { m: 'TODOS', c: '#64748b', ic: 'i-tabela', rot: 'Carteira total', val: moeda(soma(base)), qtd: plural(base.filter(temPedido).length, 'OP com pedido', 'OPs com pedido') + ' · tudo que falta faturar', mob: curto(soma(base)), mobRot: 'Carteira' }
+      { m: 'TODOS', c: '#64748b', ic: 'i-tabela', rot: 'Carteira total', sub: plural(base.filter(temPedido).length, 'OP com pedido', 'OPs com pedido'), val: moeda(soma(base)), qtd: plural(base.filter(temPedido).length, 'OP com pedido', 'OPs com pedido') + ' · tudo que falta faturar', mob: curto(soma(base)), mobRot: 'Carteira' }
     ];
   }
   function pctMeta(v) { return plano.meta > 0 ? Math.round((v || 0) / plano.meta * 100) + '%' : '—'; }
@@ -379,7 +382,7 @@ Sessao.iniciarPagina('comercial').then(function (ctx) {
     const k = calcularCards();
     $('#cards').innerHTML = k.map(function (x) {
       return '<button class="cf' + (modo === x.m ? ' sel' : '') + (x.alerta ? ' alerta' : '') + (x.pisca ? ' piscando' : '') + '" data-modo="' + x.m + '" style="--c:' + x.c + '" title="' + Ui.esc(x.rot + ': ' + x.val + ' · ' + x.qtd) + '">' +
-        '<b>' + Ui.esc(x.val) + '</b><span>' + Ui.esc(x.rot) + (x.sub ? '<small>' + Ui.esc(x.sub) + '</small>' : '') + '</span>' + Ui.ic(x.ic) + '</button>';
+        '<div class="tx"><span>' + Ui.esc(x.rot) + '</span><b>' + Ui.esc(x.val) + '</b><small>' + Ui.esc(x.sub || '') + '</small></div>' + Ui.ic(x.ic) + '</button>';
     }).join('');
     $('#cards-mob').innerHTML = k.map(function (x) {
       return '<button class="km' + (modo === x.m ? ' sel' : '') + (x.pisca ? ' piscando' : '') + '" data-modo="' + x.m + '" style="--c:' + x.c + '"><b>' + Ui.esc(x.mob) + '</b>' + Ui.esc(x.mobRot) + '</button>';
