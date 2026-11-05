@@ -771,11 +771,15 @@ Sessao.iniciarPagina('pcp').then(function (ctx) {
 
   // ---------- Etiquetas 100 × 50 mm (layout IDÊNTICO ao painel antigo) ----------
   // Regra do LADO (automática, sem cadastro):
-  //   liga SFK → peça com lado (LD + LE), exceto os códigos de SEM_LADO_CODIGOS (Ingredion);
+  //   liga SFK → peça com lado (LD + LE), exceto os códigos de SEM_LADO_CODIGOS;
   //   CRK e todas as outras ligas (terceiros) → N/A.
   // Para acrescentar um código sem lado, basta pôr na lista abaixo.
   const LIGAS_COM_LADO = ['SFK'];
-  const SEM_LADO_CODIGOS = ['SD3611022', '8025', '8073', '8026'];
+  const SEM_LADO_CODIGOS = [
+    'SD3611022',                                                                        // Eucatex
+    'BC368025F', 'BC368025R', 'BC368026F', 'BC368026R', 'BC308073A', 'BC308073B',      // Ingredion
+    '199900082-E1', '199900099-D1', '199900107-E3', '199900108-E2', '199900109-D2', '199900120-D3'   // Agropalma
+  ];
   function itemTemLado(x) {
     const liga = String(x.liga || '').trim().toUpperCase();
     if (!LIGAS_COM_LADO.some(function (l) { return liga.indexOf(l) === 0; })) return false;
@@ -787,7 +791,7 @@ Sessao.iniciarPagina('pcp').then(function (ctx) {
     const moldes = Number(x.qtdmoldesPlanejados) || 0;   // etiqueta = total planejado (não desconta a fusão)
     const dadosEt = { op: semZeros(x.op), pedido: semZeros(x.pedido), codigo: x.codigo, lote: semZeros(x.op), liga: x.liga, prazo: x.prazo };
     const corpo =
-      '<div class="et-grade"><div class="fg">' +
+      '<div class="et-grade" style="padding-bottom:16px"><div class="fg">' +
       '<label>Ordem de produção<input readonly value="' + Ui.esc(dadosEt.op) + '"></label><label>Pedido<input readonly value="' + Ui.esc(dadosEt.pedido) + '"></label>' +
       '<label class="full">Item (código)<input readonly value="' + Ui.esc(dadosEt.codigo) + '"></label>' +
       '<label>Lote<input readonly value="' + Ui.esc(dadosEt.lote) + '"></label><label>Liga<input readonly value="' + Ui.esc(dadosEt.liga) + '"></label>' +
@@ -795,10 +799,11 @@ Sessao.iniciarPagina('pcp').then(function (ctx) {
       '<div class="info-mold full">Moldes planejados: <b>' + (moldes > 0 ? moldes + ' moldes' : 'não informado') + '</b>' +
         (x.qtdmoldes !== '' && moldes > 0 ? ' · falta fundir ' + x.qtdmoldes : '') + '</div>' +
       '<label>Quantidade de etiquetas<input name="qtd" type="number" min="1" value="' + (moldes > 0 ? moldes : 1) + '"></label>' +
-      '<label>Lado<select name="lado"' + (temLado ? '' : ' disabled') + '>' + (temLado
+      '<label style="position:relative">Lado<select name="lado"' + (temLado ? '' : ' disabled') + '>' + (temLado
           ? '<option value="LD+LE">LD + LE</option><option value="LD">LD</option><option value="LE">LE</option>'
           : '<option value="N/A">N/A</option>') + '</select>' +
-        '<small data-div style="display:block;margin-top:4px;font-size:12px;color:var(--texto-suave)"></small></label>' +
+        // aviso embaixo do campo, fora do fluxo: não muda a altura nem desalinha as caixas
+        '<small data-div style="position:absolute;left:0;top:100%;margin-top:3px;font-size:11px;font-weight:400;text-transform:none;letter-spacing:0;white-space:nowrap;color:var(--texto-suave)"></small></label>' +
       '</div><div class="previa">PRÉVIA<div class="cx"><div data-previa></div></div>1 etiqueta por página · impressora térmica</div></div>';
     Ui.janela({
       titulo: 'Gerar etiquetas', subtitulo: 'Etiqueta 100 × 50 mm · mesmo layout de hoje', largura: 700,
