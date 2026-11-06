@@ -83,7 +83,10 @@ html.tema-claro .fcr-t { color: #c2410c; }
      atualização a cada 1 min). Saem: cards Previsão vencida / Alta
      prioridade / Estoque, filtros de processo/prioridade/ordenação,
      colunas Prioridade e Excluir. Entra checkbox (impressão regra 3.5).
-     Atrasadas = regra do cronograma, igual ao PCP e à Consulta (opção B). -->
+     Atrasadas = regra do cronograma, igual ao PCP e à Consulta (opção B).
+     Prioridade por SETOR: imprimir com OPs marcadas grava uma lista para cada
+     setor (= processo atual da OP), numerada do 1; a lista de um setor só
+     substitui a daquele setor. Depois de imprimir, a seleção é limpa. -->
 <main class="conteudo">
   <div class="tit-pagina">
     <div><h1>Controle Gerencial</h1><p>Previsão e processo das OPs em produção · OPs na expedição saem desta tela</p></div>
@@ -161,8 +164,7 @@ Sessao.iniciarPagina('gerencial').then(function (ctx) {
   const edicoes = {};            // id_item → { processo?, previsao? (aaaa-mm-dd) } — só o que mudou
   const selecionadas = new Set();  // id_item
   let planoIds = new Set();        // OPs do Plano do Mês (mês atual)
-  let prioridadeCarregada = false; // a prioridade publicada marca as caixinhas uma vez, ao abrir
-  let prioridadeGravada = '';      // ids da última prioridade gravada (não regrava igual)
+  const prioridadeGravada = {};    // setor → ids da última prioridade gravada por esta tela (não regrava igual)
 
   if (!ctx.podeEditar) document.querySelectorAll('[data-editar]').forEach(function (b) { b.hidden = true; });
 
@@ -187,41 +189,50 @@ Sessao.iniciarPagina('gerencial').then(function (ctx) {
       const ids = new Set(base.map(function (x) { return x.id_item; }));
       selecionadas.forEach(function (id) { if (!ids.has(id)) selecionadas.delete(id); });
       desenhar();
-      carregarPlano(ids);
+      carregarPlano();
     } catch (e) {
       if (!silencioso) Ui.erro(e);
     }
   }
 
-  // Plano do Mês (card) e prioridade publicada (caixinhas já marcadas na ordem)
-  async function carregarPlano(ids) {
+  // Plano do Mês (card)
+  async function carregarPlano() {
     try {
       const r = await Api.chamar('resumoPlano', {});
       planoIds = new Set(r.ids || []);
     } catch (e) { /* sem o plano, o card fica zerado */ }
-    if (!prioridadeCarregada) {
-      try {
-        const p = await Api.chamar('prioridadeAtual', {});
-        prioridadeCarregada = true;
-        prioridadeGravada = (p.itens || []).map(function (it) { return it.id_item; }).join('|');
-        if (!selecionadas.size) (p.itens || []).forEach(function (it) { if (ids.has(it.id_item)) selecionadas.add(it.id_item); });
-      } catch (e) { /* segue sem a prioridade */ }
-    }
     desenhar();
   }
 
-  // Imprimir com OPs marcadas = publicar a prioridade da fábrica (automático).
+  // Setor da OP = processo atual "limpo" (mesma regra do BI):
+  // sem nº de OP = ENGENHARIA · sem apontamento = PLANEJAMENTO
+  function setorDe(x) {
+    if (!x.op) return 'ENGENHARIA';
+    return String(procAtual(x) || '').replace(/ - INICIADO| - FINALIZADO/g, '').trim().toUpperCase() || 'PLANEJAMENTO';
+  }
+  // OPs marcadas separadas por setor, na ordem em que foram marcadas: [{ setor, lista }]
+  function gruposPorSetor(lista) {
+    const g = [], idx = {};
+    lista.forEach(function (x) {
+      const s = setorDe(x);
+      if (idx[s] === undefined) { idx[s] = g.length; g.push({ setor: s, lista: [] }); }
+      g[idx[s]].lista.push(x);
+    });
+    return g;
+  }
+
+  // Imprimir com OPs marcadas = publicar a prioridade de cada setor (automático).
   // Grava na planilha a ordem das caixinhas; só quem EDITA o Gerencial grava.
-  // Não regrava se a ordem for igual à última. Sem caixinha marcada (impressão
-  // por filtro/tudo) não mexe na prioridade.
-  function publicarPrioridade(lista) {
+  // Não regrava se a ordem do setor for igual à última. Sem caixinha marcada
+  // (impressão por filtro/tudo) não mexe na prioridade.
+  function publicarPrioridade(setor, lista) {
     if (!ctx.podeEditar || !lista.length) return;
     const ids = lista.map(function (x) { return x.id_item; });
     const chave = ids.join('|');
-    if (chave === prioridadeGravada) return;
-    Api.chamar('publicarPrioridade', { idReq: Api.idReq(), ids: ids })
-      .then(function (r) { prioridadeGravada = chave; Ui.toast(r.ops + ' OP(s) na ordem marcada.', 'ok', 'Prioridade gravada'); })
-      .catch(function (e) { Ui.toast('A impressão saiu, mas a prioridade não foi gravada: ' + e.message, 'aviso'); });
+    if (chave === prioridadeGravada[setor]) return;
+    Api.chamar('publicarPrioridade', { idReq: Api.idReq(), setor: setor, ids: ids })
+      .then(function (r) { prioridadeGravada[setor] = chave; Ui.toast(r.ops + ' OP(s) na ordem marcada.', 'ok', 'Prioridade gravada · ' + r.setor); })
+      .catch(function (e) { Ui.toast('A impressão saiu, mas a prioridade de ' + setor + ' não foi gravada: ' + e.message, 'aviso'); });
   }
 
   // ---------- Valores na tela (o que o gerente está vendo, com as edições) ----------
@@ -363,10 +374,15 @@ Sessao.iniciarPagina('gerencial').then(function (ctx) {
     atualizarContadores(lista);
   }
 
-  // Número da ordem em que cada OP foi marcada (= ordem da impressão)
+  // Número da ordem em que cada OP foi marcada (= ordem da impressão), contado por setor
   function atualizarOrdem() {
-    const pos = {}; let i = 0;
-    selecionadas.forEach(function (id) { pos[id] = ++i; });
+    const pos = {}, porSetor = {};
+    const porId = {}; base.forEach(function (x) { porId[x.id_item] = x; });
+    selecionadas.forEach(function (id) {
+      if (!porId[id]) return;
+      const s = setorDe(porId[id]);
+      pos[id] = porSetor[s] = (porSetor[s] || 0) + 1;
+    });
     document.querySelectorAll('[data-id]').forEach(function (n) {
       const o = n.querySelector('[data-ord]');
       if (o) o.textContent = pos[n.dataset.id] ? pos[n.dataset.id] + 'º' : '';
@@ -577,12 +593,19 @@ Sessao.iniciarPagina('gerencial').then(function (ctx) {
     return w;
   }
 
-  // "PRIORIDADES PRODUÇÃO" — mesmo layout do antigo, sem a coluna Prioridade
+  // "PRIORIDADES PRODUÇÃO" — mesmo layout do antigo, sem a coluna Prioridade.
+  // Com OPs marcadas: um bloco por setor ("PRIORIDADES — USINAGEM"), cada um
+  // numerado do 1, e a prioridade de cada setor é gravada. Depois limpa a seleção.
   function imprimirPrioridades() {
     const lista = listaImpressao(); if (!lista.length) return;
-    if (selecionadas.size) publicarPrioridade(lista);
+    const porSetor = selecionadas.size > 0;
+    const grupos = porSetor ? gruposPorSetor(lista) : [{ setor: '', lista: lista }];
+    if (porSetor) grupos.forEach(function (g) { publicarPrioridade(g.setor, g.lista); });
     const e = Ui.esc;
-    const htmlRows = lista.map(function (x, i) {
+    const tabela = function (l) {
+      return `<table><thead><tr><th>#</th><th>OP</th><th>PEDIDO</th><th>CLIENTE</th><th>CÓDIGO</th><th>DESCRIÇÃO</th>
+  <th style="text-align:center">QTD</th><th>LIGA</th><th>PROCESSO</th><th>PRAZO</th><th>PREV. SAÍDA</th></tr></thead>
+  <tbody>${l.map(function (x, i) {
       return `<tr>
       <td style="text-align:center;font-weight:bold">${i + 1}</td>
       <td>${e(x.op || '-')}</td><td>${e(x.pedido || '-')}</td><td>${e(x.cliente || '-')}</td>
@@ -593,6 +616,12 @@ Sessao.iniciarPagina('gerencial').then(function (ctx) {
       <td>${e(x.prazo || '-')}</td>
       <td>${e(paraBR(prevAtualISO(x)) || '-')}</td>
     </tr>`;
+    }).join('')}</tbody></table>`;
+    };
+    const emitido = new Date().toLocaleString('pt-BR');
+    const blocos = grupos.map(function (g, k) {
+      return `<div class="bloco"${k ? ' style="margin-top:28px"' : ''}><h2>PRIORIDADES ${g.setor ? '— ' + e(g.setor) : 'PRODUÇÃO'}</h2>
+  <div class="sub">Emitido em: ${emitido} &nbsp;|&nbsp; Total: ${g.lista.length} OPs</div>${tabela(g.lista)}</div>`;
     }).join('');
     const w = abrirJanela(); if (!w) return;
     w.document.write(`<html><head><title>PRIORIDADES PRODUÇÃO</title>
@@ -604,14 +633,12 @@ Sessao.iniciarPagina('gerencial').then(function (ctx) {
     th,td{border:1px solid #ccc;padding:4px 5px;font-size:10px;text-align:left}
     th{background:#efefef}
     td{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .bloco{break-inside:auto}
   </style></head>
-  <body><h2>PRIORIDADES PRODUÇÃO</h2>
-  <div class="sub">Emitido em: ${new Date().toLocaleString('pt-BR')} &nbsp;|&nbsp; Total: ${lista.length} OPs</div>
-  <table><thead><tr><th>#</th><th>OP</th><th>PEDIDO</th><th>CLIENTE</th><th>CÓDIGO</th><th>DESCRIÇÃO</th>
-  <th style="text-align:center">QTD</th><th>LIGA</th><th>PROCESSO</th><th>PRAZO</th><th>PREV. SAÍDA</th></tr></thead>
-  <tbody>${htmlRows}</tbody></table>
+  <body>${blocos}
   <script>window.onload=()=>window.print();<\/script></body></html>`);
     w.document.close();
+    if (porSetor) { selecionadas.clear(); desenhar(); }   // próximo setor começa do zero
   }
 
 });

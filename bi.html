@@ -92,7 +92,25 @@ main.conteudo table.tv-t td.sem { text-align: center; color: var(--texto-suave);
 .barra-plano { width: 100%; height: 22px; border-radius: 11px; background: var(--painel-2); overflow: hidden; }
 .barra-plano i { display: block; height: 100%; background: var(--c-destaque); }
 
-.t-pri { grid-template-rows: auto 1fr; }
+.t-pri { grid-template-rows: 1fr; }
+/* Prioridades por setor: uma coluna por setor, lado a lado */
+.cols { display: grid; gap: 18px; min-height: 0; }
+.col { padding: 14px 16px; gap: 8px; }
+.col .ch { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.col .ch b { font-size: 24px; letter-spacing: 1px; color: var(--c-destaque); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.col .ch span { font-size: 15px; color: var(--texto-suave); white-space: nowrap; }
+.col table.tv-t.cab-fixo { margin-bottom: -8px; }
+.col .pb { height: 8px; border-radius: 4px; background: var(--painel-2); overflow: hidden; flex: none; }
+.col .pb i { display: block; height: 100%; background: var(--c-ok); }
+main.conteudo .col table.tv-t td { font-size: 20px; padding: 10px 8px !important; }
+main.conteudo .col table.tv-t th { padding: 10px 8px !important; }
+main.conteudo .col table.tv-t td.pos { font-size: 24px !important; }
+.col .st { font-size: 14px; padding: 3px 8px; }
+.cols.mini .ch b { font-size: 20px; } .cols.mini .ch span { font-size: 13px; }
+main.conteudo .cols.mini table.tv-t td { font-size: 17px; }
+tr.feita td { color: var(--texto-suave); opacity: .6; }
+tr.feita td.pos { color: var(--texto-suave); }
+tr.feita td:nth-child(2), tr.feita td:nth-child(3) { text-decoration: line-through; }
 .t-plano { grid-template-columns: 1fr 1.15fr; }
 .t-plano .esq { display: grid; grid-template-rows: auto auto 1fr; gap: 18px; min-height: 0; }
 .t-prod, .t-prazo { grid-template-rows: auto 1fr; }
@@ -108,7 +126,7 @@ main.conteudo table.tv-t td.sem { text-align: center; color: var(--texto-suave);
 
 <!-- Dashboard BI — TV da fábrica (1920×1080, usuário da TV).
      Sem valores em R$ (a TV fica numa sala aberta a todos).
-     5 telas em rotação: Prioridades, Plano do mês, Refugo, Prazo e
+     5 telas em rotação: Prioridades por setor, Plano do mês, Refugo, Prazo e
      Gargalos. Cabeçalho fixo: % do plano, prazo vencido, fora do crono.
      e refugo hoje (peças). O produzido e o índice de refugo ficam
      ocultos até o Registro de Produção entrar em uso (o servidor já
@@ -138,15 +156,9 @@ main.conteudo table.tv-t td.sem { text-align: center; color: var(--texto-suave);
     </header>
     <div class="prog"><i id="progFill"></i></div>
 
-    <!-- TELA 1 — PRIORIDADES DA FÁBRICA -->
+    <!-- TELA 1 — PRIORIDADES POR SETOR (uma coluna por setor; OP que saiu do setor fica riscada) -->
     <section class="ws t-pri" data-tela="0">
-      <div class="info" id="priInfo">—</div>
-      <div class="bx tab">
-        <div class="rola"><table class="tv-t">
-          <colgroup><col style="width:80px"><col style="width:130px"><col style="width:320px"><col><col style="width:330px"><col style="width:140px"><col style="width:230px"></colgroup>
-          <thead><tr><th>#</th><th>OP</th><th>CLIENTE</th><th>PEÇA</th><th>ONDE ESTÁ</th><th>PRAZO</th><th>SITUAÇÃO</th></tr></thead>
-          <tbody id="tbPri"></tbody></table></div>
-      </div>
+      <div class="cols" id="priCols"></div>
     </section>
 
     <!-- TELA 2 — PLANO DO MÊS -->
@@ -228,7 +240,7 @@ main.conteudo table.tv-t td.sem { text-align: center; color: var(--texto-suave);
 Sessao.iniciarPagina('bi').then(function (ctx) {
   const $ = function (id) { return document.getElementById(id); };
   const e = Ui.esc;
-  const NOMES = ['PRIORIDADES DA FÁBRICA', 'PLANO DO MÊS', 'REFUGO', 'PRAZO', 'GARGALOS'];
+  const NOMES = ['PRIORIDADES POR SETOR', 'PLANO DO MÊS', 'REFUGO', 'PRAZO', 'GARGALOS'];
   const N = NOMES.length;
   const MESES = ['JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 'MAIO', 'JUNHO', 'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'];
   const SAIU = ['EXPEDICAO', 'AGUARDANDO_FATURAMENTO', 'FINALIZADA'];
@@ -309,7 +321,7 @@ Sessao.iniciarPagina('bi').then(function (ctx) {
   // Pula telas sem dados
   function temDados(i) {
     if (!dados) return true;
-    if (i === 0) return dados.prioridade.length > 0;
+    if (i === 0) return dados.prioridade.length > 0;   // setores com prioridade
     if (i === 1) return dados.plano.length > 0;
     if (i === 2) { const s = dados.prod.semana; return s.refugo + s.moldes + s.refugoMolde + (s.retrabalho || 0) > 0; }
     if (i === 4) return dados.processos.length > 0;
@@ -362,7 +374,7 @@ Sessao.iniciarPagina('bi').then(function (ctx) {
       $('stAtu').textContent = 'Dados de ' + Fmt.hora();
     } catch (err) {
       $('stAtu').textContent = 'Erro ao buscar dados: ' + err.message;
-      if (!dados) { irPara(0); $('telaNome').textContent = 'ERRO AO CARREGAR'; $('tbPri').innerHTML = semLinhas(7, 'Não foi possível carregar os dados.'); }
+      if (!dados) { irPara(0); $('telaNome').textContent = 'ERRO AO CARREGAR'; $('priCols').innerHTML = '<div class="bx"><div class="info" style="text-align:center;padding:30px">Não foi possível carregar os dados.</div></div>'; }
     }
   }
   window.addEventListener('api:status', function (ev) {
@@ -410,8 +422,10 @@ Sessao.iniciarPagina('bi').then(function (ctx) {
       noPrazo: cart.filter(function (c) { return c._cat === 'NO_PRAZO'; }).length,
       paradas: cart.filter(Cronograma.parada).map(function (c) { c._parada = Cronograma.diasParada(c); return c; })
         .sort(function (a, b) { return b._parada - a._parada; }),
-      prioridade: r.tv.prioridade.itens.map(function (c) { classificar(c); c._saida = saida(c); return c; }),
-      priEm: r.tv.prioridade.publicadaEm,
+      prioridade: r.tv.prioridade.setores.map(function (p) {
+        p.itens.forEach(function (c) { classificar(c); c._saida = saida(c); });
+        return p;
+      }),
       plano: plano, mes: r.tv.plano.mes,
       prod: r.tv.producao
     };
@@ -453,15 +467,44 @@ Sessao.iniciarPagina('bi').then(function (ctx) {
     return e(c._proc) + (c._saida === 'PARCIAL' ? ' · <span class="mut">' + e(parcialTxt(c)) + '</span>' : '');
   }
 
-  // TELA 1 — prioridade do gerente, na ordem publicada
+  // TELA 1 — prioridade do gerente por setor, na ordem publicada.
+  // OP que saiu do setor (foi para outro processo, saiu da fábrica ou foi cancelada)
+  // fica riscada, com o destino, até o gerente imprimir uma lista nova daquele setor.
+  function destino(c, setor) {
+    if (c.status === 'CANCELADA') return 'Cancelada';
+    if (c._saida === 'SAIU') return 'Expedida';
+    const p = String(c._proc || '').toUpperCase();
+    return p !== setor ? c._proc : '';
+  }
   function telaPrioridade(d) {
-    $('priInfo').innerHTML = d.prioridade.length
-      ? 'Definida pelo gerente em <b>' + e(String(d.priEm || '').slice(0, 16).replace(' ', ' às ')) + '</b> · ' + d.prioridade.length + ' OPs'
-      : 'O gerente ainda não definiu a prioridade.';
-    $('tbPri').innerHTML = d.prioridade.map(function (c) {
-      return '<tr><td class="pos">' + c.ordem + '</td><td><b>' + e(c.op || '—') + '</b></td><td>' + e(c.cliente || '—') + '</td>' +
-        '<td>' + e(c.descricao || '—') + '</td><td>' + ondeEsta(c) + '</td><td>' + e(curtoData(c.prazo)) + '</td><td>' + situacao(c) + '</td></tr>';
-    }).join('') || semLinhas(7, 'Sem prioridade publicada.');
+    const n = d.prioridade.length;
+    const nc = n <= 4 ? n : (n <= 6 ? 3 : 4);
+    const cols = $('priCols');
+    // guarda onde cada coluna estava rolando (a tela é redesenhada a cada atualização)
+    const rolagem = {};
+    cols.querySelectorAll('.col').forEach(function (c) { const r = c.querySelector('.rola'); rolagem[c.dataset.setor] = { top: r.scrollTop, pausa: r._pausa, voltar: r._voltar }; });
+    cols.className = 'cols' + (nc >= 4 ? ' mini' : '');
+    cols.style.gridTemplateColumns = 'repeat(' + Math.max(nc, 1) + ', minmax(0, 1fr))';
+    cols.style.gridAutoRows = 'minmax(0, 1fr)';
+    const colgroup = '<colgroup><col style="width:52px"><col style="width:92px"><col><col style="width:175px"></colgroup>';
+    cols.innerHTML = d.prioridade.map(function (p) {
+      let feitas = 0;
+      const linhas = p.itens.map(function (c) {
+        const foi = destino(c, p.setor);
+        if (foi) feitas++;
+        return '<tr' + (foi ? ' class="feita"' : '') + '><td class="pos">' + c.ordem + '</td><td><b>' + e(c.op || '—') + '</b></td>' +
+          '<td>' + e(c.cliente || '—') + '</td><td>' + (foi ? '✓ ' + e(foi) : situacao(c)) + '</td></tr>';
+      }).join('');
+      return '<div class="bx col" data-setor="' + e(p.setor) + '"><div class="ch"><b title="' + e(p.setor) + '">' + e(p.setor) + '</b>' +
+        '<span>' + feitas + ' de ' + p.itens.length + ' feitas · ' + e(String(p.publicadaEm || '').slice(0, 16).replace(/\/\d{4}/, '')) + '</span></div>' +
+        '<div class="pb"><i style="width:' + pct(feitas, p.itens.length) + '%"></i></div>' +
+        '<table class="tv-t cab-fixo">' + colgroup + '<thead><tr><th>#</th><th>OP</th><th>CLIENTE</th><th>SITUAÇÃO</th></tr></thead></table>' +
+        '<div class="rola"><table class="tv-t">' + colgroup + '<tbody>' + linhas + '</tbody></table></div></div>';
+    }).join('');
+    cols.querySelectorAll('.col').forEach(function (c) {
+      const g = rolagem[c.dataset.setor], r = c.querySelector('.rola');
+      if (g) { r.scrollTop = g.top; r._pausa = g.pausa; r._voltar = g.voltar; }
+    });
   }
 
   // Dias úteis (seg a sex) do mês e quantos faltam a partir de hoje
